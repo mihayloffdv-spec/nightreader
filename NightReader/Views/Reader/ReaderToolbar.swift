@@ -5,6 +5,7 @@ struct ReaderToolbar: View {
     let onDismiss: () -> Void
 
     @State private var brightness: Double = Double(UIScreen.main.brightness)
+    @State private var showHighlightColors = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -34,6 +35,15 @@ struct ReaderToolbar: View {
                 Button { viewModel.showAnnotationList = true } label: {
                     Image(systemName: "highlighter").font(.body)
                 }
+                Button {
+                    withAnimation { showHighlightColors.toggle() }
+                    viewModel.scheduleHideToolbar()
+                } label: {
+                    Circle()
+                        .fill(Color(viewModel.highlightColor.displayColor))
+                        .frame(width: 20, height: 20)
+                        .overlay(Circle().strokeBorder(.white, lineWidth: 1.5))
+                }
                 Button { withAnimation { viewModel.showThemePicker.toggle() }; viewModel.scheduleHideToolbar() } label: {
                     Image(systemName: "paintpalette").font(.body)
                 }
@@ -42,7 +52,12 @@ struct ReaderToolbar: View {
             .padding(.vertical, 8)
             .background(.ultraThinMaterial)
 
-            // Theme picker panel
+            // Expandable panels
+            if showHighlightColors {
+                highlightColorPicker
+                    .transition(.move(edge: .top).combined(with: .opacity))
+            }
+
             if viewModel.showThemePicker {
                 themePicker
                     .transition(.move(edge: .top).combined(with: .opacity))
@@ -76,31 +91,6 @@ struct ReaderToolbar: View {
                     }
                 }
                 .pickerStyle(.segmented)
-
-                // Highlight colors + export
-                HStack(spacing: 10) {
-                    Image(systemName: "highlighter")
-                        .font(.caption)
-                    ForEach(HighlightColor.allCases) { color in
-                        Button {
-                            viewModel.highlightColor = color
-                            viewModel.scheduleHideToolbar()
-                        } label: {
-                            Circle()
-                                .fill(Color(color.displayColor))
-                                .frame(width: 22, height: 22)
-                                .overlay(
-                                    Circle()
-                                        .strokeBorder(.white, lineWidth: viewModel.highlightColor == color ? 2 : 0)
-                                )
-                        }
-                    }
-                    Spacer()
-                    Button { viewModel.exportAnnotations() } label: {
-                        Image(systemName: "square.and.arrow.up")
-                            .font(.caption)
-                    }
-                }
 
                 // Brightness
                 HStack(spacing: 12) {
@@ -136,6 +126,33 @@ struct ReaderToolbar: View {
             .background(.ultraThinMaterial)
         }
         .foregroundStyle(.white)
+    }
+
+    private var highlightColorPicker: some View {
+        HStack(spacing: 14) {
+            ForEach(HighlightColor.allCases) { color in
+                Button {
+                    viewModel.highlightColor = color
+                    viewModel.scheduleHideToolbar()
+                } label: {
+                    Circle()
+                        .fill(Color(color.displayColor))
+                        .frame(width: 28, height: 28)
+                        .overlay(
+                            Circle()
+                                .strokeBorder(.white, lineWidth: viewModel.highlightColor == color ? 2.5 : 0)
+                        )
+                }
+            }
+            Spacer()
+            Button { viewModel.exportAnnotations() } label: {
+                Image(systemName: "square.and.arrow.up")
+                    .font(.body)
+            }
+        }
+        .padding(.horizontal)
+        .padding(.vertical, 8)
+        .background(.ultraThinMaterial)
     }
 
     private var themePicker: some View {
