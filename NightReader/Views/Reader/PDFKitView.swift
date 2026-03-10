@@ -1,6 +1,90 @@
 import SwiftUI
 import PDFKit
 
+// MARK: - Custom PDFView with Highlight in context menu
+
+class HighlightablePDFView: PDFView {
+    var highlightColor: HighlightColor = .yellow
+    var onHighlight: ((PDFSelection) -> Void)?
+
+    override func buildMenu(with builder: any UIMenuBuilder) {
+        super.buildMenu(with: builder)
+
+        guard currentSelection != nil else { return }
+
+        let highlightAction = UIAction(
+            title: "Highlight",
+            image: UIImage(systemName: "highlighter")
+        ) { [weak self] _ in
+            self?.performHighlight()
+        }
+
+        let noteAction = UIAction(
+            title: "Highlight + Note",
+            image: UIImage(systemName: "note.text")
+        ) { [weak self] _ in
+            self?.performHighlightWithNote()
+        }
+
+        let menu = UIMenu(title: "", options: .displayInline, children: [highlightAction, noteAction])
+        builder.insertChild(menu, atStartOfMenu: .standardEdit)
+    }
+
+    override func canPerformAction(_ action: Selector, withSender sender: Any?) -> Bool {
+        if action == #selector(performHighlight) || action == #selector(performHighlightWithNote) {
+            return currentSelection != nil
+        }
+        return super.canPerformAction(action, withSender: sender)
+    }
+
+    @objc private func performHighlight() {
+        guard let selection = currentSelection, let document else { return }
+        _ = AnnotationService.addHighlight(to: selection, in: document, color: highlightColor)
+        AnnotationService.saveAnnotations(in: document)
+        let sel = selection
+        clearSelection()
+        onHighlight?(sel)
+    }
+
+    @objc private func performHighlightWithNote() {
+        guard let selection = currentSelection, let document else { return }
+        let annotations = AnnotationService.addHighlight(to: selection, in: document, color: highlightColor)
+        AnnotationService.saveAnnotations(in: document)
+        let sel = selection
+        clearSelection()
+        onHighlight?(sel)
+
+        // Show note input via nearest view controller
+        if let annotation = annotations.first,
+           let vc = findViewController() {
+            let alert = UIAlertController(title: "Add Note", message: nil, preferredStyle: .alert)
+            alert.addTextField { $0.placeholder = "Your note..." }
+            alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
+            alert.addAction(UIAlertAction(title: "Save", style: .default) { [weak self] _ in
+                let note = alert.textFields?.first?.text ?? ""
+                if !note.isEmpty {
+                    AnnotationService.updateNote(for: annotation, note: note)
+                    if let doc = self?.document {
+                        AnnotationService.saveAnnotations(in: doc)
+                    }
+                }
+            })
+            vc.present(alert, animated: true)
+        }
+    }
+
+    private func findViewController() -> UIViewController? {
+        var responder: UIResponder? = self
+        while let next = responder?.next {
+            if let vc = next as? UIViewController { return vc }
+            responder = next
+        }
+        return nil
+    }
+}
+
+// MARK: - SwiftUI wrapper
+
 struct PDFKitView: UIViewRepresentable {
     let document: PDFDocument?
     let renderingMode: RenderingMode
@@ -13,22 +97,24 @@ struct PDFKitView: UIViewRepresentable {
     let onHighlight: (PDFSelection) -> Void
 
     func makeCoordinator() -> Coordinator {
-        Coordinator(onPageChange: onPageChange, onHighlight: onHighlight)
+        Coordinator(onPageChange: onPageChange)
     }
 
-    func makeUIView(context: Context) -> PDFView {
-        let pdfView = PDFView()
+    func makeUIView(context: Context) -> HighlightablePDFView {
+        let pdfView = HighlightablePDFView()
         pdfView.autoScales = true
         pdfView.displayMode = .singlePageContinuous
         pdfView.displayDirection = .vertical
         pdfView.backgroundColor = UIColor(theme.bgColor)
         pdfView.document = document
+        pdfView.highlightColor = highlightColor
+        pdfView.onHighlight = onHighlight
 
-        // Zoom limits: fit-width as minimum, 4x as maximum
+        // Zoom limits
         pdfView.minScaleFactor = pdfView.scaleFactorForSizeToFit
         pdfView.maxScaleFactor = pdfView.scaleFactorForSizeToFit * 4
 
-        // Double-tap to reset zoom to fit-width
+        // Double-tap to toggle zoom
         let doubleTap = UITapGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.handleDoubleTap))
         doubleTap.numberOfTapsRequired = 2
         pdfView.addGestureRecognizer(doubleTap)
@@ -39,18 +125,14 @@ struct PDFKitView: UIViewRepresentable {
             pdfView.go(to: page)
         }
 
-        // Add highlight menu item
-        let highlightItem = UIMenuItem(title: "Highlight", action: #selector(Coordinator.highlightSelection))
-        UIMenuController.shared.menuItems = [highlightItem]
-
         context.coordinator.pdfView = pdfView
         context.coordinator.startObserving()
 
         return pdfView
     }
 
-    func updateUIView(_ pdfView: PDFView, context: Context) {
-        // Update document if it changed (e.g. switching to/from Smart mode)
+    func updateUIView(_ pdfView: HighlightablePDFView, context: Context) {
+        // Update document if changed (e.g. switching to/from Smart mode)
         if pdfView.document !== document {
             let currentPageIndex = context.coordinator.lastPageIndex
             pdfView.document = document
@@ -60,7 +142,8 @@ struct PDFKitView: UIViewRepresentable {
             }
         }
 
-        context.coordinator.highlightColor = highlightColor
+        pdfView.highlightColor = highlightColor
+        pdfView.onHighlight = onHighlight
 
         // Update background color from theme
         pdfView.backgroundColor = UIColor(theme.bgColor)
@@ -81,7 +164,6 @@ struct PDFKitView: UIViewRepresentable {
                 let cropped = mediaBox.insetBy(dx: inset, dy: inset)
                 page.setBounds(cropped, for: .cropBox)
             }
-            // Force PDFView to re-layout after changing crop boxes
             if context.coordinator.lastCropMargin != cropMargin {
                 context.coordinator.lastCropMargin = cropMargin
                 pdfView.layoutDocumentView()
@@ -97,16 +179,13 @@ struct PDFKitView: UIViewRepresentable {
     }
 
     class Coordinator: NSObject {
-        weak var pdfView: PDFView?
+        weak var pdfView: HighlightablePDFView?
         let onPageChange: (Int, Double) -> Void
-        let onHighlight: (PDFSelection) -> Void
         var lastPageIndex: Int = 0
         var lastCropMargin: Double = 0
-        var highlightColor: HighlightColor = .yellow
 
-        init(onPageChange: @escaping (Int, Double) -> Void, onHighlight: @escaping (PDFSelection) -> Void) {
+        init(onPageChange: @escaping (Int, Double) -> Void) {
             self.onPageChange = onPageChange
-            self.onHighlight = onHighlight
         }
 
         func startObserving() {
@@ -114,12 +193,6 @@ struct PDFKitView: UIViewRepresentable {
                 self,
                 selector: #selector(pageChanged),
                 name: .PDFViewPageChanged,
-                object: pdfView
-            )
-            NotificationCenter.default.addObserver(
-                self,
-                selector: #selector(selectionChanged),
-                name: .PDFViewSelectionChanged,
                 object: pdfView
             )
         }
@@ -133,28 +206,13 @@ struct PDFKitView: UIViewRepresentable {
             onPageChange(pageIndex, scrollOffset)
         }
 
-        @objc func selectionChanged() {
-            // Selection changed — menu will show automatically from PDFView
-        }
-
         @objc func handleDoubleTap() {
             guard let pdfView else { return }
             if pdfView.scaleFactor > pdfView.scaleFactorForSizeToFit * 1.1 {
-                // Zoomed in — reset to fit
                 pdfView.scaleFactor = pdfView.scaleFactorForSizeToFit
             } else {
-                // At fit — zoom to 2x
                 pdfView.scaleFactor = pdfView.scaleFactorForSizeToFit * 2
             }
-        }
-
-        @objc func highlightSelection() {
-            guard let pdfView, let selection = pdfView.currentSelection,
-                  let document = pdfView.document else { return }
-            _ = AnnotationService.addHighlight(to: selection, in: document, color: highlightColor)
-            AnnotationService.saveAnnotations(in: document)
-            pdfView.clearSelection()
-            onHighlight(selection)
         }
 
         deinit {
