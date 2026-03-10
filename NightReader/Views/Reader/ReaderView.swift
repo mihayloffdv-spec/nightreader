@@ -17,9 +17,11 @@ struct ReaderView: View {
                 renderingMode: viewModel.renderingMode,
                 theme: viewModel.selectedTheme,
                 initialPageIndex: viewModel.book.lastPageIndex,
+                highlightColor: viewModel.highlightColor,
                 onPageChange: { page, offset in
                     viewModel.savePosition(pageIndex: page, scrollOffset: offset)
-                }
+                },
+                onHighlight: { _ in }
             )
             .ignoresSafeArea()
             .onTapGesture {
@@ -48,6 +50,15 @@ struct ReaderView: View {
         }
         .onDisappear {
             viewModel.cancelHideToolbar()
+        }
+        .sheet(isPresented: $viewModel.showAnnotationList) {
+            AnnotationListView(
+                document: viewModel.document,
+                onSelectAnnotation: { pageIndex in
+                    viewModel.currentPage = pageIndex
+                },
+                onDeleteAnnotation: { _, _ in }
+            )
         }
     }
 }

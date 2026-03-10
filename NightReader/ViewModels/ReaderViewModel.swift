@@ -12,6 +12,8 @@ final class ReaderViewModel {
     var toolbarVisible = true
     var currentPage: Int = 0
     var showThemePicker = false
+    var showAnnotationList = false
+    var highlightColor: HighlightColor = .yellow
 
     private var hideToolbarTask: Task<Void, Never>?
     private var originalDocument: PDFDocument?

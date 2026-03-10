@@ -20,6 +20,12 @@ struct ReaderToolbar: View {
                     .lineLimit(1)
                 Spacer()
                 Button {
+                    viewModel.showAnnotationList = true
+                } label: {
+                    Image(systemName: "highlighter")
+                        .font(.title3)
+                }
+                Button {
                     withAnimation { viewModel.showThemePicker.toggle() }
                 } label: {
                     Image(systemName: "paintpalette")
@@ -64,6 +70,26 @@ struct ReaderToolbar: View {
                     }
                 }
                 .pickerStyle(.segmented)
+
+                // Highlight color
+                HStack(spacing: 12) {
+                    Image(systemName: "highlighter")
+                        .font(.caption)
+                    ForEach(HighlightColor.allCases) { color in
+                        Button {
+                            viewModel.highlightColor = color
+                        } label: {
+                            Circle()
+                                .fill(Color(color.displayColor))
+                                .frame(width: 24, height: 24)
+                                .overlay(
+                                    Circle()
+                                        .strokeBorder(.white, lineWidth: viewModel.highlightColor == color ? 2 : 0)
+                                )
+                        }
+                    }
+                    Spacer()
+                }
 
                 // Brightness
                 HStack(spacing: 12) {

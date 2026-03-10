@@ -6,10 +6,12 @@ struct PDFKitView: UIViewRepresentable {
     let renderingMode: RenderingMode
     let theme: Theme
     let initialPageIndex: Int
+    let highlightColor: HighlightColor
     let onPageChange: (Int, Double) -> Void
+    let onHighlight: (PDFSelection) -> Void
 
     func makeCoordinator() -> Coordinator {
-        Coordinator(onPageChange: onPageChange)
+        Coordinator(onPageChange: onPageChange, onHighlight: onHighlight)
     }
 
     func makeUIView(context: Context) -> PDFView {
@@ -26,6 +28,10 @@ struct PDFKitView: UIViewRepresentable {
             pdfView.go(to: page)
         }
 
+        // Add highlight menu item
+        let highlightItem = UIMenuItem(title: "Highlight", action: #selector(Coordinator.highlightSelection))
+        UIMenuController.shared.menuItems = [highlightItem]
+
         context.coordinator.pdfView = pdfView
         context.coordinator.startObserving()
 
@@ -37,18 +43,18 @@ struct PDFKitView: UIViewRepresentable {
         if pdfView.document !== document {
             let currentPageIndex = context.coordinator.lastPageIndex
             pdfView.document = document
-            // Restore page position after document swap
             if let doc = document, currentPageIndex < doc.pageCount,
                let page = doc.page(at: currentPageIndex) {
                 pdfView.go(to: page)
             }
         }
 
+        context.coordinator.highlightColor = highlightColor
+
         // Simple mode uses compositing filter overlays
         if renderingMode == .simple {
             DarkModeRenderer.applyDarkMode(to: pdfView, theme: theme)
         } else {
-            // Off or Smart (Smart does its own rendering in DarkModePDFPage)
             DarkModeRenderer.removeDarkMode(from: pdfView)
         }
     }
@@ -56,10 +62,13 @@ struct PDFKitView: UIViewRepresentable {
     class Coordinator: NSObject {
         weak var pdfView: PDFView?
         let onPageChange: (Int, Double) -> Void
+        let onHighlight: (PDFSelection) -> Void
         var lastPageIndex: Int = 0
+        var highlightColor: HighlightColor = .yellow
 
-        init(onPageChange: @escaping (Int, Double) -> Void) {
+        init(onPageChange: @escaping (Int, Double) -> Void, onHighlight: @escaping (PDFSelection) -> Void) {
             self.onPageChange = onPageChange
+            self.onHighlight = onHighlight
         }
 
         func startObserving() {
@@ -67,6 +76,12 @@ struct PDFKitView: UIViewRepresentable {
                 self,
                 selector: #selector(pageChanged),
                 name: .PDFViewPageChanged,
+                object: pdfView
+            )
+            NotificationCenter.default.addObserver(
+                self,
+                selector: #selector(selectionChanged),
+                name: .PDFViewSelectionChanged,
                 object: pdfView
             )
         }
@@ -78,6 +93,19 @@ struct PDFKitView: UIViewRepresentable {
             let scrollOffset = pdfView.documentView?.bounds.origin.y ?? 0
             lastPageIndex = pageIndex
             onPageChange(pageIndex, scrollOffset)
+        }
+
+        @objc func selectionChanged() {
+            // Selection changed — menu will show automatically from PDFView
+        }
+
+        @objc func highlightSelection() {
+            guard let pdfView, let selection = pdfView.currentSelection,
+                  let document = pdfView.document else { return }
+            _ = AnnotationService.addHighlight(to: selection, in: document, color: highlightColor)
+            AnnotationService.saveAnnotations(in: document)
+            pdfView.clearSelection()
+            onHighlight(selection)
         }
 
         deinit {
