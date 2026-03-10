@@ -6,6 +6,7 @@ struct ReaderToolbar: View {
 
     @State private var brightness: Double = Double(UIScreen.main.brightness)
     @State private var showHighlightColors = false
+    @State private var showSettings = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -65,8 +66,8 @@ struct ReaderToolbar: View {
 
             Spacer()
 
-            // Bottom controls
-            VStack(spacing: 12) {
+            // Bottom bar — compact
+            VStack(spacing: 8) {
                 // Progress
                 HStack {
                     Text(viewModel.progressText)
@@ -81,45 +82,31 @@ struct ReaderToolbar: View {
                 ProgressView(value: viewModel.progressFraction)
                     .tint(.white.opacity(0.6))
 
-                // Rendering mode picker
-                Picker("Mode", selection: Binding(
-                    get: { viewModel.renderingMode },
-                    set: { viewModel.setRenderingMode($0) }
-                )) {
-                    ForEach(RenderingMode.allCases) { mode in
-                        Text(mode.displayName).tag(mode)
-                    }
-                }
-                .pickerStyle(.segmented)
-
-                // Brightness
-                HStack(spacing: 12) {
-                    Image(systemName: "sun.min").font(.caption)
-                    Slider(value: $brightness, in: 0...1) { _ in
-                        UIScreen.main.brightness = CGFloat(brightness)
-                        viewModel.scheduleHideToolbar()
-                    }
-                    Image(systemName: "sun.max").font(.caption)
-                }
-
-                // Dimmer
-                HStack(spacing: 12) {
-                    Image(systemName: "circle.lefthalf.filled").font(.caption)
-                    Slider(value: $viewModel.dimmerOpacity, in: 0...0.9)
-                        .onChange(of: viewModel.dimmerOpacity) {
-                            viewModel.scheduleHideToolbar()
+                // Mode picker + settings gear
+                HStack {
+                    Picker("Mode", selection: Binding(
+                        get: { viewModel.renderingMode },
+                        set: { viewModel.setRenderingMode($0) }
+                    )) {
+                        ForEach(RenderingMode.allCases) { mode in
+                            Text(mode.displayName).tag(mode)
                         }
-                    Text("Dimmer").font(.caption)
+                    }
+                    .pickerStyle(.segmented)
+
+                    Button {
+                        withAnimation { showSettings.toggle() }
+                        viewModel.scheduleHideToolbar()
+                    } label: {
+                        Image(systemName: "slider.horizontal.3")
+                            .font(.body)
+                    }
                 }
 
-                // Crop margin
-                HStack(spacing: 12) {
-                    Image(systemName: "crop").font(.caption)
-                    Slider(value: Binding(
-                        get: { viewModel.book.cropMargin },
-                        set: { viewModel.setCropMargin($0) }
-                    ), in: 0...100)
-                    Text("Crop").font(.caption)
+                // Settings panel — slides out
+                if showSettings {
+                    settingsPanel
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
             }
             .padding()
@@ -127,6 +114,44 @@ struct ReaderToolbar: View {
         }
         .foregroundStyle(.white)
     }
+
+    // MARK: - Settings panel (dimmer, brightness, crop)
+
+    private var settingsPanel: some View {
+        VStack(spacing: 10) {
+            // Brightness
+            HStack(spacing: 12) {
+                Image(systemName: "sun.min").font(.caption)
+                Slider(value: $brightness, in: 0...1) { _ in
+                    UIScreen.main.brightness = CGFloat(brightness)
+                    viewModel.scheduleHideToolbar()
+                }
+                Image(systemName: "sun.max").font(.caption)
+            }
+
+            // Dimmer
+            HStack(spacing: 12) {
+                Image(systemName: "circle.lefthalf.filled").font(.caption)
+                Slider(value: $viewModel.dimmerOpacity, in: 0...0.9)
+                    .onChange(of: viewModel.dimmerOpacity) {
+                        viewModel.scheduleHideToolbar()
+                    }
+                Text("Dimmer").font(.caption)
+            }
+
+            // Crop margin
+            HStack(spacing: 12) {
+                Image(systemName: "crop").font(.caption)
+                Slider(value: Binding(
+                    get: { viewModel.book.cropMargin },
+                    set: { viewModel.setCropMargin($0) }
+                ), in: 0...100)
+                Text("Crop").font(.caption)
+            }
+        }
+    }
+
+    // MARK: - Highlight color picker
 
     private var highlightColorPicker: some View {
         HStack(spacing: 14) {
@@ -154,6 +179,8 @@ struct ReaderToolbar: View {
         .padding(.vertical, 8)
         .background(.ultraThinMaterial)
     }
+
+    // MARK: - Theme picker
 
     private var themePicker: some View {
         ScrollView(.horizontal, showsIndicators: false) {
