@@ -9,31 +9,37 @@ struct ReaderToolbar: View {
     var body: some View {
         VStack(spacing: 0) {
             // Top bar
-            HStack {
+            HStack(spacing: 16) {
                 Button(action: onDismiss) {
                     Image(systemName: "chevron.left")
                         .font(.title3.weight(.semibold))
                 }
-                Spacer()
+
                 Text(viewModel.book.title)
                     .font(.subheadline)
                     .lineLimit(1)
-                Spacer()
-                Button {
-                    viewModel.showAnnotationList = true
-                } label: {
-                    Image(systemName: "highlighter")
-                        .font(.title3)
+                    .frame(maxWidth: .infinity)
+
+                // Action buttons
+                Button { withAnimation { viewModel.showSearch = true } } label: {
+                    Image(systemName: "magnifyingglass").font(.body)
                 }
-                Button {
-                    withAnimation { viewModel.showThemePicker.toggle() }
-                } label: {
-                    Image(systemName: "paintpalette")
-                        .font(.title3)
+                Button { viewModel.showTOC = true } label: {
+                    Image(systemName: "list.bullet").font(.body)
+                }
+                Button { viewModel.toggleBookmark() } label: {
+                    Image(systemName: viewModel.isCurrentPageBookmarked ? "bookmark.fill" : "bookmark")
+                        .font(.body)
+                }
+                Button { viewModel.showAnnotationList = true } label: {
+                    Image(systemName: "highlighter").font(.body)
+                }
+                Button { withAnimation { viewModel.showThemePicker.toggle() } } label: {
+                    Image(systemName: "paintpalette").font(.body)
                 }
             }
-            .padding(.horizontal)
-            .padding(.vertical, 10)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
             .background(.ultraThinMaterial)
 
             // Theme picker panel
@@ -45,7 +51,7 @@ struct ReaderToolbar: View {
             Spacer()
 
             // Bottom controls
-            VStack(spacing: 16) {
+            VStack(spacing: 12) {
                 // Progress
                 HStack {
                     Text(viewModel.progressText)
@@ -71,8 +77,8 @@ struct ReaderToolbar: View {
                 }
                 .pickerStyle(.segmented)
 
-                // Highlight color
-                HStack(spacing: 12) {
+                // Highlight colors + export
+                HStack(spacing: 10) {
                     Image(systemName: "highlighter")
                         .font(.caption)
                     ForEach(HighlightColor.allCases) { color in
@@ -81,7 +87,7 @@ struct ReaderToolbar: View {
                         } label: {
                             Circle()
                                 .fill(Color(color.displayColor))
-                                .frame(width: 24, height: 24)
+                                .frame(width: 22, height: 22)
                                 .overlay(
                                     Circle()
                                         .strokeBorder(.white, lineWidth: viewModel.highlightColor == color ? 2 : 0)
@@ -89,26 +95,36 @@ struct ReaderToolbar: View {
                         }
                     }
                     Spacer()
+                    Button { viewModel.exportAnnotations() } label: {
+                        Image(systemName: "square.and.arrow.up")
+                            .font(.caption)
+                    }
                 }
 
                 // Brightness
                 HStack(spacing: 12) {
-                    Image(systemName: "sun.min")
-                        .font(.caption)
+                    Image(systemName: "sun.min").font(.caption)
                     Slider(value: $brightness, in: 0...1) { _ in
                         UIScreen.main.brightness = CGFloat(brightness)
                     }
-                    Image(systemName: "sun.max")
-                        .font(.caption)
+                    Image(systemName: "sun.max").font(.caption)
                 }
 
                 // Dimmer
                 HStack(spacing: 12) {
-                    Image(systemName: "circle.lefthalf.filled")
-                        .font(.caption)
+                    Image(systemName: "circle.lefthalf.filled").font(.caption)
                     Slider(value: $viewModel.dimmerOpacity, in: 0...0.9)
-                    Text("Dimmer")
-                        .font(.caption)
+                    Text("Dimmer").font(.caption)
+                }
+
+                // Crop margin
+                HStack(spacing: 12) {
+                    Image(systemName: "crop").font(.caption)
+                    Slider(value: Binding(
+                        get: { viewModel.book.cropMargin },
+                        set: { viewModel.setCropMargin($0) }
+                    ), in: 0...100)
+                    Text("Crop").font(.caption)
                 }
             }
             .padding()

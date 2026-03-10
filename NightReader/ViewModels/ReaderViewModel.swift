@@ -13,7 +13,12 @@ final class ReaderViewModel {
     var currentPage: Int = 0
     var showThemePicker = false
     var showAnnotationList = false
+    var showSearch = false
+    var showTOC = false
+    var showExportShare = false
     var highlightColor: HighlightColor = .yellow
+    var exportURL: URL?
+    var goToPageIndex: Int?
 
     private var hideToolbarTask: Task<Void, Never>?
     private var originalDocument: PDFDocument?
@@ -30,6 +35,10 @@ final class ReaderViewModel {
 
     var isDarkModeEnabled: Bool {
         renderingMode != .off
+    }
+
+    var isCurrentPageBookmarked: Bool {
+        book.bookmarks.contains(currentPage)
     }
 
     var progressText: String {
@@ -88,6 +97,32 @@ final class ReaderViewModel {
     func setTheme(_ theme: Theme) {
         selectedTheme = theme
         AppSettings.shared.defaultThemeId = theme.id
+    }
+
+    func toggleBookmark() {
+        var marks = book.bookmarks
+        if marks.contains(currentPage) {
+            marks.remove(currentPage)
+        } else {
+            marks.insert(currentPage)
+        }
+        book.bookmarks = marks
+    }
+
+    func setCropMargin(_ margin: Double) {
+        book.cropMargin = margin
+    }
+
+    func exportAnnotations() {
+        guard let document else { return }
+        if let url = ExportService.exportAnnotationsToFile(from: document, title: book.title) {
+            exportURL = url
+            showExportShare = true
+        }
+    }
+
+    func goToPage(_ pageIndex: Int) {
+        goToPageIndex = pageIndex
     }
 
     private func applySmartMode() {

@@ -24,6 +24,9 @@
 		C0000015 /* DarkModePDFPage.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1000015; };
 		C0000016 /* AnnotationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1000016; };
 		C0000017 /* AnnotationListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1000017; };
+		C0000018 /* SearchBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1000018; };
+		C0000019 /* TOCView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1000019; };
+		C0000021 /* ExportService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1000021; };
 		C0000020 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C1000020; };
 /* End PBXBuildFile section */
 
@@ -45,6 +48,9 @@
 		C1000015 /* DarkModePDFPage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DarkModePDFPage.swift; sourceTree = "<group>"; };
 		C1000016 /* AnnotationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnnotationService.swift; sourceTree = "<group>"; };
 		C1000017 /* AnnotationListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnnotationListView.swift; sourceTree = "<group>"; };
+		C1000018 /* SearchBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchBarView.swift; sourceTree = "<group>"; };
+		C1000019 /* TOCView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TOCView.swift; sourceTree = "<group>"; };
+		C1000021 /* ExportService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExportService.swift; sourceTree = "<group>"; };
 		C1000020 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		C2000001 /* NightReader.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = NightReader.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -142,6 +148,8 @@
 				C1000011 /* DimmerOverlay.swift */,
 				C1000012 /* ReaderToolbar.swift */,
 				C1000017 /* AnnotationListView.swift */,
+				C1000018 /* SearchBarView.swift */,
+				C1000019 /* TOCView.swift */,
 			);
 			path = Reader;
 			sourceTree = "<group>";
@@ -153,6 +161,7 @@
 				C1000014 /* DarkModeRenderer.swift */,
 				C1000015 /* DarkModePDFPage.swift */,
 				C1000016 /* AnnotationService.swift */,
+				C1000021 /* ExportService.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -243,6 +252,9 @@
 				C0000015 /* DarkModePDFPage.swift in Sources */,
 				C0000016 /* AnnotationService.swift in Sources */,
 				C0000017 /* AnnotationListView.swift in Sources */,
+				C0000018 /* SearchBarView.swift in Sources */,
+				C0000019 /* TOCView.swift in Sources */,
+				C0000021 /* ExportService.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

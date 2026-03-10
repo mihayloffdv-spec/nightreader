@@ -7,6 +7,8 @@ struct PDFKitView: UIViewRepresentable {
     let theme: Theme
     let initialPageIndex: Int
     let highlightColor: HighlightColor
+    let goToPageIndex: Int?
+    let cropMargin: Double
     let onPageChange: (Int, Double) -> Void
     let onHighlight: (PDFSelection) -> Void
 
@@ -50,6 +52,22 @@ struct PDFKitView: UIViewRepresentable {
         }
 
         context.coordinator.highlightColor = highlightColor
+
+        // Navigate to page if requested
+        if let pageIndex = goToPageIndex,
+           let doc = pdfView.document, pageIndex < doc.pageCount,
+           let page = doc.page(at: pageIndex) {
+            pdfView.go(to: page)
+        }
+
+        // Apply crop margin
+        if cropMargin > 0 {
+            pdfView.displaysPageBreaks = true
+            let inset = CGFloat(cropMargin)
+            pdfView.pageBreakMargins = UIEdgeInsets(top: -inset, left: -inset, bottom: -inset, right: -inset)
+        } else {
+            pdfView.pageBreakMargins = UIEdgeInsets(top: 4, left: 4, bottom: 4, right: 4)
+        }
 
         // Simple mode uses compositing filter overlays
         if renderingMode == .simple {

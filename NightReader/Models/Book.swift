@@ -15,6 +15,18 @@ final class Book {
     var readProgress: Double
     var renderingModeRaw: String
     var cropMargin: Double
+    var bookmarksData: Data?
+
+    var bookmarks: Set<Int> {
+        get {
+            guard let data = bookmarksData,
+                  let decoded = try? JSONDecoder().decode(Set<Int>.self, from: data) else { return [] }
+            return decoded
+        }
+        set {
+            bookmarksData = try? JSONEncoder().encode(newValue)
+        }
+    }
 
     var renderingMode: RenderingMode {
         get { RenderingMode(rawValue: renderingModeRaw) ?? .simple }

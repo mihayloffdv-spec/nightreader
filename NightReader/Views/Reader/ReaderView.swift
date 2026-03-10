@@ -18,8 +18,11 @@ struct ReaderView: View {
                 theme: viewModel.selectedTheme,
                 initialPageIndex: viewModel.book.lastPageIndex,
                 highlightColor: viewModel.highlightColor,
+                goToPageIndex: viewModel.goToPageIndex,
+                cropMargin: viewModel.book.cropMargin,
                 onPageChange: { page, offset in
                     viewModel.savePosition(pageIndex: page, scrollOffset: offset)
+                    viewModel.goToPageIndex = nil
                 },
                 onHighlight: { _ in }
             )
@@ -30,13 +33,26 @@ struct ReaderView: View {
                 }
             }
 
-            // Dimmer overlay (above PDF, below toolbar)
+            // Dimmer overlay
             if viewModel.dimmerOpacity > 0 {
                 DimmerOverlay(opacity: viewModel.dimmerOpacity)
             }
 
+            // Search bar (top, below status bar)
+            if viewModel.showSearch {
+                VStack {
+                    SearchBarView(
+                        isPresented: $viewModel.showSearch,
+                        document: viewModel.document,
+                        onGoToPage: { viewModel.goToPage($0) }
+                    )
+                    Spacer()
+                }
+                .transition(.move(edge: .top))
+            }
+
             // Toolbar
-            if viewModel.toolbarVisible {
+            if viewModel.toolbarVisible && !viewModel.showSearch {
                 ReaderToolbar(viewModel: viewModel) {
                     dismiss()
                 }
@@ -54,11 +70,30 @@ struct ReaderView: View {
         .sheet(isPresented: $viewModel.showAnnotationList) {
             AnnotationListView(
                 document: viewModel.document,
-                onSelectAnnotation: { pageIndex in
-                    viewModel.currentPage = pageIndex
-                },
+                onSelectAnnotation: { viewModel.goToPage($0) },
                 onDeleteAnnotation: { _, _ in }
             )
         }
+        .sheet(isPresented: $viewModel.showTOC) {
+            TOCView(
+                document: viewModel.document,
+                onSelectPage: { viewModel.goToPage($0) }
+            )
+        }
+        .sheet(isPresented: $viewModel.showExportShare) {
+            if let url = viewModel.exportURL {
+                ShareSheet(items: [url])
+            }
+        }
     }
+}
+
+struct ShareSheet: UIViewControllerRepresentable {
+    let items: [Any]
+
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        UIActivityViewController(activityItems: items, applicationActivities: nil)
+    }
+
+    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
 }
