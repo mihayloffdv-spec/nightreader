@@ -7,27 +7,27 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		C0000001 /* NightReaderApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1000001; };
-		C0000002 /* Book.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1000002; };
-		C0000003 /* RenderingMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1000003; };
-		C0000004 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1000004; };
-		C0000005 /* AppSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1000005; };
-		C0000006 /* LibraryViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1000006; };
-		C0000007 /* ReaderViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1000007; };
-		C0000008 /* LibraryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1000008; };
-		C0000009 /* ReaderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1000009; };
-		C0000010 /* PDFKitView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1000010; };
-		C0000011 /* DimmerOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1000011; };
-		C0000012 /* ReaderToolbar.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1000012; };
-		C0000013 /* PDFImportService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1000013; };
-		C0000014 /* DarkModeRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1000014; };
-		C0000015 /* DarkModePDFPage.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1000015; };
-		C0000016 /* AnnotationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1000016; };
-		C0000017 /* AnnotationListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1000017; };
-		C0000018 /* SearchBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1000018; };
-		C0000019 /* TOCView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1000019; };
-		C0000021 /* ExportService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1000021; };
-		C0000020 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C1000020; };
+		C0000001 /* NightReaderApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1000001 /* NightReaderApp.swift */; };
+		C0000002 /* Book.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1000002 /* Book.swift */; };
+		C0000003 /* RenderingMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1000003 /* RenderingMode.swift */; };
+		C0000004 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1000004 /* Theme.swift */; };
+		C0000005 /* AppSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1000005 /* AppSettings.swift */; };
+		C0000006 /* LibraryViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1000006 /* LibraryViewModel.swift */; };
+		C0000007 /* ReaderViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1000007 /* ReaderViewModel.swift */; };
+		C0000008 /* LibraryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1000008 /* LibraryView.swift */; };
+		C0000009 /* ReaderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1000009 /* ReaderView.swift */; };
+		C0000010 /* PDFKitView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1000010 /* PDFKitView.swift */; };
+		C0000011 /* DimmerOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1000011 /* DimmerOverlay.swift */; };
+		C0000012 /* ReaderToolbar.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1000012 /* ReaderToolbar.swift */; };
+		C0000013 /* PDFImportService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1000013 /* PDFImportService.swift */; };
+		C0000014 /* DarkModeRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1000014 /* DarkModeRenderer.swift */; };
+		C0000015 /* DarkModePDFPage.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1000015 /* DarkModePDFPage.swift */; };
+		C0000016 /* AnnotationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1000016 /* AnnotationService.swift */; };
+		C0000017 /* AnnotationListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1000017 /* AnnotationListView.swift */; };
+		C0000018 /* SearchBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1000018 /* SearchBarView.swift */; };
+		C0000019 /* TOCView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1000019 /* TOCView.swift */; };
+		C0000020 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C1000020 /* Assets.xcassets */; };
+		C0000021 /* ExportService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1000021 /* ExportService.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -50,8 +50,8 @@
 		C1000017 /* AnnotationListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnnotationListView.swift; sourceTree = "<group>"; };
 		C1000018 /* SearchBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchBarView.swift; sourceTree = "<group>"; };
 		C1000019 /* TOCView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TOCView.swift; sourceTree = "<group>"; };
-		C1000021 /* ExportService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExportService.swift; sourceTree = "<group>"; };
 		C1000020 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		C1000021 /* ExportService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExportService.swift; sourceTree = "<group>"; };
 		C2000001 /* NightReader.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = NightReader.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -379,7 +379,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = 7N37858XB8;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_LSSupportsOpeningDocumentsInPlace = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -410,7 +410,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = 7N37858XB8;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_LSSupportsOpeningDocumentsInPlace = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -456,7 +456,6 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
-
 	};
 	rootObject = C5000002 /* Project object */;
 }

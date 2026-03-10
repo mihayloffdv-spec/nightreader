@@ -5,10 +5,12 @@ import CoreImage
 class DarkModePDFPage: PDFPage {
 
     private let originalPage: PDFPage
+    private let theme: Theme
     private static let ciContext = CIContext(options: [.useSoftwareRenderer: false])
 
-    init(wrapping page: PDFPage) {
+    init(wrapping page: PDFPage, theme: Theme = .midnight) {
         self.originalPage = page
+        self.theme = theme
         super.init()
     }
 
@@ -74,7 +76,7 @@ class DarkModePDFPage: PDFPage {
 
         // 2. Apply CIFilter chain
         let ciImage = CIImage(cgImage: originalImage)
-        guard let processed = Self.applyFilterChain(to: ciImage),
+        guard let processed = applyFilterChain(to: ciImage),
               let outputCGImage = Self.ciContext.createCGImage(processed, from: processed.extent) else {
             originalPage.draw(with: box, to: context)
             return
@@ -86,7 +88,7 @@ class DarkModePDFPage: PDFPage {
         context.restoreGState()
     }
 
-    private static func applyFilterChain(to image: CIImage) -> CIImage? {
+    private func applyFilterChain(to image: CIImage) -> CIImage? {
         var result = image
 
         // Invert colors
@@ -104,13 +106,18 @@ class DarkModePDFPage: PDFPage {
         guard let adjusted = adjustFilter.outputImage else { return nil }
         result = adjusted
 
-        // Warm shift
-        guard let tempFilter = CIFilter(name: "CITemperatureAndTint") else { return nil }
-        tempFilter.setValue(result, forKey: kCIInputImageKey)
-        tempFilter.setValue(CIVector(x: 4000, y: 0), forKey: "inputNeutral")
-        tempFilter.setValue(CIVector(x: 6500, y: 0), forKey: "inputTargetNeutral")
-        guard let warmed = tempFilter.outputImage else { return nil }
+        // Apply theme tint via CIColorMatrix
+        let tintColor = theme.tintUIColor
+        var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
+        tintColor.getRed(&r, green: &g, blue: &b, alpha: &a)
 
-        return warmed
+        guard let matrixFilter = CIFilter(name: "CIColorMatrix") else { return nil }
+        matrixFilter.setValue(result, forKey: kCIInputImageKey)
+        matrixFilter.setValue(CIVector(x: r, y: 0, z: 0, w: 0), forKey: "inputRVector")
+        matrixFilter.setValue(CIVector(x: 0, y: g, z: 0, w: 0), forKey: "inputGVector")
+        matrixFilter.setValue(CIVector(x: 0, y: 0, z: b, w: 0), forKey: "inputBVector")
+        guard let tinted = matrixFilter.outputImage else { return nil }
+
+        return tinted
     }
 }

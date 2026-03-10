@@ -21,8 +21,17 @@ struct PDFKitView: UIViewRepresentable {
         pdfView.autoScales = true
         pdfView.displayMode = .singlePageContinuous
         pdfView.displayDirection = .vertical
-        pdfView.backgroundColor = UIColor(white: 0.05, alpha: 1)
+        pdfView.backgroundColor = UIColor(theme.bgColor)
         pdfView.document = document
+
+        // Zoom limits: fit-width as minimum, 4x as maximum
+        pdfView.minScaleFactor = pdfView.scaleFactorForSizeToFit
+        pdfView.maxScaleFactor = pdfView.scaleFactorForSizeToFit * 4
+
+        // Double-tap to reset zoom to fit-width
+        let doubleTap = UITapGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.handleDoubleTap))
+        doubleTap.numberOfTapsRequired = 2
+        pdfView.addGestureRecognizer(doubleTap)
 
         // Restore reading position
         if let doc = document, initialPageIndex > 0, initialPageIndex < doc.pageCount,
@@ -52,6 +61,9 @@ struct PDFKitView: UIViewRepresentable {
         }
 
         context.coordinator.highlightColor = highlightColor
+
+        // Update background color from theme
+        pdfView.backgroundColor = UIColor(theme.bgColor)
 
         // Navigate to page if requested
         if let pageIndex = goToPageIndex,
@@ -115,6 +127,17 @@ struct PDFKitView: UIViewRepresentable {
 
         @objc func selectionChanged() {
             // Selection changed — menu will show automatically from PDFView
+        }
+
+        @objc func handleDoubleTap() {
+            guard let pdfView else { return }
+            if pdfView.scaleFactor > pdfView.scaleFactorForSizeToFit * 1.1 {
+                // Zoomed in — reset to fit
+                pdfView.scaleFactor = pdfView.scaleFactorForSizeToFit
+            } else {
+                // At fit — zoom to 2x
+                pdfView.scaleFactor = pdfView.scaleFactorForSizeToFit * 2
+            }
         }
 
         @objc func highlightSelection() {

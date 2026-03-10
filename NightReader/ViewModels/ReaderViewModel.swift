@@ -97,6 +97,10 @@ final class ReaderViewModel {
     func setTheme(_ theme: Theme) {
         selectedTheme = theme
         AppSettings.shared.defaultThemeId = theme.id
+        // Re-apply smart mode with new theme colors
+        if renderingMode == .smart {
+            applySmartMode()
+        }
     }
 
     func toggleBookmark() {
@@ -130,7 +134,7 @@ final class ReaderViewModel {
         let smartDoc = PDFDocument()
         for i in 0..<original.pageCount {
             guard let page = original.page(at: i) else { continue }
-            let smartPage = DarkModePDFPage(wrapping: page)
+            let smartPage = DarkModePDFPage(wrapping: page, theme: selectedTheme)
             smartDoc.insert(smartPage, at: i)
         }
         document = smartDoc
