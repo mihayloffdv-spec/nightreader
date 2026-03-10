@@ -1,0 +1,27 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(xcodebuild -project NightReaderSpike.xcodeproj -scheme NightReaderSpike -sdk iphonesimulator -destination 'platform=iOS Simulator,name=iPhone 16' build)",
+      "Read(//Applications/**)",
+      "Bash(mdfind \"kMDItemCFBundleIdentifier == ''com.apple.dt.Xcode''\")",
+      "Bash(swiftc --version)",
+      "Bash(swiftc -typecheck -parse NightReaderSpike/DarkModeFilters.swift NightReaderSpike/TestPDFGenerator.swift NightReaderSpike/ContentView.swift NightReaderSpike/PDFKitView.swift NightReaderSpike/DarkModePDFPage.swift NightReaderSpike/NightReaderSpikeApp.swift)",
+      "Bash(xcode-select -p)",
+      "Bash(xcodebuild -version)",
+      "Bash(sudo xcode-select:*)",
+      "Bash(xcrun simctl:*)",
+      "Bash(xcodebuild -project NightReaderSpike.xcodeproj -scheme NightReaderSpike -sdk iphonesimulator -destination 'platform=iOS Simulator,name=iPhone 17 Pro' build)",
+      "Bash(xcodebuild test:*)",
+      "Bash(mkdir -p /tmp/spike_screenshots)",
+      "Bash(xcresulttool get:*)",
+      "Bash(xcrun xcresulttool:*)",
+      "Read(//private/tmp/**)",
+      "Read(//Users/dmitriymikhailov/Downloads/**)",
+      "Bash(git init:*)",
+      "Bash(git add:*)"
+    ],
+    "additionalDirectories": [
+      "/private/tmp/SpikeTestResults.xcresult"
+    ]
+  }
+}
