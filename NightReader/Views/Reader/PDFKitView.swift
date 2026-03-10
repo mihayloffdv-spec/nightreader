@@ -3,7 +3,8 @@ import PDFKit
 
 struct PDFKitView: UIViewRepresentable {
     let document: PDFDocument?
-    let isDarkModeEnabled: Bool
+    let renderingMode: RenderingMode
+    let theme: Theme
     let initialPageIndex: Int
     let onPageChange: (Int, Double) -> Void
 
@@ -32,9 +33,22 @@ struct PDFKitView: UIViewRepresentable {
     }
 
     func updateUIView(_ pdfView: PDFView, context: Context) {
-        if isDarkModeEnabled {
-            DarkModeRenderer.applyDarkMode(to: pdfView)
+        // Update document if it changed (e.g. switching to/from Smart mode)
+        if pdfView.document !== document {
+            let currentPageIndex = context.coordinator.lastPageIndex
+            pdfView.document = document
+            // Restore page position after document swap
+            if let doc = document, currentPageIndex < doc.pageCount,
+               let page = doc.page(at: currentPageIndex) {
+                pdfView.go(to: page)
+            }
+        }
+
+        // Simple mode uses compositing filter overlays
+        if renderingMode == .simple {
+            DarkModeRenderer.applyDarkMode(to: pdfView, theme: theme)
         } else {
+            // Off or Smart (Smart does its own rendering in DarkModePDFPage)
             DarkModeRenderer.removeDarkMode(from: pdfView)
         }
     }
@@ -42,6 +56,7 @@ struct PDFKitView: UIViewRepresentable {
     class Coordinator: NSObject {
         weak var pdfView: PDFView?
         let onPageChange: (Int, Double) -> Void
+        var lastPageIndex: Int = 0
 
         init(onPageChange: @escaping (Int, Double) -> Void) {
             self.onPageChange = onPageChange
@@ -61,6 +76,7 @@ struct PDFKitView: UIViewRepresentable {
                   let document = pdfView.document,
                   let pageIndex = document.index(for: currentPage) as Int? else { return }
             let scrollOffset = pdfView.documentView?.bounds.origin.y ?? 0
+            lastPageIndex = pageIndex
             onPageChange(pageIndex, scrollOffset)
         }
 

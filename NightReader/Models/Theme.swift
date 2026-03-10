@@ -12,13 +12,49 @@ struct Theme: Identifiable, Codable, Hashable {
     var textColor: Color { Color(hex: textColorHex) }
     var tintColor: Color { Color(hex: tintColorHex) }
 
+    var tintUIColor: UIColor {
+        UIColor(Color(hex: tintColorHex))
+    }
+
+    // MARK: - Built-in themes
+
     static let midnight = Theme(
         id: "midnight", name: "Midnight",
-        bgColorHex: "#0D0D0D", textColorHex: "#D4D4C8", tintColorHex: "#D4D4C8",
+        bgColorHex: "#0D0D0D", textColorHex: "#D4D4C8", tintColorHex: "#FFF0D4",
         isBuiltIn: true
     )
 
-    static let allBuiltIn: [Theme] = [.midnight]
+    static let sepia = Theme(
+        id: "sepia", name: "Sepia",
+        bgColorHex: "#1A1408", textColorHex: "#D4C4A0", tintColorHex: "#F5E6C8",
+        isBuiltIn: true
+    )
+
+    static let forest = Theme(
+        id: "forest", name: "Forest",
+        bgColorHex: "#0A1A0A", textColorHex: "#A8D4A8", tintColorHex: "#C8F0C8",
+        isBuiltIn: true
+    )
+
+    static let ocean = Theme(
+        id: "ocean", name: "Ocean",
+        bgColorHex: "#0A0F1A", textColorHex: "#A8C4D4", tintColorHex: "#C8DCF0",
+        isBuiltIn: true
+    )
+
+    static let sunset = Theme(
+        id: "sunset", name: "Sunset",
+        bgColorHex: "#1A0F0A", textColorHex: "#D4B4A0", tintColorHex: "#F0D4C0",
+        isBuiltIn: true
+    )
+
+    static let paper = Theme(
+        id: "paper", name: "Paper",
+        bgColorHex: "#1A1A14", textColorHex: "#E0E0D0", tintColorHex: "#FFFFF0",
+        isBuiltIn: true
+    )
+
+    static let allBuiltIn: [Theme] = [.midnight, .sepia, .forest, .ocean, .sunset, .paper]
 }
 
 extension Color {

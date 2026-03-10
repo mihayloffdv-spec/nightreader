@@ -6,17 +6,28 @@ import SwiftUI
 final class ReaderViewModel {
     let book: Book
     var document: PDFDocument?
-    var isDarkModeEnabled = true
+    var renderingMode: RenderingMode
+    var selectedTheme: Theme
     var dimmerOpacity: Double = 0
     var toolbarVisible = true
     var currentPage: Int = 0
+    var showThemePicker = false
 
     private var hideToolbarTask: Task<Void, Never>?
+    private var originalDocument: PDFDocument?
 
     init(book: Book) {
         self.book = book
+        self.renderingMode = book.renderingMode
+        self.selectedTheme = AppSettings.shared.currentTheme
         self.dimmerOpacity = AppSettings.shared.defaultDimmerOpacity
-        self.document = PDFDocument(url: book.fileURL)
+        let doc = PDFDocument(url: book.fileURL)
+        self.document = doc
+        self.originalDocument = doc
+    }
+
+    var isDarkModeEnabled: Bool {
+        renderingMode != .off
     }
 
     var progressText: String {
@@ -39,7 +50,7 @@ final class ReaderViewModel {
     func scheduleHideToolbar() {
         hideToolbarTask?.cancel()
         hideToolbarTask = Task { @MainActor in
-            try? await Task.sleep(for: .seconds(3))
+            try? await Task.sleep(for: .seconds(5))
             if !Task.isCancelled {
                 toolbarVisible = false
             }
@@ -60,7 +71,35 @@ final class ReaderViewModel {
         currentPage = pageIndex
     }
 
-    func toggleDarkMode() {
-        isDarkModeEnabled.toggle()
+    func setRenderingMode(_ mode: RenderingMode) {
+        renderingMode = mode
+        book.renderingMode = mode
+        AppSettings.shared.defaultRenderingMode = mode.rawValue
+
+        if mode == .smart {
+            applySmartMode()
+        } else {
+            restoreOriginalDocument()
+        }
+    }
+
+    func setTheme(_ theme: Theme) {
+        selectedTheme = theme
+        AppSettings.shared.defaultThemeId = theme.id
+    }
+
+    private func applySmartMode() {
+        guard let original = originalDocument else { return }
+        let smartDoc = PDFDocument()
+        for i in 0..<original.pageCount {
+            guard let page = original.page(at: i) else { continue }
+            let smartPage = DarkModePDFPage(wrapping: page)
+            smartDoc.insert(smartPage, at: i)
+        }
+        document = smartDoc
+    }
+
+    private func restoreOriginalDocument() {
+        document = originalDocument
     }
 }

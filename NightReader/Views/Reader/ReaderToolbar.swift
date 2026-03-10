@@ -19,14 +19,22 @@ struct ReaderToolbar: View {
                     .font(.subheadline)
                     .lineLimit(1)
                 Spacer()
-                Button(action: viewModel.toggleDarkMode) {
-                    Image(systemName: viewModel.isDarkModeEnabled ? "moon.fill" : "moon")
+                Button {
+                    withAnimation { viewModel.showThemePicker.toggle() }
+                } label: {
+                    Image(systemName: "paintpalette")
                         .font(.title3)
                 }
             }
             .padding(.horizontal)
             .padding(.vertical, 10)
             .background(.ultraThinMaterial)
+
+            // Theme picker panel
+            if viewModel.showThemePicker {
+                themePicker
+                    .transition(.move(edge: .top).combined(with: .opacity))
+            }
 
             Spacer()
 
@@ -45,6 +53,17 @@ struct ReaderToolbar: View {
 
                 ProgressView(value: viewModel.progressFraction)
                     .tint(.white.opacity(0.6))
+
+                // Rendering mode picker
+                Picker("Mode", selection: Binding(
+                    get: { viewModel.renderingMode },
+                    set: { viewModel.setRenderingMode($0) }
+                )) {
+                    ForEach(RenderingMode.allCases) { mode in
+                        Text(mode.displayName).tag(mode)
+                    }
+                }
+                .pickerStyle(.segmented)
 
                 // Brightness
                 HStack(spacing: 12) {
@@ -70,5 +89,37 @@ struct ReaderToolbar: View {
             .background(.ultraThinMaterial)
         }
         .foregroundStyle(.white)
+    }
+
+    private var themePicker: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 12) {
+                ForEach(Theme.allBuiltIn) { theme in
+                    Button {
+                        viewModel.setTheme(theme)
+                    } label: {
+                        VStack(spacing: 6) {
+                            Circle()
+                                .fill(theme.bgColor)
+                                .overlay(
+                                    Circle()
+                                        .fill(theme.tintColor)
+                                        .frame(width: 20, height: 20)
+                                )
+                                .frame(width: 40, height: 40)
+                                .overlay(
+                                    Circle()
+                                        .strokeBorder(.white, lineWidth: viewModel.selectedTheme.id == theme.id ? 2 : 0)
+                                )
+                            Text(theme.name)
+                                .font(.caption2)
+                        }
+                    }
+                }
+            }
+            .padding(.horizontal)
+            .padding(.vertical, 10)
+        }
+        .background(.ultraThinMaterial)
     }
 }

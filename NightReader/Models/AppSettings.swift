@@ -14,7 +14,16 @@ final class AppSettings {
         set { UserDefaults.standard.set(newValue, forKey: "defaultDimmerOpacity") }
     }
 
+    var defaultRenderingMode: String {
+        get { UserDefaults.standard.string(forKey: "defaultRenderingMode") ?? RenderingMode.simple.rawValue }
+        set { UserDefaults.standard.set(newValue, forKey: "defaultRenderingMode") }
+    }
+
     var currentTheme: Theme {
         Theme.allBuiltIn.first { $0.id == defaultThemeId } ?? .midnight
+    }
+
+    var currentRenderingMode: RenderingMode {
+        RenderingMode(rawValue: defaultRenderingMode) ?? .simple
     }
 }

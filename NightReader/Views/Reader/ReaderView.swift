@@ -14,7 +14,8 @@ struct ReaderView: View {
             // PDF content
             PDFKitView(
                 document: viewModel.document,
-                isDarkModeEnabled: viewModel.isDarkModeEnabled,
+                renderingMode: viewModel.renderingMode,
+                theme: viewModel.selectedTheme,
                 initialPageIndex: viewModel.book.lastPageIndex,
                 onPageChange: { page, offset in
                     viewModel.savePosition(pageIndex: page, scrollOffset: offset)
