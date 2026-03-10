@@ -72,13 +72,20 @@ struct PDFKitView: UIViewRepresentable {
             pdfView.go(to: page)
         }
 
-        // Apply crop margin
-        if cropMargin > 0 {
-            pdfView.displaysPageBreaks = true
+        // Apply crop margin by adjusting each page's cropBox
+        if let doc = pdfView.document {
             let inset = CGFloat(cropMargin)
-            pdfView.pageBreakMargins = UIEdgeInsets(top: -inset, left: -inset, bottom: -inset, right: -inset)
-        } else {
-            pdfView.pageBreakMargins = UIEdgeInsets(top: 4, left: 4, bottom: 4, right: 4)
+            for i in 0..<doc.pageCount {
+                guard let page = doc.page(at: i) else { continue }
+                let mediaBox = page.bounds(for: .mediaBox)
+                let cropped = mediaBox.insetBy(dx: inset, dy: inset)
+                page.setBounds(cropped, for: .cropBox)
+            }
+            // Force PDFView to re-layout after changing crop boxes
+            if context.coordinator.lastCropMargin != cropMargin {
+                context.coordinator.lastCropMargin = cropMargin
+                pdfView.layoutDocumentView()
+            }
         }
 
         // Simple mode uses compositing filter overlays
@@ -94,6 +101,7 @@ struct PDFKitView: UIViewRepresentable {
         let onPageChange: (Int, Double) -> Void
         let onHighlight: (PDFSelection) -> Void
         var lastPageIndex: Int = 0
+        var lastCropMargin: Double = 0
         var highlightColor: HighlightColor = .yellow
 
         init(onPageChange: @escaping (Int, Double) -> Void, onHighlight: @escaping (PDFSelection) -> Void) {
