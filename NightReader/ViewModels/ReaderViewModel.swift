@@ -118,11 +118,6 @@ final class ReaderViewModel {
         book.bookmarks = marks
     }
 
-    func setCropMargin(_ margin: Double) {
-        scheduleHideToolbar()
-        book.cropMargin = margin
-    }
-
     func exportAnnotations() {
         scheduleHideToolbar()
         guard let document else { return }

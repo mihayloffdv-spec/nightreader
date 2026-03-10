@@ -161,16 +161,6 @@ struct ReaderToolbar: View {
             }
             .frame(height: 36)
 
-            HStack(spacing: 14) {
-                Image(systemName: "crop").font(.callout)
-                    .frame(width: 24)
-                Slider(value: Binding(
-                    get: { viewModel.book.cropMargin },
-                    set: { viewModel.setCropMargin($0) }
-                ), in: 0...100)
-                Text("Crop").font(.footnote)
-            }
-            .frame(height: 36)
         }
         .padding(.top, 4)
     }

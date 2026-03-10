@@ -92,7 +92,6 @@ struct PDFKitView: UIViewRepresentable {
     let initialPageIndex: Int
     let highlightColor: HighlightColor
     let goToPageIndex: Int?
-    let cropMargin: Double
     let onPageChange: (Int, Double) -> Void
     let onHighlight: (PDFSelection) -> Void
 
@@ -121,17 +120,6 @@ struct PDFKitView: UIViewRepresentable {
             pdfView.go(to: page)
         }
 
-        // Store original mediaBox sizes before any crop is applied
-        if let doc = document {
-            var boxes: [Int: CGRect] = [:]
-            for i in 0..<doc.pageCount {
-                if let page = doc.page(at: i) {
-                    boxes[i] = page.bounds(for: .mediaBox)
-                }
-            }
-            context.coordinator.originalMediaBoxes = boxes
-        }
-
         context.coordinator.pdfView = pdfView
         context.coordinator.startObserving()
 
@@ -146,16 +134,6 @@ struct PDFKitView: UIViewRepresentable {
             if let doc = document, currentPageIndex < doc.pageCount,
                let page = doc.page(at: currentPageIndex) {
                 pdfView.go(to: page)
-            }
-            // Re-capture original mediaBoxes for new document
-            if let doc = document {
-                var boxes: [Int: CGRect] = [:]
-                for i in 0..<doc.pageCount {
-                    if let page = doc.page(at: i) {
-                        boxes[i] = page.bounds(for: .mediaBox)
-                    }
-                }
-                context.coordinator.originalMediaBoxes = boxes
             }
         }
 
@@ -179,30 +157,6 @@ struct PDFKitView: UIViewRepresentable {
             pdfView.go(to: page)
         }
 
-        // Apply crop margin using stored original mediaBox sizes
-        if let doc = pdfView.document {
-            let inset = CGFloat(cropMargin)
-            for i in 0..<doc.pageCount {
-                guard let page = doc.page(at: i),
-                      let originalBox = context.coordinator.originalMediaBoxes[i] else { continue }
-                if inset > 0 {
-                    let cropped = originalBox.insetBy(dx: inset, dy: inset)
-                    page.setBounds(cropped, for: .cropBox)
-                } else {
-                    // Reset crop to full mediaBox
-                    page.setBounds(originalBox, for: .cropBox)
-                }
-            }
-            if context.coordinator.lastCropMargin != cropMargin {
-                context.coordinator.lastCropMargin = cropMargin
-                pdfView.layoutDocumentView()
-                // Re-fit after crop change
-                if fitScale > 0 {
-                    pdfView.scaleFactor = pdfView.scaleFactorForSizeToFit
-                }
-            }
-        }
-
         // Simple mode uses compositing filter overlays
         if renderingMode == .simple {
             DarkModeRenderer.applyDarkMode(to: pdfView, theme: theme)
@@ -215,8 +169,6 @@ struct PDFKitView: UIViewRepresentable {
         weak var pdfView: HighlightablePDFView?
         let onPageChange: (Int, Double) -> Void
         var lastPageIndex: Int = 0
-        var lastCropMargin: Double = 0
-        var originalMediaBoxes: [Int: CGRect] = [:]
 
         init(onPageChange: @escaping (Int, Double) -> Void) {
             self.onPageChange = onPageChange

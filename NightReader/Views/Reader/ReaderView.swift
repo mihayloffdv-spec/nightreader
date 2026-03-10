@@ -19,7 +19,6 @@ struct ReaderView: View {
                 initialPageIndex: viewModel.book.lastPageIndex,
                 highlightColor: viewModel.highlightColor,
                 goToPageIndex: viewModel.goToPageIndex,
-                cropMargin: viewModel.book.cropMargin,
                 onPageChange: { page, offset in
                     viewModel.savePosition(pageIndex: page, scrollOffset: offset)
                     viewModel.goToPageIndex = nil

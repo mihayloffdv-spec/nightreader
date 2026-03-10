@@ -18,11 +18,6 @@ class DarkModePDFPage: PDFPage {
         originalPage.numberOfCharacters
     }
 
-    override func setBounds(_ bounds: CGRect, for box: PDFDisplayBox) {
-        originalPage.setBounds(bounds, for: box)
-        super.setBounds(bounds, for: box)
-    }
-
     override func bounds(for box: PDFDisplayBox) -> CGRect {
         originalPage.bounds(for: box)
     }
