@@ -61,9 +61,11 @@ final class ReaderViewModel {
     func scheduleHideToolbar() {
         hideToolbarTask?.cancel()
         hideToolbarTask = Task { @MainActor in
-            try? await Task.sleep(for: .seconds(5))
+            try? await Task.sleep(for: .seconds(8))
             if !Task.isCancelled {
-                toolbarVisible = false
+                withAnimation(.easeInOut(duration: 0.25)) {
+                    toolbarVisible = false
+                }
             }
         }
     }
@@ -83,6 +85,7 @@ final class ReaderViewModel {
     }
 
     func setRenderingMode(_ mode: RenderingMode) {
+        scheduleHideToolbar()
         renderingMode = mode
         book.renderingMode = mode
         AppSettings.shared.defaultRenderingMode = mode.rawValue
@@ -95,6 +98,7 @@ final class ReaderViewModel {
     }
 
     func setTheme(_ theme: Theme) {
+        scheduleHideToolbar()
         selectedTheme = theme
         AppSettings.shared.defaultThemeId = theme.id
         // Re-apply smart mode with new theme colors
@@ -104,6 +108,7 @@ final class ReaderViewModel {
     }
 
     func toggleBookmark() {
+        scheduleHideToolbar()
         var marks = book.bookmarks
         if marks.contains(currentPage) {
             marks.remove(currentPage)
@@ -114,10 +119,12 @@ final class ReaderViewModel {
     }
 
     func setCropMargin(_ margin: Double) {
+        scheduleHideToolbar()
         book.cropMargin = margin
     }
 
     func exportAnnotations() {
+        scheduleHideToolbar()
         guard let document else { return }
         if let url = ExportService.exportAnnotationsToFile(from: document, title: book.title) {
             exportURL = url

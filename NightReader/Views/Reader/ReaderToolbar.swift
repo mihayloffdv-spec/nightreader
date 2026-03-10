@@ -34,7 +34,7 @@ struct ReaderToolbar: View {
                 Button { viewModel.showAnnotationList = true } label: {
                     Image(systemName: "highlighter").font(.body)
                 }
-                Button { withAnimation { viewModel.showThemePicker.toggle() } } label: {
+                Button { withAnimation { viewModel.showThemePicker.toggle() }; viewModel.scheduleHideToolbar() } label: {
                     Image(systemName: "paintpalette").font(.body)
                 }
             }
@@ -84,6 +84,7 @@ struct ReaderToolbar: View {
                     ForEach(HighlightColor.allCases) { color in
                         Button {
                             viewModel.highlightColor = color
+                            viewModel.scheduleHideToolbar()
                         } label: {
                             Circle()
                                 .fill(Color(color.displayColor))
@@ -106,6 +107,7 @@ struct ReaderToolbar: View {
                     Image(systemName: "sun.min").font(.caption)
                     Slider(value: $brightness, in: 0...1) { _ in
                         UIScreen.main.brightness = CGFloat(brightness)
+                        viewModel.scheduleHideToolbar()
                     }
                     Image(systemName: "sun.max").font(.caption)
                 }
@@ -114,6 +116,9 @@ struct ReaderToolbar: View {
                 HStack(spacing: 12) {
                     Image(systemName: "circle.lefthalf.filled").font(.caption)
                     Slider(value: $viewModel.dimmerOpacity, in: 0...0.9)
+                        .onChange(of: viewModel.dimmerOpacity) {
+                            viewModel.scheduleHideToolbar()
+                        }
                     Text("Dimmer").font(.caption)
                 }
 
