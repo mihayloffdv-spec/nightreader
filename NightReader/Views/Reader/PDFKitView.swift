@@ -110,10 +110,6 @@ struct PDFKitView: UIViewRepresentable {
         pdfView.highlightColor = highlightColor
         pdfView.onHighlight = onHighlight
 
-        // Zoom limits
-        pdfView.minScaleFactor = pdfView.scaleFactorForSizeToFit
-        pdfView.maxScaleFactor = pdfView.scaleFactorForSizeToFit * 4
-
         // Double-tap to toggle zoom
         let doubleTap = UITapGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.handleDoubleTap))
         doubleTap.numberOfTapsRequired = 2
@@ -123,6 +119,17 @@ struct PDFKitView: UIViewRepresentable {
         if let doc = document, initialPageIndex > 0, initialPageIndex < doc.pageCount,
            let page = doc.page(at: initialPageIndex) {
             pdfView.go(to: page)
+        }
+
+        // Store original mediaBox sizes before any crop is applied
+        if let doc = document {
+            var boxes: [Int: CGRect] = [:]
+            for i in 0..<doc.pageCount {
+                if let page = doc.page(at: i) {
+                    boxes[i] = page.bounds(for: .mediaBox)
+                }
+            }
+            context.coordinator.originalMediaBoxes = boxes
         }
 
         context.coordinator.pdfView = pdfView
@@ -140,6 +147,16 @@ struct PDFKitView: UIViewRepresentable {
                let page = doc.page(at: currentPageIndex) {
                 pdfView.go(to: page)
             }
+            // Re-capture original mediaBoxes for new document
+            if let doc = document {
+                var boxes: [Int: CGRect] = [:]
+                for i in 0..<doc.pageCount {
+                    if let page = doc.page(at: i) {
+                        boxes[i] = page.bounds(for: .mediaBox)
+                    }
+                }
+                context.coordinator.originalMediaBoxes = boxes
+            }
         }
 
         pdfView.highlightColor = highlightColor
@@ -148,6 +165,13 @@ struct PDFKitView: UIViewRepresentable {
         // Update background color from theme
         pdfView.backgroundColor = UIColor(theme.bgColor)
 
+        // Update zoom limits (scaleFactorForSizeToFit is only valid after layout)
+        let fitScale = pdfView.scaleFactorForSizeToFit
+        if fitScale > 0 {
+            pdfView.minScaleFactor = fitScale
+            pdfView.maxScaleFactor = fitScale * 4
+        }
+
         // Navigate to page if requested
         if let pageIndex = goToPageIndex,
            let doc = pdfView.document, pageIndex < doc.pageCount,
@@ -155,18 +179,27 @@ struct PDFKitView: UIViewRepresentable {
             pdfView.go(to: page)
         }
 
-        // Apply crop margin by adjusting each page's cropBox
+        // Apply crop margin using stored original mediaBox sizes
         if let doc = pdfView.document {
             let inset = CGFloat(cropMargin)
             for i in 0..<doc.pageCount {
-                guard let page = doc.page(at: i) else { continue }
-                let mediaBox = page.bounds(for: .mediaBox)
-                let cropped = mediaBox.insetBy(dx: inset, dy: inset)
-                page.setBounds(cropped, for: .cropBox)
+                guard let page = doc.page(at: i),
+                      let originalBox = context.coordinator.originalMediaBoxes[i] else { continue }
+                if inset > 0 {
+                    let cropped = originalBox.insetBy(dx: inset, dy: inset)
+                    page.setBounds(cropped, for: .cropBox)
+                } else {
+                    // Reset crop to full mediaBox
+                    page.setBounds(originalBox, for: .cropBox)
+                }
             }
             if context.coordinator.lastCropMargin != cropMargin {
                 context.coordinator.lastCropMargin = cropMargin
                 pdfView.layoutDocumentView()
+                // Re-fit after crop change
+                if fitScale > 0 {
+                    pdfView.scaleFactor = pdfView.scaleFactorForSizeToFit
+                }
             }
         }
 
@@ -183,6 +216,7 @@ struct PDFKitView: UIViewRepresentable {
         let onPageChange: (Int, Double) -> Void
         var lastPageIndex: Int = 0
         var lastCropMargin: Double = 0
+        var originalMediaBoxes: [Int: CGRect] = [:]
 
         init(onPageChange: @escaping (Int, Double) -> Void) {
             self.onPageChange = onPageChange
@@ -208,10 +242,11 @@ struct PDFKitView: UIViewRepresentable {
 
         @objc func handleDoubleTap() {
             guard let pdfView else { return }
-            if pdfView.scaleFactor > pdfView.scaleFactorForSizeToFit * 1.1 {
-                pdfView.scaleFactor = pdfView.scaleFactorForSizeToFit
+            let fitScale = pdfView.scaleFactorForSizeToFit
+            if pdfView.scaleFactor > fitScale * 1.1 {
+                pdfView.scaleFactor = fitScale
             } else {
-                pdfView.scaleFactor = pdfView.scaleFactorForSizeToFit * 2
+                pdfView.scaleFactor = fitScale * 2
             }
         }
 
