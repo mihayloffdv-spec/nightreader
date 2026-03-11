@@ -23,6 +23,14 @@ final class AppSettings {
         Theme.allBuiltIn.first { $0.id == defaultThemeId } ?? .midnight
     }
 
+    var readerFontSize: Double {
+        get {
+            let val = UserDefaults.standard.double(forKey: "readerFontSize")
+            return val > 0 ? val : 18
+        }
+        set { UserDefaults.standard.set(newValue, forKey: "readerFontSize") }
+    }
+
     var currentRenderingMode: RenderingMode {
         RenderingMode(rawValue: defaultRenderingMode) ?? .simple
     }

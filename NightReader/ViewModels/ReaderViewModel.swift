@@ -22,9 +22,14 @@ final class ReaderViewModel {
     var goToSelectionValue: PDFSelection?
     var isLoading = true
     var loadError: String?
+    var isReaderMode = false
+    var readerFontSize: Double = AppSettings.shared.readerFontSize
 
     private var hideToolbarTask: Task<Void, Never>?
-    private var originalDocument: PDFDocument?
+    private(set) var originalDocument: PDFDocument?
+
+    /// Original (unprocessed) document for Reader Mode.
+    var originalDoc: PDFDocument? { originalDocument }
 
     init(book: Book) {
         self.book = book
@@ -155,6 +160,16 @@ final class ReaderViewModel {
 
     func goToSelection(_ selection: PDFSelection) {
         goToSelectionValue = selection
+    }
+
+    func toggleReaderMode() {
+        scheduleHideToolbar()
+        isReaderMode.toggle()
+    }
+
+    func setReaderFontSize(_ size: Double) {
+        readerFontSize = size
+        AppSettings.shared.readerFontSize = size
     }
 
     private func applySmartMode() {

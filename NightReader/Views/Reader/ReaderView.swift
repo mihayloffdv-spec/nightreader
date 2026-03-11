@@ -25,28 +25,47 @@ struct ReaderView: View {
                         .buttonStyle(.borderedProminent)
                 }
             } else {
-                // PDF content
-                PDFKitView(
-                    document: viewModel.document,
-                    renderingMode: viewModel.renderingMode,
-                    theme: viewModel.selectedTheme,
-                    initialPageIndex: viewModel.book.lastPageIndex,
-                    highlightColor: viewModel.highlightColor,
-                    goToPageIndex: viewModel.goToPageIndex,
-                    goToSelection: viewModel.goToSelectionValue,
-                    onPageChange: { page, offset in
-                        viewModel.savePosition(pageIndex: page, scrollOffset: offset)
-                        viewModel.goToPageIndex = nil
-                        viewModel.goToSelectionValue = nil
-                    },
-                    onHighlight: { _ in },
-                    onTapEmpty: {
-                        withAnimation(.easeInOut(duration: 0.25)) {
-                            viewModel.toggleToolbar()
+                if viewModel.isReaderMode {
+                    // Reader Mode — reflowable text
+                    ReaderModeView(
+                        document: viewModel.originalDoc,
+                        theme: viewModel.selectedTheme,
+                        fontSize: viewModel.readerFontSize,
+                        currentPageIndex: viewModel.currentPage,
+                        onPageChange: { page in
+                            viewModel.savePosition(pageIndex: page, scrollOffset: 0)
+                        },
+                        onTap: {
+                            withAnimation(.easeInOut(duration: 0.25)) {
+                                viewModel.toggleToolbar()
+                            }
                         }
-                    }
-                )
-                .ignoresSafeArea()
+                    )
+                    .ignoresSafeArea()
+                } else {
+                    // PDF content
+                    PDFKitView(
+                        document: viewModel.document,
+                        renderingMode: viewModel.renderingMode,
+                        theme: viewModel.selectedTheme,
+                        initialPageIndex: viewModel.book.lastPageIndex,
+                        highlightColor: viewModel.highlightColor,
+                        goToPageIndex: viewModel.goToPageIndex,
+                        goToSelection: viewModel.goToSelectionValue,
+                        onPageChange: { page, offset in
+                            viewModel.savePosition(pageIndex: page, scrollOffset: offset)
+                            viewModel.goToPageIndex = nil
+                            viewModel.goToSelectionValue = nil
+                        },
+                        onHighlight: { _ in },
+                        onTapEmpty: {
+                            withAnimation(.easeInOut(duration: 0.25)) {
+                                viewModel.toggleToolbar()
+                            }
+                        }
+                    )
+                    .ignoresSafeArea()
+                }
 
                 // Dimmer overlay — exclude toolbar areas
                 if viewModel.dimmerOpacity > 0 {

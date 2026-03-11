@@ -28,6 +28,8 @@
 		C0000019 /* TOCView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1000019 /* TOCView.swift */; };
 		C0000020 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C1000020 /* Assets.xcassets */; };
 		C0000021 /* ExportService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1000021 /* ExportService.swift */; };
+		C0000022 /* PDFContentExtractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1000022 /* PDFContentExtractor.swift */; };
+		C0000023 /* ReaderModeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1000023 /* ReaderModeView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -52,6 +54,8 @@
 		C1000019 /* TOCView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TOCView.swift; sourceTree = "<group>"; };
 		C1000020 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		C1000021 /* ExportService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExportService.swift; sourceTree = "<group>"; };
+		C1000022 /* PDFContentExtractor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PDFContentExtractor.swift; sourceTree = "<group>"; };
+		C1000023 /* ReaderModeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReaderModeView.swift; sourceTree = "<group>"; };
 		C2000001 /* NightReader.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = NightReader.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -150,6 +154,7 @@
 				C1000017 /* AnnotationListView.swift */,
 				C1000018 /* SearchBarView.swift */,
 				C1000019 /* TOCView.swift */,
+				C1000023 /* ReaderModeView.swift */,
 			);
 			path = Reader;
 			sourceTree = "<group>";
@@ -162,6 +167,7 @@
 				C1000015 /* DarkModePDFPage.swift */,
 				C1000016 /* AnnotationService.swift */,
 				C1000021 /* ExportService.swift */,
+				C1000022 /* PDFContentExtractor.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -255,6 +261,8 @@
 				C0000018 /* SearchBarView.swift in Sources */,
 				C0000019 /* TOCView.swift in Sources */,
 				C0000021 /* ExportService.swift in Sources */,
+				C0000022 /* PDFContentExtractor.swift in Sources */,
+				C0000023 /* ReaderModeView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

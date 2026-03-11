@@ -51,6 +51,10 @@ struct ReaderToolbar: View {
                 }
                 .accessibilityLabel("Highlight color")
 
+                toolbarButton(viewModel.isReaderMode ? "book.fill" : "book", label: "Reader Mode") {
+                    withAnimation { viewModel.toggleReaderMode() }
+                }
+
                 toolbarButton("paintpalette", label: "Theme") {
                     withAnimation { viewModel.showThemePicker.toggle() }
                     viewModel.scheduleHideToolbar()
@@ -168,6 +172,22 @@ struct ReaderToolbar: View {
             }
             .frame(height: 36)
 
+            if viewModel.isReaderMode {
+                HStack(spacing: 14) {
+                    Image(systemName: "textformat.size.smaller").font(.callout)
+                        .frame(width: 24)
+                    Slider(value: Binding(
+                        get: { viewModel.readerFontSize },
+                        set: { viewModel.setReaderFontSize($0) }
+                    ), in: 12...32, step: 1)
+                        .onChange(of: viewModel.readerFontSize) {
+                            viewModel.scheduleHideToolbar()
+                        }
+                    Image(systemName: "textformat.size.larger").font(.callout)
+                        .frame(width: 24)
+                }
+                .frame(height: 36)
+            }
         }
         .padding(.top, 4)
     }
