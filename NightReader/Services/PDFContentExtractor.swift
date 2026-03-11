@@ -129,10 +129,8 @@ final class PDFContentExtractor {
             return []
         }
 
-        let extractedImages = scanResult.images
-
-        // If no images, just split text into paragraphs
-        if extractedImages.isEmpty {
+        // If no images/forms on the page, just split text into paragraphs
+        if scanResult.imageRects.isEmpty {
             return splitIntoParagraphs(fullText).map { .text($0) }
         }
 
@@ -140,8 +138,11 @@ final class PDFContentExtractor {
         return interleaveTextAndImages(
             fullText: fullText,
             textLines: textLines,
-            images: extractedImages,
-            pageBounds: pageBounds
+            extractedImages: scanResult.images,
+            imageRects: scanResult.imageRects,
+            page: page,
+            pageBounds: pageBounds,
+            pageWidth: pageWidth
         )
     }
 
@@ -195,26 +196,48 @@ final class PDFContentExtractor {
 
     // MARK: - Text + image interleaving
 
-    /// Interleave text paragraphs with extracted images based on Y positions.
+    /// Interleave text paragraphs with images based on Y positions.
+    /// Uses extracted CGImages when available, falls back to rendering snapshots.
     private static func interleaveTextAndImages(
         fullText: String,
         textLines: [(bounds: CGRect, text: String)],
-        images: [ExtractedImage],
-        pageBounds: CGRect
+        extractedImages: [ExtractedImage],
+        imageRects: [CGRect],
+        page: PDFPage,
+        pageBounds: CGRect,
+        pageWidth: CGFloat
     ) -> [ContentBlock] {
         let paragraphs = splitIntoParagraphs(fullText)
-        guard !paragraphs.isEmpty else {
-            return images.map { .image(UIImage(cgImage: $0.cgImage)) }
+        let pageHeight = pageBounds.height
+
+        // Build image blocks: use CGImage if available, snapshot otherwise
+        struct PositionedImage {
+            let block: ContentBlock
+            let fraction: CGFloat  // 0 = top of page, 1 = bottom
         }
 
-        // Sort images top-to-bottom
-        let sortedImages = images.sorted { $0.rect.maxY > $1.rect.maxY }
+        var positionedImages: [PositionedImage] = []
+        for rect in imageRects {
+            let fraction = 1.0 - (rect.midY - pageBounds.minY) / pageHeight
+            let clampedFraction = min(max(fraction, 0), 1)
 
-        // Map each image to a fractional position on the page (0 = top, 1 = bottom)
-        let pageHeight = pageBounds.height
-        let imagePositions: [(image: ExtractedImage, fraction: CGFloat)] = sortedImages.map { img in
-            let fraction = 1.0 - (img.rect.midY - pageBounds.minY) / pageHeight
-            return (img, min(max(fraction, 0), 1))
+            // Check if we have a matching extracted CGImage for this rect
+            if let extracted = extractedImages.first(where: { $0.rect.intersects(rect) }) {
+                let uiImage = UIImage(cgImage: extracted.cgImage)
+                positionedImages.append(PositionedImage(block: .image(uiImage), fraction: clampedFraction))
+            } else {
+                // Render the region as a snapshot
+                if let img = renderRegion(of: page, region: rect, fitWidth: pageWidth) {
+                    positionedImages.append(PositionedImage(block: .snapshot(img), fraction: clampedFraction))
+                }
+            }
+        }
+
+        // Sort images top-to-bottom (ascending fraction)
+        positionedImages.sort { $0.fraction < $1.fraction }
+
+        guard !paragraphs.isEmpty else {
+            return positionedImages.map { $0.block }
         }
 
         // Build interleaved blocks
@@ -224,11 +247,10 @@ final class PDFContentExtractor {
         for (paraIdx, para) in paragraphs.enumerated() {
             let paraFraction = CGFloat(paraIdx) / CGFloat(max(paragraphs.count - 1, 1))
 
-            // Insert any images that should appear before this paragraph
-            while nextImageIdx < imagePositions.count,
-                  imagePositions[nextImageIdx].fraction <= paraFraction + 0.05 {
-                let uiImage = UIImage(cgImage: imagePositions[nextImageIdx].image.cgImage)
-                blocks.append(.image(uiImage))
+            // Insert images that should appear before this paragraph
+            while nextImageIdx < positionedImages.count,
+                  positionedImages[nextImageIdx].fraction <= paraFraction + 0.05 {
+                blocks.append(positionedImages[nextImageIdx].block)
                 nextImageIdx += 1
             }
 
@@ -236,9 +258,8 @@ final class PDFContentExtractor {
         }
 
         // Append remaining images at the end
-        while nextImageIdx < imagePositions.count {
-            let uiImage = UIImage(cgImage: imagePositions[nextImageIdx].image.cgImage)
-            blocks.append(.image(uiImage))
+        while nextImageIdx < positionedImages.count {
+            blocks.append(positionedImages[nextImageIdx].block)
             nextImageIdx += 1
         }
 
@@ -335,7 +356,7 @@ final class PDFContentExtractor {
             ctx.fontNames.append((fontName, approxRect))
         }
 
-        // Do — invoke XObject (images are drawn here)
+        // Do — invoke XObject (images and form XObjects are drawn here)
         CGPDFOperatorTableSetCallback(operatorTable, "Do") { scanner, info in
             guard let info else { return }
             let ctx = Unmanaged<ScannerContext>.fromOpaque(info).takeUnretainedValue()
@@ -351,27 +372,34 @@ final class PDFContentExtractor {
             guard CGPDFObjectGetValue(xobject, .stream, &stream), let pdfStream = stream else { return }
             guard let dict = CGPDFStreamGetDictionary(pdfStream) else { return }
 
-            // Check subtype is Image
             var subtypePtr: UnsafePointer<CChar>?
             guard CGPDFDictionaryGetName(dict, "Subtype", &subtypePtr),
-                  let subtype = subtypePtr,
-                  String(cString: subtype) == "Image" else { return }
+                  let subtype = subtypePtr else { return }
 
-            // Skip very small images (icons, bullets, decorations < 20px)
-            var width: CGPDFInteger = 0, height: CGPDFInteger = 0
-            CGPDFDictionaryGetInteger(dict, "Width", &width)
-            CGPDFDictionaryGetInteger(dict, "Height", &height)
-            guard width > 20 && height > 20 else { return }
+            let subtypeStr = String(cString: subtype)
 
-            // Image is drawn in a 1×1 unit square, CTM transforms it
-            let imageRect = CGRect(x: 0, y: 0, width: 1, height: 1).applying(ctx.ctm)
-            // Skip tiny rendered images (< 20pt on page)
-            guard imageRect.width > 20 && imageRect.height > 20 else { return }
+            // XObject is drawn in a 1×1 unit square, CTM transforms it
+            let xobjRect = CGRect(x: 0, y: 0, width: 1, height: 1).applying(ctx.ctm)
+            // Skip tiny rendered objects (< 30pt on page)
+            guard abs(xobjRect.width) > 30 && abs(xobjRect.height) > 30 else { return }
+            let normalizedRect = xobjRect.standardized
 
-            // Extract the actual CGImage
-            guard let cgImage = extractCGImageFromStream(pdfStream, dict: dict) else { return }
+            if subtypeStr == "Image" {
+                // Always record the rect so we can render as snapshot if CGImage fails
+                ctx.imageRects.append(normalizedRect)
 
-            ctx.images.append(ExtractedImage(cgImage: cgImage, rect: imageRect))
+                // Try to extract CGImage (may fail for complex color spaces)
+                var width: CGPDFInteger = 0, height: CGPDFInteger = 0
+                CGPDFDictionaryGetInteger(dict, "Width", &width)
+                CGPDFDictionaryGetInteger(dict, "Height", &height)
+                if width > 20 && height > 20,
+                   let cgImage = extractCGImageFromStream(pdfStream, dict: dict) {
+                    ctx.images.append(ExtractedImage(cgImage: cgImage, rect: normalizedRect))
+                }
+            } else if subtypeStr == "Form" {
+                // Form XObjects may contain images, diagrams, or complex compositions
+                ctx.imageRects.append(normalizedRect)
+            }
         }
 
         let contentStream = CGPDFContentStreamCreateWithPage(cgPage)
@@ -454,7 +482,8 @@ final class PDFContentExtractor {
     private class ScannerContext {
         var ctm: CGAffineTransform = .identity
         var stateStack: [CGAffineTransform] = []
-        var images: [ExtractedImage] = []
+        var images: [ExtractedImage] = []       // Successfully extracted CGImages
+        var imageRects: [CGRect] = []           // ALL image/form XObject positions (for snapshot fallback)
 
         // Phase 3: tracking for table/formula/column detection
         var rectangles: [CGRect] = []         // from `re` operator

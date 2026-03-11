@@ -166,6 +166,8 @@ final class ReaderViewModel {
     func toggleReaderMode() {
         scheduleHideToolbar()
         isReaderMode.toggle()
+        // Navigate to the same page in the new mode
+        goToPageIndex = currentPage
     }
 
     func setReaderFontSize(_ size: Double) {
