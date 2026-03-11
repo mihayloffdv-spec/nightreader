@@ -6,6 +6,7 @@ struct ReaderModeView: View {
     let theme: Theme
     let fontSize: Double
     let currentPageIndex: Int
+    @Binding var goToPageIndex: Int?
     let onPageChange: (Int) -> Void
     let onTap: () -> Void
 
@@ -13,6 +14,7 @@ struct ReaderModeView: View {
     @State private var blocksByPage: [Int: [ContentBlock]] = [:]
     @State private var loadingPages: Set<Int> = []
     @State private var screenWidth: CGFloat = UIScreen.main.bounds.width
+    @State private var isInitialScroll = true
 
     // Serial queue for thread-safe CGPDFPage access
     private static let extractionQueue = DispatchQueue(label: "com.nightreader.extraction", qos: .userInitiated)
@@ -30,14 +32,30 @@ struct ReaderModeView: View {
                     .padding(.horizontal, 16)
                     .padding(.vertical, 20)
                 }
+                // Force full rebuild when font size changes (onAppear won't re-fire otherwise)
+                .id(fontSize)
                 .onAppear {
                     screenWidth = geo.size.width
                     loadPages()
                     // Scroll to current page
                     if currentPageIndex > 0 {
+                        isInitialScroll = true
                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                             scrollProxy.scrollTo(currentPageIndex, anchor: .top)
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                                isInitialScroll = false
+                            }
                         }
+                    } else {
+                        isInitialScroll = false
+                    }
+                }
+                .onChange(of: goToPageIndex) { _, newValue in
+                    if let page = newValue {
+                        withAnimation {
+                            scrollProxy.scrollTo(page, anchor: .top)
+                        }
+                        goToPageIndex = nil
                     }
                 }
             }
@@ -45,11 +63,6 @@ struct ReaderModeView: View {
         .background(theme.bgColor)
         .contentShape(Rectangle())
         .onTapGesture { onTap() }
-        .onChange(of: fontSize) {
-            // Clear extracted blocks so pages re-render with new font size
-            blocksByPage.removeAll()
-            loadingPages.removeAll()
-        }
     }
 
     // MARK: - Page section
@@ -84,7 +97,9 @@ struct ReaderModeView: View {
             }
         }
         .onAppear {
-            onPageChange(pageIndex)
+            if !isInitialScroll {
+                onPageChange(pageIndex)
+            }
             // Prefetch next page
             let next = pageIndex + 1
             if next < (document?.pageCount ?? 0), blocksByPage[next] == nil {

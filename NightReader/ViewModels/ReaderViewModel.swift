@@ -41,6 +41,7 @@ final class ReaderViewModel {
     @MainActor
     func loadDocument() async {
         isLoading = true
+        BlockCache.shared.invalidate()
         let url = book.fileURL
         let doc = await Task.detached {
             PDFDocument(url: url)

@@ -163,21 +163,31 @@ struct PDFKitView: UIViewRepresentable {
             pdfView.maxScaleFactor = fitScale * 4
         }
 
-        // Navigate to page if requested
+        // Navigate to page if requested (skip if already navigated to this page)
         if let pageIndex = goToPageIndex,
+           context.coordinator.lastNavigatedPage != pageIndex,
            let doc = pdfView.document, pageIndex < doc.pageCount,
            let page = doc.page(at: pageIndex) {
+            context.coordinator.lastNavigatedPage = pageIndex
             pdfView.go(to: page)
         }
+        if goToPageIndex == nil {
+            context.coordinator.lastNavigatedPage = nil
+        }
 
-        // Navigate to search selection and highlight it
-        if let selection = goToSelection {
+        // Navigate to search selection and highlight it (skip if same selection)
+        if let selection = goToSelection,
+           context.coordinator.lastNavigatedSelection !== selection {
+            context.coordinator.lastNavigatedSelection = selection
             pdfView.go(to: selection)
             pdfView.setCurrentSelection(selection, animate: true)
             // Auto-clear highlight after 2 seconds
             DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
                 pdfView.clearSelection()
             }
+        }
+        if goToSelection == nil {
+            context.coordinator.lastNavigatedSelection = nil
         }
 
         // Simple mode uses compositing filter overlays
@@ -192,6 +202,8 @@ struct PDFKitView: UIViewRepresentable {
         weak var pdfView: HighlightablePDFView?
         let onPageChange: (Int, Double) -> Void
         var lastPageIndex: Int = 0
+        var lastNavigatedPage: Int?
+        var lastNavigatedSelection: PDFSelection?
 
         init(onPageChange: @escaping (Int, Double) -> Void) {
             self.onPageChange = onPageChange

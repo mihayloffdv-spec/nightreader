@@ -33,6 +33,7 @@ struct ReaderView: View {
                             theme: viewModel.selectedTheme,
                             fontSize: viewModel.readerFontSize,
                             currentPageIndex: viewModel.currentPage,
+                            goToPageIndex: $viewModel.goToPageIndex,
                             onPageChange: { page in
                                 viewModel.savePosition(pageIndex: page, scrollOffset: 0)
                             },
@@ -84,8 +85,19 @@ struct ReaderView: View {
                     VStack {
                         SearchBarView(
                             isPresented: $viewModel.showSearch,
-                            document: viewModel.document,
-                            onGoToSelection: { viewModel.goToSelection($0) }
+                            document: viewModel.isReaderMode ? viewModel.originalDoc : viewModel.document,
+                            onGoToSelection: { sel in
+                                if viewModel.isReaderMode {
+                                    // In Reader Mode, navigate to the page containing the selection
+                                    if let page = sel.pages.first,
+                                       let doc = viewModel.originalDoc {
+                                        let idx = doc.index(for: page)
+                                        viewModel.goToPage(idx)
+                                    }
+                                } else {
+                                    viewModel.goToSelection(sel)
+                                }
+                            }
                         )
                         Spacer()
                     }
@@ -115,7 +127,7 @@ struct ReaderView: View {
         }
         .sheet(isPresented: $viewModel.showAnnotationList) {
             AnnotationListView(
-                document: viewModel.document,
+                document: viewModel.originalDoc ?? viewModel.document,
                 onSelectAnnotation: { viewModel.goToPage($0) }
             )
             .presentationDetents([.medium, .large])
@@ -123,7 +135,7 @@ struct ReaderView: View {
         }
         .sheet(isPresented: $viewModel.showTOC) {
             TOCView(
-                document: viewModel.document,
+                document: viewModel.originalDoc ?? viewModel.document,
                 onSelectPage: { viewModel.goToPage($0) }
             )
             .presentationDetents([.medium, .large])
