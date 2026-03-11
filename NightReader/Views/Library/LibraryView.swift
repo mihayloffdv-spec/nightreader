@@ -1,11 +1,13 @@
 import SwiftUI
 import SwiftData
+import PDFKit
 
 struct LibraryView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \Book.lastReadDate, order: .reverse) private var books: [Book]
     @State private var viewModel = LibraryViewModel()
     @State private var selectedBook: Book?
+    @State private var bookToDelete: Book?
 
     var body: some View {
         NavigationStack {
@@ -48,6 +50,24 @@ struct LibraryView: View {
             } message: {
                 Text(viewModel.errorMessage ?? "")
             }
+            .confirmationDialog(
+                "Delete this book?",
+                isPresented: .init(
+                    get: { bookToDelete != nil },
+                    set: { if !$0 { bookToDelete = nil } }
+                ),
+                titleVisibility: .visible
+            ) {
+                Button("Delete", role: .destructive) {
+                    if let book = bookToDelete {
+                        viewModel.deleteBook(book, context: modelContext)
+                    }
+                    bookToDelete = nil
+                }
+                Button("Cancel", role: .cancel) { bookToDelete = nil }
+            } message: {
+                Text("This will remove the book and all its highlights.")
+            }
             .navigationDestination(item: $selectedBook) { book in
                 ReaderView(book: book)
             }
@@ -86,10 +106,10 @@ struct LibraryView: View {
                     selectedBook = book
                 } label: {
                     HStack(spacing: 12) {
-                        Image(systemName: "doc.text.fill")
-                            .font(.title2)
-                            .foregroundStyle(.secondary)
-                            .frame(width: 44)
+                        // PDF thumbnail
+                        BookThumbnail(book: book)
+                            .frame(width: 44, height: 60)
+                            .clipShape(RoundedRectangle(cornerRadius: 4))
 
                         VStack(alignment: .leading, spacing: 4) {
                             Text(book.title)
@@ -108,6 +128,10 @@ struct LibraryView: View {
                                     Text("·")
                                     Text("\(Int(book.readProgress * 100))%")
                                 }
+                                if let lastRead = book.lastReadDate {
+                                    Text("·")
+                                    Text(lastRead, style: .relative)
+                                }
                             }
                             .font(.caption)
                             .foregroundStyle(.tertiary)
@@ -118,7 +142,7 @@ struct LibraryView: View {
                 }
                 .swipeActions(edge: .trailing) {
                     Button(role: .destructive) {
-                        viewModel.deleteBook(book, context: modelContext)
+                        bookToDelete = book
                     } label: {
                         Label("Delete", systemImage: "trash")
                     }
@@ -126,5 +150,39 @@ struct LibraryView: View {
             }
         }
         .listStyle(.plain)
+    }
+}
+
+// MARK: - Book thumbnail from first PDF page
+
+struct BookThumbnail: View {
+    let book: Book
+    @State private var image: UIImage?
+
+    var body: some View {
+        Group {
+            if let image {
+                Image(uiImage: image)
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+            } else {
+                Image(systemName: "doc.text.fill")
+                    .font(.title2)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background(Color(.systemGray5))
+            }
+        }
+        .task {
+            image = await generateThumbnail(for: book)
+        }
+    }
+
+    private func generateThumbnail(for book: Book) async -> UIImage? {
+        await Task.detached {
+            guard let doc = PDFDocument(url: book.fileURL),
+                  let page = doc.page(at: 0) else { return nil }
+            return page.thumbnail(of: CGSize(width: 88, height: 120), for: .cropBox)
+        }.value
     }
 }

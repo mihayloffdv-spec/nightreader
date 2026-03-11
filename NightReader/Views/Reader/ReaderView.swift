@@ -11,55 +11,78 @@ struct ReaderView: View {
 
     var body: some View {
         ZStack {
-            // PDF content
-            PDFKitView(
-                document: viewModel.document,
-                renderingMode: viewModel.renderingMode,
-                theme: viewModel.selectedTheme,
-                initialPageIndex: viewModel.book.lastPageIndex,
-                highlightColor: viewModel.highlightColor,
-                goToPageIndex: viewModel.goToPageIndex,
-                onPageChange: { page, offset in
-                    viewModel.savePosition(pageIndex: page, scrollOffset: offset)
-                    viewModel.goToPageIndex = nil
-                },
-                onHighlight: { _ in }
-            )
-            .ignoresSafeArea()
-            .onTapGesture {
-                withAnimation(.easeInOut(duration: 0.25)) {
-                    viewModel.toggleToolbar()
+            if viewModel.isLoading {
+                ProgressView("Opening…")
+                    .tint(.white)
+                    .foregroundStyle(.white)
+            } else if let error = viewModel.loadError {
+                ContentUnavailableView {
+                    Label("Cannot Open", systemImage: "exclamationmark.triangle")
+                } description: {
+                    Text(error)
+                } actions: {
+                    Button("Go Back") { dismiss() }
+                        .buttonStyle(.borderedProminent)
                 }
-            }
+            } else {
+                // PDF content
+                PDFKitView(
+                    document: viewModel.document,
+                    renderingMode: viewModel.renderingMode,
+                    theme: viewModel.selectedTheme,
+                    initialPageIndex: viewModel.book.lastPageIndex,
+                    highlightColor: viewModel.highlightColor,
+                    goToPageIndex: viewModel.goToPageIndex,
+                    goToSelection: viewModel.goToSelectionValue,
+                    onPageChange: { page, offset in
+                        viewModel.savePosition(pageIndex: page, scrollOffset: offset)
+                        viewModel.goToPageIndex = nil
+                        viewModel.goToSelectionValue = nil
+                    },
+                    onHighlight: { _ in },
+                    onTapEmpty: {
+                        withAnimation(.easeInOut(duration: 0.25)) {
+                            viewModel.toggleToolbar()
+                        }
+                    }
+                )
+                .ignoresSafeArea()
 
-            // Dimmer overlay
-            if viewModel.dimmerOpacity > 0 {
-                DimmerOverlay(opacity: viewModel.dimmerOpacity)
-            }
-
-            // Search bar (top, below status bar)
-            if viewModel.showSearch {
-                VStack {
-                    SearchBarView(
-                        isPresented: $viewModel.showSearch,
-                        document: viewModel.document,
-                        onGoToPage: { viewModel.goToPage($0) }
-                    )
-                    Spacer()
+                // Dimmer overlay — exclude toolbar areas
+                if viewModel.dimmerOpacity > 0 {
+                    DimmerOverlay(opacity: viewModel.dimmerOpacity)
+                        .padding(.top, viewModel.toolbarVisible ? 52 : 0)
+                        .padding(.bottom, viewModel.toolbarVisible ? 120 : 0)
                 }
-                .transition(.move(edge: .top))
-            }
 
-            // Toolbar
-            if viewModel.toolbarVisible && !viewModel.showSearch {
-                ReaderToolbar(viewModel: viewModel) {
-                    dismiss()
+                // Search bar (top, below status bar)
+                if viewModel.showSearch {
+                    VStack {
+                        SearchBarView(
+                            isPresented: $viewModel.showSearch,
+                            document: viewModel.document,
+                            onGoToSelection: { viewModel.goToSelection($0) }
+                        )
+                        Spacer()
+                    }
+                    .transition(.move(edge: .top))
                 }
-                .transition(.opacity)
+
+                // Toolbar
+                if viewModel.toolbarVisible && !viewModel.showSearch {
+                    ReaderToolbar(viewModel: viewModel) {
+                        dismiss()
+                    }
+                    .transition(.opacity)
+                }
             }
         }
+        .background(Color.black)
         .navigationBarHidden(true)
         .statusBarHidden(!viewModel.toolbarVisible)
+        .task {
+            await viewModel.loadDocument()
+        }
         .onAppear {
             viewModel.scheduleHideToolbar()
         }
@@ -69,15 +92,18 @@ struct ReaderView: View {
         .sheet(isPresented: $viewModel.showAnnotationList) {
             AnnotationListView(
                 document: viewModel.document,
-                onSelectAnnotation: { viewModel.goToPage($0) },
-                onDeleteAnnotation: { _, _ in }
+                onSelectAnnotation: { viewModel.goToPage($0) }
             )
+            .presentationDetents([.medium, .large])
+            .presentationDragIndicator(.visible)
         }
         .sheet(isPresented: $viewModel.showTOC) {
             TOCView(
                 document: viewModel.document,
                 onSelectPage: { viewModel.goToPage($0) }
             )
+            .presentationDetents([.medium, .large])
+            .presentationDragIndicator(.visible)
         }
         .sheet(isPresented: $viewModel.showExportShare) {
             if let url = viewModel.exportURL {

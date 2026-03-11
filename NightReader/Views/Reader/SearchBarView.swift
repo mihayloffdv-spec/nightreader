@@ -4,7 +4,7 @@ import PDFKit
 struct SearchBarView: View {
     @Binding var isPresented: Bool
     let document: PDFDocument?
-    let onGoToPage: (Int) -> Void
+    let onGoToSelection: (PDFSelection) -> Void
 
     @State private var searchText = ""
     @State private var results: [SearchResult] = []
@@ -36,11 +36,13 @@ struct SearchBarView: View {
 
                     Button { navigateResult(delta: -1) } label: {
                         Image(systemName: "chevron.up")
+                            .frame(width: 44, height: 44)
                     }
                     .disabled(results.isEmpty)
 
                     Button { navigateResult(delta: 1) } label: {
                         Image(systemName: "chevron.down")
+                            .frame(width: 44, height: 44)
                     }
                     .disabled(results.isEmpty)
                 }
@@ -60,7 +62,7 @@ struct SearchBarView: View {
                     ForEach(Array(results.enumerated()), id: \.element.id) { index, result in
                         Button {
                             currentResultIndex = index
-                            onGoToPage(result.pageIndex)
+                            onGoToSelection(result.selection)
                         } label: {
                             HStack {
                                 VStack(alignment: .leading, spacing: 2) {
@@ -107,13 +109,13 @@ struct SearchBarView: View {
         currentResultIndex = 0
 
         if let first = found.first {
-            onGoToPage(first.pageIndex)
+            onGoToSelection(first.selection)
         }
     }
 
     private func navigateResult(delta: Int) {
         guard !results.isEmpty else { return }
         currentResultIndex = (currentResultIndex + delta + results.count) % results.count
-        onGoToPage(results[currentResultIndex].pageIndex)
+        onGoToSelection(results[currentResultIndex].selection)
     }
 }

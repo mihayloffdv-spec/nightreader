@@ -4,7 +4,6 @@ import PDFKit
 struct AnnotationListView: View {
     let document: PDFDocument?
     let onSelectAnnotation: (Int) -> Void
-    let onDeleteAnnotation: (PDFAnnotation, PDFPage) -> Void
     @Environment(\.dismiss) private var dismiss
 
     @State private var annotations: [AnnotationInfo] = []

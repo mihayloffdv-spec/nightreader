@@ -19,6 +19,9 @@ final class ReaderViewModel {
     var highlightColor: HighlightColor = .yellow
     var exportURL: URL?
     var goToPageIndex: Int?
+    var goToSelectionValue: PDFSelection?
+    var isLoading = true
+    var loadError: String?
 
     private var hideToolbarTask: Task<Void, Never>?
     private var originalDocument: PDFDocument?
@@ -28,9 +31,28 @@ final class ReaderViewModel {
         self.renderingMode = book.renderingMode
         self.selectedTheme = AppSettings.shared.currentTheme
         self.dimmerOpacity = AppSettings.shared.defaultDimmerOpacity
-        let doc = PDFDocument(url: book.fileURL)
-        self.document = doc
-        self.originalDocument = doc
+    }
+
+    @MainActor
+    func loadDocument() async {
+        isLoading = true
+        let url = book.fileURL
+        let doc = await Task.detached {
+            PDFDocument(url: url)
+        }.value
+
+        if let doc {
+            self.originalDocument = doc
+            if renderingMode == .smart {
+                applySmartMode()
+            } else {
+                self.document = doc
+            }
+            isLoading = false
+        } else {
+            loadError = "File is missing or corrupted."
+            isLoading = false
+        }
     }
 
     var isDarkModeEnabled: Bool {
@@ -101,7 +123,6 @@ final class ReaderViewModel {
         scheduleHideToolbar()
         selectedTheme = theme
         AppSettings.shared.defaultThemeId = theme.id
-        // Re-apply smart mode with new theme colors
         if renderingMode == .smart {
             applySmartMode()
         }
@@ -116,6 +137,7 @@ final class ReaderViewModel {
             marks.insert(currentPage)
         }
         book.bookmarks = marks
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
     }
 
     func exportAnnotations() {
@@ -129,6 +151,10 @@ final class ReaderViewModel {
 
     func goToPage(_ pageIndex: Int) {
         goToPageIndex = pageIndex
+    }
+
+    func goToSelection(_ selection: PDFSelection) {
+        goToSelectionValue = selection
     }
 
     private func applySmartMode() {

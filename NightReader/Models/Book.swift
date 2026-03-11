@@ -14,7 +14,6 @@ final class Book {
     var totalPages: Int
     var readProgress: Double
     var renderingModeRaw: String
-    var cropMargin: Double
     var bookmarksData: Data?
 
     var bookmarks: Set<Int> {
@@ -50,7 +49,6 @@ final class Book {
         self.totalPages = totalPages
         self.readProgress = 0
         self.renderingModeRaw = RenderingMode.simple.rawValue
-        self.cropMargin = 0
     }
 
     var fileURL: URL {

@@ -6,6 +6,7 @@ import PDFKit
 class HighlightablePDFView: PDFView {
     var highlightColor: HighlightColor = .yellow
     var onHighlight: ((PDFSelection) -> Void)?
+    var onTapEmpty: (() -> Void)?
 
     override func buildMenu(with builder: any UIMenuBuilder) {
         super.buildMenu(with: builder)
@@ -92,8 +93,10 @@ struct PDFKitView: UIViewRepresentable {
     let initialPageIndex: Int
     let highlightColor: HighlightColor
     let goToPageIndex: Int?
+    let goToSelection: PDFSelection?
     let onPageChange: (Int, Double) -> Void
     let onHighlight: (PDFSelection) -> Void
+    let onTapEmpty: () -> Void
 
     func makeCoordinator() -> Coordinator {
         Coordinator(onPageChange: onPageChange)
@@ -108,10 +111,19 @@ struct PDFKitView: UIViewRepresentable {
         pdfView.document = document
         pdfView.highlightColor = highlightColor
         pdfView.onHighlight = onHighlight
+        pdfView.onTapEmpty = onTapEmpty
+
+        // Single tap on empty area — toggle toolbar
+        let singleTap = UITapGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.handleSingleTap(_:)))
+        singleTap.numberOfTapsRequired = 1
+        singleTap.delegate = context.coordinator
 
         // Double-tap to toggle zoom
         let doubleTap = UITapGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.handleDoubleTap))
         doubleTap.numberOfTapsRequired = 2
+
+        singleTap.require(toFail: doubleTap)
+        pdfView.addGestureRecognizer(singleTap)
         pdfView.addGestureRecognizer(doubleTap)
 
         // Restore reading position
@@ -139,6 +151,7 @@ struct PDFKitView: UIViewRepresentable {
 
         pdfView.highlightColor = highlightColor
         pdfView.onHighlight = onHighlight
+        pdfView.onTapEmpty = onTapEmpty
 
         // Update background color from theme
         pdfView.backgroundColor = UIColor(theme.bgColor)
@@ -157,6 +170,16 @@ struct PDFKitView: UIViewRepresentable {
             pdfView.go(to: page)
         }
 
+        // Navigate to search selection and highlight it
+        if let selection = goToSelection {
+            pdfView.go(to: selection)
+            pdfView.setCurrentSelection(selection, animate: true)
+            // Auto-clear highlight after 2 seconds
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                pdfView.clearSelection()
+            }
+        }
+
         // Simple mode uses compositing filter overlays
         if renderingMode == .simple {
             DarkModeRenderer.applyDarkMode(to: pdfView, theme: theme)
@@ -165,7 +188,7 @@ struct PDFKitView: UIViewRepresentable {
         }
     }
 
-    class Coordinator: NSObject {
+    class Coordinator: NSObject, UIGestureRecognizerDelegate {
         weak var pdfView: HighlightablePDFView?
         let onPageChange: (Int, Double) -> Void
         var lastPageIndex: Int = 0
@@ -192,6 +215,16 @@ struct PDFKitView: UIViewRepresentable {
             onPageChange(pageIndex, scrollOffset)
         }
 
+        @objc func handleSingleTap(_ gesture: UITapGestureRecognizer) {
+            guard let pdfView else { return }
+            // Don't toggle toolbar if there's an active text selection
+            if pdfView.currentSelection != nil {
+                pdfView.clearSelection()
+                return
+            }
+            pdfView.onTapEmpty?()
+        }
+
         @objc func handleDoubleTap() {
             guard let pdfView else { return }
             let fitScale = pdfView.scaleFactorForSizeToFit
@@ -200,6 +233,11 @@ struct PDFKitView: UIViewRepresentable {
             } else {
                 pdfView.scaleFactor = fitScale * 2
             }
+        }
+
+        // Allow simultaneous recognition so we don't block PDFView's built-in gestures
+        func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldRecognizeSimultaneouslyWith other: UIGestureRecognizer) -> Bool {
+            true
         }
 
         deinit {

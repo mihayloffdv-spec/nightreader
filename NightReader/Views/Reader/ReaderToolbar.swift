@@ -17,6 +17,7 @@ struct ReaderToolbar: View {
                         .font(.title2.weight(.semibold))
                         .frame(width: 44, height: 44)
                 }
+                .accessibilityLabel("Back")
 
                 Text(viewModel.book.title)
                     .font(.callout.weight(.medium))
@@ -24,16 +25,16 @@ struct ReaderToolbar: View {
                     .frame(maxWidth: .infinity)
 
                 // Action buttons — 44pt tap targets
-                toolbarButton("magnifyingglass") {
+                toolbarButton("magnifyingglass", label: "Search") {
                     withAnimation { viewModel.showSearch = true }
                 }
-                toolbarButton("list.bullet") {
+                toolbarButton("list.bullet", label: "Contents") {
                     viewModel.showTOC = true
                 }
-                toolbarButton(viewModel.isCurrentPageBookmarked ? "bookmark.fill" : "bookmark") {
+                toolbarButton(viewModel.isCurrentPageBookmarked ? "bookmark.fill" : "bookmark", label: "Bookmark") {
                     viewModel.toggleBookmark()
                 }
-                toolbarButton("highlighter") {
+                toolbarButton("highlighter", label: "Highlights") {
                     viewModel.showAnnotationList = true
                 }
 
@@ -48,8 +49,9 @@ struct ReaderToolbar: View {
                         .overlay(Circle().strokeBorder(.white, lineWidth: 1.5))
                         .frame(width: 44, height: 44)
                 }
+                .accessibilityLabel("Highlight color")
 
-                toolbarButton("paintpalette") {
+                toolbarButton("paintpalette", label: "Theme") {
                     withAnimation { viewModel.showThemePicker.toggle() }
                     viewModel.scheduleHideToolbar()
                 }
@@ -109,6 +111,7 @@ struct ReaderToolbar: View {
                             .font(.title3)
                             .frame(width: 44, height: 44)
                     }
+                    .accessibilityLabel("Settings")
                 }
 
                 // Settings panel
@@ -126,12 +129,13 @@ struct ReaderToolbar: View {
 
     // MARK: - Toolbar button helper (44pt tap target)
 
-    private func toolbarButton(_ icon: String, action: @escaping () -> Void) -> some View {
+    private func toolbarButton(_ icon: String, label: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Image(systemName: icon)
                 .font(.title3)
                 .frame(width: 44, height: 44)
         }
+        .accessibilityLabel(label)
     }
 
     // MARK: - Settings panel
@@ -149,6 +153,9 @@ struct ReaderToolbar: View {
                     .frame(width: 24)
             }
             .frame(height: 36)
+            .onAppear {
+                brightness = Double(UIScreen.main.brightness)
+            }
 
             HStack(spacing: 14) {
                 Image(systemName: "circle.lefthalf.filled").font(.callout)
@@ -183,6 +190,7 @@ struct ReaderToolbar: View {
                         )
                         .frame(width: 44, height: 44)
                 }
+                .accessibilityLabel("\(color.id) highlight")
             }
             Spacer()
             Button { viewModel.exportAnnotations() } label: {
@@ -190,6 +198,7 @@ struct ReaderToolbar: View {
                     .font(.title3)
                     .frame(width: 44, height: 44)
             }
+            .accessibilityLabel("Export highlights")
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 4)
@@ -222,6 +231,7 @@ struct ReaderToolbar: View {
                                 .font(.caption)
                         }
                     }
+                    .accessibilityLabel("\(theme.name) theme")
                 }
             }
             .padding(.horizontal, 16)
