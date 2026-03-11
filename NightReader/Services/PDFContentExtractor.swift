@@ -153,17 +153,20 @@ final class PDFContentExtractor {
         // Track which complex regions have been snapshotted
         var snapshotRegions = Set<Int>()
 
-        // Process text lines and gaps
-        var pendingText = ""
+        // Collect line bounds for text blocks, then extract text via
+        // page.selection(for:) to preserve proper character ordering
+        // (individual selectionsByLine can split styled first characters)
+        var pendingLineBounds: [CGRect] = []
+
         for i in 0..<textLines.count {
             let line = textLines[i]
 
             // Check if this line falls within a complex region (table/formula)
             if let regionIdx = complexRegions.firstIndex(where: { $0.intersects(line.bounds) }) {
-                // Flush pending text first
-                if !pendingText.isEmpty {
-                    blocks.append(.text(pendingText))
-                    pendingText = ""
+                // Flush pending text block first
+                if !pendingLineBounds.isEmpty {
+                    blocks.append(contentsOf: flushTextBlock(pendingLineBounds, page: page))
+                    pendingLineBounds = []
                 }
                 // Snapshot the complex region (only once per region)
                 if !snapshotRegions.contains(regionIdx) {
@@ -177,7 +180,7 @@ final class PDFContentExtractor {
                 continue
             }
 
-            pendingText += (pendingText.isEmpty ? "" : "\n") + line.text
+            pendingLineBounds.append(line.bounds)
 
             if i + 1 < textLines.count {
                 let thisBottom = line.bounds.minY
@@ -185,10 +188,10 @@ final class PDFContentExtractor {
                 let gap = thisBottom - nextTop
 
                 if gap > gapThreshold {
-                    // Flush pending text
-                    if !pendingText.isEmpty {
-                        blocks.append(.text(pendingText))
-                        pendingText = ""
+                    // Flush pending text block
+                    if !pendingLineBounds.isEmpty {
+                        blocks.append(contentsOf: flushTextBlock(pendingLineBounds, page: page))
+                        pendingLineBounds = []
                     }
                     // Resolve gap — use extracted image if available, else snapshot
                     let gapRect = CGRect(
@@ -200,9 +203,9 @@ final class PDFContentExtractor {
             }
         }
 
-        // Flush remaining text
-        if !pendingText.isEmpty {
-            blocks.append(.text(pendingText))
+        // Flush remaining text block
+        if !pendingLineBounds.isEmpty {
+            blocks.append(contentsOf: flushTextBlock(pendingLineBounds, page: page))
         }
 
         // Gap from last text line to page bottom
@@ -217,6 +220,24 @@ final class PDFContentExtractor {
         }
 
         return blocks
+    }
+
+    // MARK: - Text block extraction
+
+    /// Extract text from a region covering multiple line bounds using a single
+    /// page.selection(for:). This preserves proper character ordering, including
+    /// styled first characters, bullets, and list markers that selectionsByLine
+    /// may split into separate selections.
+    private static func flushTextBlock(_ lineBounds: [CGRect], page: PDFPage) -> [ContentBlock] {
+        guard !lineBounds.isEmpty else { return [] }
+        let combined = lineBounds.reduce(lineBounds[0]) { $0.union($1) }
+        // Slightly widen horizontally to capture any characters at line edges
+        let expanded = combined.insetBy(dx: -2, dy: -1)
+        guard let sel = page.selection(for: expanded) else { return [] }
+        let text = sel.string ?? ""
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.isEmpty { return [] }
+        return [.text(trimmed)]
     }
 
     // MARK: - Gap resolution: prefer extracted images over snapshots
