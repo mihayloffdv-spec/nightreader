@@ -190,15 +190,17 @@ final class PDFContentExtractor {
     }
 
     /// Join lines handling hyphenated word breaks: "технол-" + "огия" → "технология"
+    /// Preserves compound words like "из-за" by only dehyphenating when next line starts lowercase.
     private static func joinLines(_ lines: [String]) -> String {
         guard lines.count > 1 else { return lines.first ?? "" }
         var result = ""
         for (i, line) in lines.enumerated() {
             if i > 0 {
-                // If previous line ended with hyphen, join without space (dehyphenate)
-                if result.hasSuffix("-") {
-                    // Remove trailing hyphen and join directly
-                    result.removeLast()
+                let endsWithHyphen = result.hasSuffix("-") || result.hasSuffix("\u{00AD}")
+                let startsLowercase = line.first?.isLowercase == true
+                if endsWithHyphen && startsLowercase {
+                    // Word wrapped with hyphen: "технол-" + "огия" → "технология"
+                    result.removeLast() // remove hyphen/soft-hyphen
                 } else {
                     result += " "
                 }
@@ -318,57 +320,8 @@ final class PDFContentExtractor {
             CGPDFScannerPopNumber(scanner, &b)
             CGPDFScannerPopNumber(scanner, &a)
             let matrix = CGAffineTransform(a: a, b: b, c: c, d: d, tx: tx, ty: ty)
-            ctx.ctm = ctx.ctm.concatenating(matrix)
-        }
-
-        // re — rectangle (table detection)
-        CGPDFOperatorTableSetCallback(operatorTable, "re") { scanner, info in
-            guard let info else { return }
-            let ctx = Unmanaged<ScannerContext>.fromOpaque(info).takeUnretainedValue()
-            var x: CGPDFReal = 0, y: CGPDFReal = 0, w: CGPDFReal = 0, h: CGPDFReal = 0
-            CGPDFScannerPopNumber(scanner, &h)
-            CGPDFScannerPopNumber(scanner, &w)
-            CGPDFScannerPopNumber(scanner, &y)
-            CGPDFScannerPopNumber(scanner, &x)
-            let rect = CGRect(x: x, y: y, width: w, height: h).applying(ctx.ctm)
-            ctx.rectangles.append(rect)
-        }
-
-        // m — moveto (line detection for tables)
-        CGPDFOperatorTableSetCallback(operatorTable, "m") { scanner, info in
-            guard let info else { return }
-            let ctx = Unmanaged<ScannerContext>.fromOpaque(info).takeUnretainedValue()
-            var x: CGPDFReal = 0, y: CGPDFReal = 0
-            CGPDFScannerPopNumber(scanner, &y)
-            CGPDFScannerPopNumber(scanner, &x)
-            ctx.currentPoint = CGPoint(x: x, y: y).applying(ctx.ctm)
-        }
-
-        // l — lineto (line detection for tables)
-        CGPDFOperatorTableSetCallback(operatorTable, "l") { scanner, info in
-            guard let info else { return }
-            let ctx = Unmanaged<ScannerContext>.fromOpaque(info).takeUnretainedValue()
-            var x: CGPDFReal = 0, y: CGPDFReal = 0
-            CGPDFScannerPopNumber(scanner, &y)
-            CGPDFScannerPopNumber(scanner, &x)
-            let endPoint = CGPoint(x: x, y: y).applying(ctx.ctm)
-            ctx.allLineSegments.append((ctx.currentPoint, endPoint))
-            ctx.currentPoint = endPoint
-        }
-
-        // Tf — set font (math formula detection)
-        CGPDFOperatorTableSetCallback(operatorTable, "Tf") { scanner, info in
-            guard let info else { return }
-            let ctx = Unmanaged<ScannerContext>.fromOpaque(info).takeUnretainedValue()
-            var namePtr: UnsafePointer<CChar>?
-            var size: CGPDFReal = 0
-            CGPDFScannerPopNumber(scanner, &size)
-            guard CGPDFScannerPopName(scanner, &namePtr), let name = namePtr else { return }
-            let fontName = String(cString: name)
-            // Record font with approximate position from CTM
-            let pos = CGPoint(x: ctx.ctm.tx, y: ctx.ctm.ty)
-            let approxRect = CGRect(x: pos.x, y: pos.y, width: 100, height: abs(size) > 0 ? abs(size) : 12)
-            ctx.fontNames.append((fontName, approxRect))
+            // PDF spec: CTM' = M × CTM (new matrix applied first, then existing CTM)
+            ctx.ctm = matrix.concatenating(ctx.ctm)
         }
 
         // Do — invoke XObject (images and form XObjects are drawn here)
@@ -433,11 +386,6 @@ final class PDFContentExtractor {
         CGPDFContentStreamRelease(contentStream)
 
         return context
-    }
-
-    /// Extract all raster images from a PDF page (convenience wrapper).
-    private static func extractImages(from cgPage: CGPDFPage) -> [ExtractedImage] {
-        scanPageContent(from: cgPage).images
     }
 
     /// Extract CGImage from a PDF image stream.
@@ -505,131 +453,6 @@ final class PDFContentExtractor {
         var images: [ExtractedImage] = []       // Successfully extracted CGImages
         var imageRects: [CGRect] = []           // ALL image/form XObject positions (for snapshot fallback)
         var pageBounds: CGRect = .zero          // Page bounds for relative size filtering
-
-        // Phase 3: tracking for table/formula/column detection
-        var rectangles: [CGRect] = []         // from `re` operator
-        var pathPoints: [CGPoint] = []        // from `m`/`l` operators (current path)
-        var allLineSegments: [(CGPoint, CGPoint)] = []  // collected line segments
-        var currentPoint: CGPoint = .zero
-        var fontNames: [(String, CGRect)] = []  // (fontName, approximate position via CTM)
-    }
-
-    // MARK: - Phase 3: Complex region detection
-
-    /// Detect table regions by finding grid-like patterns of rectangles and lines.
-    private static func detectTableRegions(context: ScannerContext, pageBounds: CGRect) -> [CGRect] {
-        var tableRegions: [CGRect] = []
-
-        // Strategy 1: Clusters of thin rectangles (cell borders)
-        // Filter for thin rectangles (likely borders, not fills)
-        let thinRects = context.rectangles.filter { rect in
-            let w = abs(rect.width)
-            let h = abs(rect.height)
-            // At least one dimension is thin (border-like) OR it's a cell-sized rect
-            return (w < 2 || h < 2) && (w > 5 || h > 5)
-        }
-
-        if thinRects.count >= 4 {
-            // Find bounding box of clustered thin rectangles
-            if let region = boundingBox(of: thinRects.map { $0 }) {
-                // Only count as table if region is substantial
-                if region.width > 50 && region.height > 30 {
-                    tableRegions.append(region.insetBy(dx: -5, dy: -5))
-                }
-            }
-        }
-
-        // Strategy 2: Grid of horizontal + vertical line segments
-        let horizontalLines = context.allLineSegments.filter { seg in
-            abs(seg.0.y - seg.1.y) < 2 && abs(seg.0.x - seg.1.x) > 20
-        }
-        let verticalLines = context.allLineSegments.filter { seg in
-            abs(seg.0.x - seg.1.x) < 2 && abs(seg.0.y - seg.1.y) > 20
-        }
-
-        // If we have both horizontal and vertical lines forming a grid
-        if horizontalLines.count >= 3 && verticalLines.count >= 2 {
-            let allPoints = horizontalLines.flatMap { [$0.0, $0.1] } + verticalLines.flatMap { [$0.0, $0.1] }
-            if let region = boundingBox(ofPoints: allPoints) {
-                if region.width > 50 && region.height > 30 {
-                    // Check it doesn't overlap an already-detected region
-                    if !tableRegions.contains(where: { $0.intersects(region) }) {
-                        tableRegions.append(region.insetBy(dx: -5, dy: -5))
-                    }
-                }
-            }
-        }
-
-        // Strategy 3: Many same-sized rectangles (table cells)
-        let cellRects = context.rectangles.filter { rect in
-            abs(rect.width) > 20 && abs(rect.height) > 10 && abs(rect.width) < pageBounds.width * 0.8
-        }
-        if cellRects.count >= 6 {
-            // Group by similar heights (within 3pt) — likely table rows
-            let heightGroups = Dictionary(grouping: cellRects) { rect in
-                Int(abs(rect.height) / 3) * 3
-            }
-            let largestGroup = heightGroups.values.max(by: { $0.count < $1.count }) ?? []
-            if largestGroup.count >= 4 {
-                if let region = boundingBox(of: largestGroup.map { $0 }) {
-                    if !tableRegions.contains(where: { $0.intersects(region) }) {
-                        tableRegions.append(region.insetBy(dx: -5, dy: -5))
-                    }
-                }
-            }
-        }
-
-        return tableRegions
-    }
-
-    /// Detect regions containing math formulas by analyzing font usage.
-    private static func detectFormulaRegions(context: ScannerContext) -> [CGRect] {
-        let mathFontPrefixes = [
-            "CMMI", "CMSY", "CMEX", "CMR", "CMBX",  // Computer Modern (LaTeX)
-            "Symbol", "MT Extra",                      // Microsoft math
-            "Math", "Mathematica",                     // Generic math
-            "STIX", "Asana",                           // STIX/Asana math
-            "Cambria Math",                            // Cambria Math
-        ]
-
-        let mathFonts = context.fontNames.filter { entry in
-            let name = entry.0.uppercased()
-            return mathFontPrefixes.contains { prefix in
-                name.contains(prefix.uppercased())
-            }
-        }
-
-        guard mathFonts.count >= 2 else { return [] }
-
-        // Cluster nearby math font uses into regions
-        var regions: [CGRect] = []
-        var used = Set<Int>()
-
-        for i in 0..<mathFonts.count {
-            guard !used.contains(i) else { continue }
-            var cluster = [mathFonts[i].1]
-            used.insert(i)
-
-            for j in (i + 1)..<mathFonts.count {
-                guard !used.contains(j) else { continue }
-                // Check if this font use is near the current cluster
-                if let bbox = boundingBox(of: cluster) {
-                    let expanded = bbox.insetBy(dx: -30, dy: -20)
-                    if expanded.contains(mathFonts[j].1.origin) || expanded.intersects(mathFonts[j].1) {
-                        cluster.append(mathFonts[j].1)
-                        used.insert(j)
-                    }
-                }
-            }
-
-            if cluster.count >= 2, let region = boundingBox(of: cluster) {
-                if region.width > 20 && region.height > 10 {
-                    regions.append(region.insetBy(dx: -10, dy: -5))
-                }
-            }
-        }
-
-        return regions
     }
 
     /// Detect multi-column layout by clustering text line left margins.
@@ -675,22 +498,6 @@ final class PDFContentExtractor {
         }
 
         return false
-    }
-
-    // MARK: - Geometry helpers
-
-    private static func boundingBox(of rects: [CGRect]) -> CGRect? {
-        guard let first = rects.first else { return nil }
-        return rects.dropFirst().reduce(first) { $0.union($1) }
-    }
-
-    private static func boundingBox(ofPoints points: [CGPoint]) -> CGRect? {
-        guard !points.isEmpty else { return nil }
-        let xs = points.map { $0.x }
-        let ys = points.map { $0.y }
-        guard let minX = xs.min(), let maxX = xs.max(),
-              let minY = ys.min(), let maxY = ys.max() else { return nil }
-        return CGRect(x: minX, y: minY, width: maxX - minX, height: maxY - minY)
     }
 
     // MARK: - Text quality assessment
