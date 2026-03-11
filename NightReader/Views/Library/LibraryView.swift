@@ -11,20 +11,28 @@ struct LibraryView: View {
 
     var body: some View {
         NavigationStack {
-            Group {
-                if books.isEmpty {
-                    emptyState
-                } else {
-                    bookList
+            ZStack {
+                NightTheme.background
+                    .ignoresSafeArea()
+
+                Group {
+                    if books.isEmpty {
+                        emptyState
+                    } else {
+                        bookGrid
+                    }
                 }
             }
             .navigationTitle("NightReader")
+            .navigationBarTitleDisplayMode(.large)
+            .toolbarColorScheme(.dark, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
                     Button {
                         viewModel.showImporter = true
                     } label: {
                         Image(systemName: "plus")
+                            .foregroundStyle(NightTheme.accent)
                     }
                 }
             }
@@ -72,6 +80,20 @@ struct LibraryView: View {
                 ReaderView(book: book)
             }
             .onAppear {
+                // Style navigation bar for night theme
+                let appearance = UINavigationBarAppearance()
+                appearance.configureWithOpaqueBackground()
+                appearance.backgroundColor = NightTheme.backgroundUI
+                appearance.largeTitleTextAttributes = [
+                    .foregroundColor: UIColor(NightTheme.primaryText),
+                    .font: UIFont.systemFont(ofSize: 34, weight: .light)
+                ]
+                appearance.titleTextAttributes = [
+                    .foregroundColor: UIColor(NightTheme.primaryText)
+                ]
+                UINavigationBar.appearance().standardAppearance = appearance
+                UINavigationBar.appearance().scrollEdgeAppearance = appearance
+
                 PDFImportService.scanForUntrackedPDFs(context: modelContext)
                 #if DEBUG
                 if ProcessInfo.processInfo.arguments.contains("-autoOpenFirst") {
@@ -86,70 +108,127 @@ struct LibraryView: View {
         }
     }
 
+    // MARK: - Empty State (matches Canva design: moon + star + "Your shelf is empty")
+
     private var emptyState: some View {
-        ContentUnavailableView {
-            Label("No Books", systemImage: "book.closed")
-        } description: {
-            Text("Tap + to import a PDF")
-        } actions: {
-            Button("Import PDF") {
-                viewModel.showImporter = true
+        VStack(spacing: 20) {
+            Spacer()
+
+            ZStack {
+                MoonShape()
+                    .fill(NightTheme.moonGray.opacity(0.5))
+                    .frame(width: 64, height: 64)
+
+                Image(systemName: "star.fill")
+                    .font(.system(size: 8))
+                    .foregroundStyle(NightTheme.starColor.opacity(0.6))
+                    .offset(x: 10, y: -38)
             }
-            .buttonStyle(.borderedProminent)
+
+            Text("Your shelf is empty")
+                .font(.system(size: 18, weight: .regular))
+                .foregroundStyle(NightTheme.secondaryText)
+
+            Button {
+                viewModel.showImporter = true
+            } label: {
+                Text("Import PDF")
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundStyle(NightTheme.primaryText)
+                    .padding(.horizontal, 24)
+                    .padding(.vertical, 10)
+                    .background(
+                        Capsule()
+                            .stroke(NightTheme.secondaryText.opacity(0.4), lineWidth: 1)
+                    )
+            }
+
+            Spacer()
         }
     }
 
-    private var bookList: some View {
-        List {
-            ForEach(books) { book in
-                Button {
-                    selectedBook = book
-                } label: {
-                    HStack(spacing: 12) {
-                        // PDF thumbnail
-                        BookThumbnail(book: book)
-                            .frame(width: 44, height: 60)
-                            .clipShape(RoundedRectangle(cornerRadius: 4))
+    // MARK: - Book Grid (2-column grid with cover thumbnails)
 
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(book.title)
-                                .font(.headline)
-                                .lineLimit(2)
-
-                            if let author = book.author {
-                                Text(author)
-                                    .font(.subheadline)
-                                    .foregroundStyle(.secondary)
-                            }
-
-                            HStack {
-                                Text("\(book.totalPages) pages")
-                                if book.readProgress > 0 {
-                                    Text("·")
-                                    Text("\(Int(book.readProgress * 100))%")
-                                }
-                                if let lastRead = book.lastReadDate {
-                                    Text("·")
-                                    Text(lastRead, style: .relative)
-                                }
-                            }
-                            .font(.caption)
-                            .foregroundStyle(.tertiary)
-                        }
-
-                        Spacer()
-                    }
-                }
-                .swipeActions(edge: .trailing) {
-                    Button(role: .destructive) {
+    private var bookGrid: some View {
+        ScrollView {
+            LazyVGrid(
+                columns: [
+                    GridItem(.flexible(), spacing: 16),
+                    GridItem(.flexible(), spacing: 16)
+                ],
+                spacing: 20
+            ) {
+                ForEach(books) { book in
+                    BookCard(book: book) {
+                        selectedBook = book
+                    } onDelete: {
                         bookToDelete = book
-                    } label: {
-                        Label("Delete", systemImage: "trash")
                     }
                 }
             }
+            .padding(.horizontal, 20)
+            .padding(.top, 8)
+            .padding(.bottom, 20)
         }
-        .listStyle(.plain)
+        .scrollContentBackground(.hidden)
+    }
+}
+
+// MARK: - Book Card
+
+struct BookCard: View {
+    let book: Book
+    var onTap: () -> Void
+    var onDelete: () -> Void
+
+    var body: some View {
+        Button(action: onTap) {
+            VStack(alignment: .leading, spacing: 8) {
+                // Cover thumbnail
+                BookThumbnail(book: book)
+                    .frame(height: 200)
+                    .frame(maxWidth: .infinity)
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+
+                // Title
+                Text(book.title)
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(NightTheme.primaryText)
+                    .lineLimit(2)
+                    .multilineTextAlignment(.leading)
+
+                // Author
+                if let author = book.author {
+                    Text(author)
+                        .font(.system(size: 11))
+                        .foregroundStyle(NightTheme.secondaryText)
+                        .lineLimit(1)
+                }
+
+                // Progress bar
+                if book.readProgress > 0 {
+                    GeometryReader { geo in
+                        ZStack(alignment: .leading) {
+                            RoundedRectangle(cornerRadius: 1.5)
+                                .fill(NightTheme.progressTrack)
+                                .frame(height: 3)
+
+                            RoundedRectangle(cornerRadius: 1.5)
+                                .fill(NightTheme.progressFill)
+                                .frame(width: geo.size.width * book.readProgress, height: 3)
+                        }
+                    }
+                    .frame(height: 3)
+                }
+            }
+        }
+        .contextMenu {
+            Button(role: .destructive) {
+                onDelete()
+            } label: {
+                Label("Delete", systemImage: "trash")
+            }
+        }
     }
 }
 
@@ -168,9 +247,9 @@ struct BookThumbnail: View {
             } else {
                 Image(systemName: "doc.text.fill")
                     .font(.title2)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(NightTheme.tertiaryText)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .background(Color(.systemGray5))
+                    .background(NightTheme.cardBackground)
             }
         }
         .task {
@@ -182,7 +261,7 @@ struct BookThumbnail: View {
         await Task.detached {
             guard let doc = PDFDocument(url: book.fileURL),
                   let page = doc.page(at: 0) else { return nil }
-            return page.thumbnail(of: CGSize(width: 88, height: 120), for: .cropBox)
+            return page.thumbnail(of: CGSize(width: 300, height: 400), for: .cropBox)
         }.value
     }
 }

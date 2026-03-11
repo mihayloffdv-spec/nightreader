@@ -30,6 +30,8 @@
 		C0000021 /* ExportService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1000021 /* ExportService.swift */; };
 		C0000022 /* PDFContentExtractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1000022 /* PDFContentExtractor.swift */; };
 		C0000023 /* ReaderModeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1000023 /* ReaderModeView.swift */; };
+		C0000024 /* NightTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1000024 /* NightTheme.swift */; };
+		C0000025 /* SplashScreenView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1000025 /* SplashScreenView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -56,6 +58,8 @@
 		C1000021 /* ExportService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExportService.swift; sourceTree = "<group>"; };
 		C1000022 /* PDFContentExtractor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PDFContentExtractor.swift; sourceTree = "<group>"; };
 		C1000023 /* ReaderModeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReaderModeView.swift; sourceTree = "<group>"; };
+		C1000024 /* NightTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NightTheme.swift; sourceTree = "<group>"; };
+		C1000025 /* SplashScreenView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SplashScreenView.swift; sourceTree = "<group>"; };
 		C2000001 /* NightReader.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = NightReader.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -140,6 +144,8 @@
 			isa = PBXGroup;
 			children = (
 				C1000008 /* LibraryView.swift */,
+				C1000024 /* NightTheme.swift */,
+				C1000025 /* SplashScreenView.swift */,
 			);
 			path = Library;
 			sourceTree = "<group>";
@@ -263,6 +269,8 @@
 				C0000021 /* ExportService.swift in Sources */,
 				C0000022 /* PDFContentExtractor.swift in Sources */,
 				C0000023 /* ReaderModeView.swift in Sources */,
+				C0000024 /* NightTheme.swift in Sources */,
+				C0000025 /* SplashScreenView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
