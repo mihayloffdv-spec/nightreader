@@ -17,6 +17,53 @@ private struct ExtractedImage {
     let rect: CGRect  // Position in PDF page coordinates
 }
 
+// MARK: - Block cache
+
+final class BlockCache {
+    static let shared = BlockCache()
+
+    private let cache = NSCache<NSString, CachedBlocks>()
+
+    private init() {
+        cache.countLimit = 30  // ~30 pages
+        cache.totalCostLimit = 60 * 1024 * 1024  // ~60MB
+
+        NotificationCenter.default.addObserver(
+            forName: UIApplication.didReceiveMemoryWarningNotification,
+            object: nil, queue: nil
+        ) { [weak self] _ in
+            self?.cache.removeAllObjects()
+        }
+    }
+
+    func blocks(forPage pageIndex: Int, width: CGFloat) -> [ContentBlock]? {
+        let key = "\(pageIndex)_\(Int(width.rounded()))" as NSString
+        return cache.object(forKey: key)?.blocks
+    }
+
+    func store(_ blocks: [ContentBlock], forPage pageIndex: Int, width: CGFloat) {
+        let key = "\(pageIndex)_\(Int(width.rounded()))" as NSString
+        let cost = blocks.reduce(0) { sum, block in
+            switch block {
+            case .text: return sum + 256
+            case .image(let img), .snapshot(let img):
+                let bytes = Int(img.size.width * img.scale * img.size.height * img.scale * 4)
+                return sum + bytes
+            }
+        }
+        cache.setObject(CachedBlocks(blocks: blocks), forKey: key, cost: cost)
+    }
+
+    func invalidate() {
+        cache.removeAllObjects()
+    }
+}
+
+private class CachedBlocks: NSObject {
+    let blocks: [ContentBlock]
+    init(blocks: [ContentBlock]) { self.blocks = blocks }
+}
+
 // MARK: - PDF Content Extractor
 
 final class PDFContentExtractor {
@@ -64,13 +111,29 @@ final class PDFContentExtractor {
         // Sort top-to-bottom (PDF coords: higher Y = higher on page)
         textLines.sort { $0.bounds.maxY > $1.bounds.maxY }
 
-        // Extract embedded raster images with their positions
-        let extractedImages: [ExtractedImage]
+        // Scan page content: images, rectangles, lines, fonts
+        let scanResult: ScannerContext
         if let cgPage = page.pageRef {
-            extractedImages = Self.extractImages(from: cgPage)
+            scanResult = Self.scanPageContent(from: cgPage)
         } else {
-            extractedImages = []
+            scanResult = ScannerContext()
         }
+        let extractedImages = scanResult.images
+
+        // Phase 3: Detect complex regions → force snapshot
+        let tableRegions = detectTableRegions(context: scanResult, pageBounds: pageBounds)
+        let formulaRegions = detectFormulaRegions(context: scanResult)
+        let isMultiColumn = detectMultiColumnLayout(textLines: textLines, pageBounds: pageBounds)
+
+        // If multi-column detected, render entire page as snapshot (text reflow won't work)
+        if isMultiColumn {
+            if let image = renderFullPage(page, fitWidth: pageWidth) {
+                return [.snapshot(image)]
+            }
+            return []
+        }
+
+        let complexRegions = tableRegions + formulaRegions
 
         // Build content blocks with gap-based detection
         var blocks: [ContentBlock] = []
@@ -87,10 +150,33 @@ final class PDFContentExtractor {
             blocks.append(contentsOf: resolveGap(gapRect, page: page, pageWidth: pageWidth, images: extractedImages))
         }
 
+        // Track which complex regions have been snapshotted
+        var snapshotRegions = Set<Int>()
+
         // Process text lines and gaps
         var pendingText = ""
         for i in 0..<textLines.count {
             let line = textLines[i]
+
+            // Check if this line falls within a complex region (table/formula)
+            if let regionIdx = complexRegions.firstIndex(where: { $0.intersects(line.bounds) }) {
+                // Flush pending text first
+                if !pendingText.isEmpty {
+                    blocks.append(.text(pendingText))
+                    pendingText = ""
+                }
+                // Snapshot the complex region (only once per region)
+                if !snapshotRegions.contains(regionIdx) {
+                    snapshotRegions.insert(regionIdx)
+                    let region = complexRegions[regionIdx]
+                    if let img = renderRegion(of: page, region: region, fitWidth: pageWidth) {
+                        blocks.append(.snapshot(img))
+                    }
+                }
+                // Skip this text line (it's part of the snapshot)
+                continue
+            }
+
             pendingText += (pendingText.isEmpty ? "" : "\n") + line.text
 
             if i + 1 < textLines.count {
@@ -167,13 +253,13 @@ final class PDFContentExtractor {
         return []
     }
 
-    // MARK: - CGPDFScanner image extraction
+    // MARK: - CGPDFScanner content extraction
 
-    /// Extract all raster images from a PDF page with their positions.
-    private static func extractImages(from cgPage: CGPDFPage) -> [ExtractedImage] {
+    /// Scan a PDF page for images, rectangles, lines, and font usage.
+    private static func scanPageContent(from cgPage: CGPDFPage) -> ScannerContext {
         let context = ScannerContext()
 
-        guard let operatorTable = CGPDFOperatorTableCreate() else { return [] }
+        guard let operatorTable = CGPDFOperatorTableCreate() else { return context }
 
         // q — save graphics state
         CGPDFOperatorTableSetCallback(operatorTable, "q") { _, info in
@@ -205,6 +291,56 @@ final class PDFContentExtractor {
             CGPDFScannerPopNumber(scanner, &a)
             let matrix = CGAffineTransform(a: a, b: b, c: c, d: d, tx: tx, ty: ty)
             ctx.ctm = ctx.ctm.concatenating(matrix)
+        }
+
+        // re — rectangle (table detection)
+        CGPDFOperatorTableSetCallback(operatorTable, "re") { scanner, info in
+            guard let info else { return }
+            let ctx = Unmanaged<ScannerContext>.fromOpaque(info).takeUnretainedValue()
+            var x: CGPDFReal = 0, y: CGPDFReal = 0, w: CGPDFReal = 0, h: CGPDFReal = 0
+            CGPDFScannerPopNumber(scanner, &h)
+            CGPDFScannerPopNumber(scanner, &w)
+            CGPDFScannerPopNumber(scanner, &y)
+            CGPDFScannerPopNumber(scanner, &x)
+            let rect = CGRect(x: x, y: y, width: w, height: h).applying(ctx.ctm)
+            ctx.rectangles.append(rect)
+        }
+
+        // m — moveto (line detection for tables)
+        CGPDFOperatorTableSetCallback(operatorTable, "m") { scanner, info in
+            guard let info else { return }
+            let ctx = Unmanaged<ScannerContext>.fromOpaque(info).takeUnretainedValue()
+            var x: CGPDFReal = 0, y: CGPDFReal = 0
+            CGPDFScannerPopNumber(scanner, &y)
+            CGPDFScannerPopNumber(scanner, &x)
+            ctx.currentPoint = CGPoint(x: x, y: y).applying(ctx.ctm)
+        }
+
+        // l — lineto (line detection for tables)
+        CGPDFOperatorTableSetCallback(operatorTable, "l") { scanner, info in
+            guard let info else { return }
+            let ctx = Unmanaged<ScannerContext>.fromOpaque(info).takeUnretainedValue()
+            var x: CGPDFReal = 0, y: CGPDFReal = 0
+            CGPDFScannerPopNumber(scanner, &y)
+            CGPDFScannerPopNumber(scanner, &x)
+            let endPoint = CGPoint(x: x, y: y).applying(ctx.ctm)
+            ctx.allLineSegments.append((ctx.currentPoint, endPoint))
+            ctx.currentPoint = endPoint
+        }
+
+        // Tf — set font (math formula detection)
+        CGPDFOperatorTableSetCallback(operatorTable, "Tf") { scanner, info in
+            guard let info else { return }
+            let ctx = Unmanaged<ScannerContext>.fromOpaque(info).takeUnretainedValue()
+            var namePtr: UnsafePointer<CChar>?
+            var size: CGPDFReal = 0
+            CGPDFScannerPopNumber(scanner, &size)
+            guard CGPDFScannerPopName(scanner, &namePtr), let name = namePtr else { return }
+            let fontName = String(cString: name)
+            // Record font with approximate position from CTM
+            let pos = CGPoint(x: ctx.ctm.tx, y: ctx.ctm.ty)
+            let approxRect = CGRect(x: pos.x, y: pos.y, width: 100, height: abs(size) > 0 ? abs(size) : 12)
+            ctx.fontNames.append((fontName, approxRect))
         }
 
         // Do — invoke XObject (images are drawn here)
@@ -256,7 +392,12 @@ final class PDFContentExtractor {
         CGPDFScannerRelease(scanner)
         CGPDFContentStreamRelease(contentStream)
 
-        return context.images
+        return context
+    }
+
+    /// Extract all raster images from a PDF page (convenience wrapper).
+    private static func extractImages(from cgPage: CGPDFPage) -> [ExtractedImage] {
+        scanPageContent(from: cgPage).images
     }
 
     /// Extract CGImage from a PDF image stream.
@@ -316,12 +457,198 @@ final class PDFContentExtractor {
         )
     }
 
-    // MARK: - Scanner context (tracks CTM for image positions)
+    // MARK: - Scanner context (tracks CTM, paths, fonts for detection)
 
     private class ScannerContext {
         var ctm: CGAffineTransform = .identity
         var stateStack: [CGAffineTransform] = []
         var images: [ExtractedImage] = []
+
+        // Phase 3: tracking for table/formula/column detection
+        var rectangles: [CGRect] = []         // from `re` operator
+        var pathPoints: [CGPoint] = []        // from `m`/`l` operators (current path)
+        var allLineSegments: [(CGPoint, CGPoint)] = []  // collected line segments
+        var currentPoint: CGPoint = .zero
+        var fontNames: [(String, CGRect)] = []  // (fontName, approximate position via CTM)
+    }
+
+    // MARK: - Phase 3: Complex region detection
+
+    /// Detect table regions by finding grid-like patterns of rectangles and lines.
+    private static func detectTableRegions(context: ScannerContext, pageBounds: CGRect) -> [CGRect] {
+        var tableRegions: [CGRect] = []
+
+        // Strategy 1: Clusters of thin rectangles (cell borders)
+        // Filter for thin rectangles (likely borders, not fills)
+        let thinRects = context.rectangles.filter { rect in
+            let w = abs(rect.width)
+            let h = abs(rect.height)
+            // At least one dimension is thin (border-like) OR it's a cell-sized rect
+            return (w < 2 || h < 2) && (w > 5 || h > 5)
+        }
+
+        if thinRects.count >= 4 {
+            // Find bounding box of clustered thin rectangles
+            if let region = boundingBox(of: thinRects.map { $0 }) {
+                // Only count as table if region is substantial
+                if region.width > 50 && region.height > 30 {
+                    tableRegions.append(region.insetBy(dx: -5, dy: -5))
+                }
+            }
+        }
+
+        // Strategy 2: Grid of horizontal + vertical line segments
+        let horizontalLines = context.allLineSegments.filter { seg in
+            abs(seg.0.y - seg.1.y) < 2 && abs(seg.0.x - seg.1.x) > 20
+        }
+        let verticalLines = context.allLineSegments.filter { seg in
+            abs(seg.0.x - seg.1.x) < 2 && abs(seg.0.y - seg.1.y) > 20
+        }
+
+        // If we have both horizontal and vertical lines forming a grid
+        if horizontalLines.count >= 3 && verticalLines.count >= 2 {
+            let allPoints = horizontalLines.flatMap { [$0.0, $0.1] } + verticalLines.flatMap { [$0.0, $0.1] }
+            if let region = boundingBox(ofPoints: allPoints) {
+                if region.width > 50 && region.height > 30 {
+                    // Check it doesn't overlap an already-detected region
+                    if !tableRegions.contains(where: { $0.intersects(region) }) {
+                        tableRegions.append(region.insetBy(dx: -5, dy: -5))
+                    }
+                }
+            }
+        }
+
+        // Strategy 3: Many same-sized rectangles (table cells)
+        let cellRects = context.rectangles.filter { rect in
+            abs(rect.width) > 20 && abs(rect.height) > 10 && abs(rect.width) < pageBounds.width * 0.8
+        }
+        if cellRects.count >= 6 {
+            // Group by similar heights (within 3pt) — likely table rows
+            let heightGroups = Dictionary(grouping: cellRects) { rect in
+                Int(abs(rect.height) / 3) * 3
+            }
+            let largestGroup = heightGroups.values.max(by: { $0.count < $1.count }) ?? []
+            if largestGroup.count >= 4 {
+                if let region = boundingBox(of: largestGroup.map { $0 }) {
+                    if !tableRegions.contains(where: { $0.intersects(region) }) {
+                        tableRegions.append(region.insetBy(dx: -5, dy: -5))
+                    }
+                }
+            }
+        }
+
+        return tableRegions
+    }
+
+    /// Detect regions containing math formulas by analyzing font usage.
+    private static func detectFormulaRegions(context: ScannerContext) -> [CGRect] {
+        let mathFontPrefixes = [
+            "CMMI", "CMSY", "CMEX", "CMR", "CMBX",  // Computer Modern (LaTeX)
+            "Symbol", "MT Extra",                      // Microsoft math
+            "Math", "Mathematica",                     // Generic math
+            "STIX", "Asana",                           // STIX/Asana math
+            "Cambria Math",                            // Cambria Math
+        ]
+
+        let mathFonts = context.fontNames.filter { entry in
+            let name = entry.0.uppercased()
+            return mathFontPrefixes.contains { prefix in
+                name.contains(prefix.uppercased())
+            }
+        }
+
+        guard mathFonts.count >= 2 else { return [] }
+
+        // Cluster nearby math font uses into regions
+        var regions: [CGRect] = []
+        var used = Set<Int>()
+
+        for i in 0..<mathFonts.count {
+            guard !used.contains(i) else { continue }
+            var cluster = [mathFonts[i].1]
+            used.insert(i)
+
+            for j in (i + 1)..<mathFonts.count {
+                guard !used.contains(j) else { continue }
+                // Check if this font use is near the current cluster
+                if let bbox = boundingBox(of: cluster) {
+                    let expanded = bbox.insetBy(dx: -30, dy: -20)
+                    if expanded.contains(mathFonts[j].1.origin) || expanded.intersects(mathFonts[j].1) {
+                        cluster.append(mathFonts[j].1)
+                        used.insert(j)
+                    }
+                }
+            }
+
+            if cluster.count >= 2, let region = boundingBox(of: cluster) {
+                if region.width > 20 && region.height > 10 {
+                    regions.append(region.insetBy(dx: -10, dy: -5))
+                }
+            }
+        }
+
+        return regions
+    }
+
+    /// Detect multi-column layout by clustering text line left margins.
+    private static func detectMultiColumnLayout(textLines: [(bounds: CGRect, text: String)], pageBounds: CGRect) -> Bool {
+        guard textLines.count >= 6 else { return false }
+
+        // Cluster left margins (X positions)
+        let leftMargins = textLines.map { $0.bounds.minX }
+        let sorted = leftMargins.sorted()
+
+        // Find distinct margin clusters (gap > 30% of page width between clusters)
+        let clusterGap = pageBounds.width * 0.15
+        var clusters: [[CGFloat]] = [[sorted[0]]]
+
+        for i in 1..<sorted.count {
+            if sorted[i] - sorted[i - 1] > clusterGap {
+                clusters.append([sorted[i]])
+            } else {
+                clusters[clusters.count - 1].append(sorted[i])
+            }
+        }
+
+        // Filter clusters with enough lines (at least 3 each)
+        let significantClusters = clusters.filter { $0.count >= 3 }
+
+        // Multi-column if 2+ distinct margin clusters with sufficient horizontal separation
+        // AND vertical overlap (lines at the same Y in both clusters = side-by-side columns)
+        if significantClusters.count >= 2 {
+            let firstClusterAvg = significantClusters[0].reduce(0, +) / CGFloat(significantClusters[0].count)
+            let secondClusterAvg = significantClusters[1].reduce(0, +) / CGFloat(significantClusters[1].count)
+            guard abs(secondClusterAvg - firstClusterAvg) > pageBounds.width * 0.25 else { return false }
+
+            // Verify vertical overlap: true columns have lines at overlapping Y positions
+            let halfGap = clusterGap / 2
+            let col1Lines = textLines.filter { abs($0.bounds.minX - firstClusterAvg) < halfGap }
+            let col2Lines = textLines.filter { abs($0.bounds.minX - secondClusterAvg) < halfGap }
+            let hasVerticalOverlap = col1Lines.contains { line1 in
+                col2Lines.contains { line2 in
+                    abs(line1.bounds.midY - line2.bounds.midY) < 20
+                }
+            }
+            return hasVerticalOverlap
+        }
+
+        return false
+    }
+
+    // MARK: - Geometry helpers
+
+    private static func boundingBox(of rects: [CGRect]) -> CGRect? {
+        guard let first = rects.first else { return nil }
+        return rects.dropFirst().reduce(first) { $0.union($1) }
+    }
+
+    private static func boundingBox(ofPoints points: [CGPoint]) -> CGRect? {
+        guard !points.isEmpty else { return nil }
+        let xs = points.map { $0.x }
+        let ys = points.map { $0.y }
+        guard let minX = xs.min(), let maxX = xs.max(),
+              let minY = ys.min(), let maxY = ys.max() else { return nil }
+        return CGRect(x: minX, y: minY, width: maxX - minX, height: maxY - minY)
     }
 
     // MARK: - Text quality assessment

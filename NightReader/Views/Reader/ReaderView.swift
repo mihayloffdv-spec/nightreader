@@ -25,47 +25,52 @@ struct ReaderView: View {
                         .buttonStyle(.borderedProminent)
                 }
             } else {
-                if viewModel.isReaderMode {
-                    // Reader Mode — reflowable text
-                    ReaderModeView(
-                        document: viewModel.originalDoc,
-                        theme: viewModel.selectedTheme,
-                        fontSize: viewModel.readerFontSize,
-                        currentPageIndex: viewModel.currentPage,
-                        onPageChange: { page in
-                            viewModel.savePosition(pageIndex: page, scrollOffset: 0)
-                        },
-                        onTap: {
-                            withAnimation(.easeInOut(duration: 0.25)) {
-                                viewModel.toggleToolbar()
+                Group {
+                    if viewModel.isReaderMode {
+                        // Reader Mode — reflowable text
+                        ReaderModeView(
+                            document: viewModel.originalDoc,
+                            theme: viewModel.selectedTheme,
+                            fontSize: viewModel.readerFontSize,
+                            currentPageIndex: viewModel.currentPage,
+                            onPageChange: { page in
+                                viewModel.savePosition(pageIndex: page, scrollOffset: 0)
+                            },
+                            onTap: {
+                                withAnimation(.easeInOut(duration: 0.25)) {
+                                    viewModel.toggleToolbar()
+                                }
                             }
-                        }
-                    )
-                    .ignoresSafeArea()
-                } else {
-                    // PDF content
-                    PDFKitView(
-                        document: viewModel.document,
-                        renderingMode: viewModel.renderingMode,
-                        theme: viewModel.selectedTheme,
-                        initialPageIndex: viewModel.book.lastPageIndex,
-                        highlightColor: viewModel.highlightColor,
-                        goToPageIndex: viewModel.goToPageIndex,
-                        goToSelection: viewModel.goToSelectionValue,
-                        onPageChange: { page, offset in
-                            viewModel.savePosition(pageIndex: page, scrollOffset: offset)
-                            viewModel.goToPageIndex = nil
-                            viewModel.goToSelectionValue = nil
-                        },
-                        onHighlight: { _ in },
-                        onTapEmpty: {
-                            withAnimation(.easeInOut(duration: 0.25)) {
-                                viewModel.toggleToolbar()
+                        )
+                        .ignoresSafeArea()
+                        .transition(.opacity)
+                    } else {
+                        // PDF content
+                        PDFKitView(
+                            document: viewModel.document,
+                            renderingMode: viewModel.renderingMode,
+                            theme: viewModel.selectedTheme,
+                            initialPageIndex: viewModel.book.lastPageIndex,
+                            highlightColor: viewModel.highlightColor,
+                            goToPageIndex: viewModel.goToPageIndex,
+                            goToSelection: viewModel.goToSelectionValue,
+                            onPageChange: { page, offset in
+                                viewModel.savePosition(pageIndex: page, scrollOffset: offset)
+                                viewModel.goToPageIndex = nil
+                                viewModel.goToSelectionValue = nil
+                            },
+                            onHighlight: { _ in },
+                            onTapEmpty: {
+                                withAnimation(.easeInOut(duration: 0.25)) {
+                                    viewModel.toggleToolbar()
+                                }
                             }
-                        }
-                    )
-                    .ignoresSafeArea()
+                        )
+                        .ignoresSafeArea()
+                        .transition(.opacity)
+                    }
                 }
+                .animation(.easeInOut(duration: 0.3), value: viewModel.isReaderMode)
 
                 // Dimmer overlay — exclude toolbar areas
                 if viewModel.dimmerOpacity > 0 {

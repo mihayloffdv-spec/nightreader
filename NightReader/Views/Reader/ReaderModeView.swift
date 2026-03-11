@@ -45,6 +45,11 @@ struct ReaderModeView: View {
         .background(theme.bgColor)
         .contentShape(Rectangle())
         .onTapGesture { onTap() }
+        .onChange(of: fontSize) {
+            // Clear extracted blocks so pages re-render with new font size
+            blocksByPage.removeAll()
+            loadingPages.removeAll()
+        }
     }
 
     // MARK: - Page section
@@ -130,6 +135,12 @@ struct ReaderModeView: View {
               !loadingPages.contains(pageIndex),
               blocksByPage[pageIndex] == nil else { return }
 
+        // Check cache first
+        if let cached = BlockCache.shared.blocks(forPage: pageIndex, width: contentWidth) {
+            blocksByPage[pageIndex] = cached
+            return
+        }
+
         loadingPages.insert(pageIndex)
 
         // CGPDFPage is not thread-safe — serialize all PDF access on a single queue
@@ -139,6 +150,7 @@ struct ReaderModeView: View {
                 return
             }
             let blocks = PDFContentExtractor.extractBlocks(from: page, pageWidth: contentWidth)
+            BlockCache.shared.store(blocks, forPage: pageIndex, width: contentWidth)
             DispatchQueue.main.async {
                 blocksByPage[pageIndex] = blocks
                 loadingPages.remove(pageIndex)

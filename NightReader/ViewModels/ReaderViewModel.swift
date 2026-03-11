@@ -170,6 +170,9 @@ final class ReaderViewModel {
     func setReaderFontSize(_ size: Double) {
         readerFontSize = size
         AppSettings.shared.readerFontSize = size
+        // Text blocks don't need re-extraction, but cached snapshots may
+        // have different layout context — clear in-memory blocks so they reload
+        BlockCache.shared.invalidate()
     }
 
     private func applySmartMode() {
