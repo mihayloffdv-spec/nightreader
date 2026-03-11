@@ -143,8 +143,10 @@ final class PDFContentExtractor {
 
     // MARK: - Text paragraph splitting
 
-    /// Split full page text into paragraphs using line-length heuristics.
-    /// PDFKit's page.string uses \n between lines. Short lines indicate paragraph ends.
+    /// Split full page text into paragraphs using multiple heuristics:
+    /// 1. Blank lines → always break
+    /// 2. Short lines → likely heading or paragraph end
+    /// 3. Sentence-ending punctuation + next line starts with capital → paragraph break
     private static func splitIntoParagraphs(_ text: String) -> [String] {
         let lines = text.components(separatedBy: .newlines)
         let nonEmptyLines = lines.map { $0.trimmingCharacters(in: .whitespaces) }
@@ -154,29 +156,52 @@ final class PDFContentExtractor {
         // Find typical line length to detect short (paragraph-ending) lines
         let lengths = nonEmptyLines.map { $0.count }
         let sortedLengths = lengths.sorted()
-        // Use 75th percentile as "typical" line length
         let typicalLength = sortedLengths[min(sortedLengths.count * 3 / 4, sortedLengths.count - 1)]
-        let shortThreshold = max(typicalLength / 2, 15)
+        let shortThreshold = max(typicalLength * 2 / 3, 15)
+
+        // Build array of non-empty trimmed lines with their indices for lookahead
+        struct IndexedLine { let index: Int; let text: String }
+        var indexedLines: [IndexedLine] = []
+        for (i, line) in lines.enumerated() {
+            let trimmed = line.trimmingCharacters(in: .whitespaces)
+            if !trimmed.isEmpty {
+                indexedLines.append(IndexedLine(index: i, text: trimmed))
+            }
+        }
 
         var paragraphs: [String] = []
         var currentLines: [String] = []
 
-        for line in lines {
-            let trimmed = line.trimmingCharacters(in: .whitespaces)
-
-            if trimmed.isEmpty {
-                // Blank line → paragraph break
-                if !currentLines.isEmpty {
+        for (idx, il) in indexedLines.enumerated() {
+            // Check for blank lines between previous and current non-empty line
+            if idx > 0 {
+                let prevLineIndex = indexedLines[idx - 1].index
+                let hasBlankBetween = (il.index - prevLineIndex) > 1
+                if hasBlankBetween && !currentLines.isEmpty {
                     paragraphs.append(joinLines(currentLines))
                     currentLines = []
                 }
-                continue
             }
 
-            currentLines.append(trimmed)
+            currentLines.append(il.text)
 
-            // Short line = likely end of paragraph
-            if trimmed.count < shortThreshold {
+            // Determine if this line ends a paragraph
+            let isShortLine = il.text.count < shortThreshold
+            let sentenceEndings: [Character] = [".", "!", "?", ":", "»"]
+            let endsWithSentence = il.text.last.map { sentenceEndings.contains($0) } ?? false
+
+            // Look ahead: does next line start with uppercase?
+            let nextStartsUpper: Bool
+            if idx + 1 < indexedLines.count {
+                nextStartsUpper = indexedLines[idx + 1].text.first?.isUppercase == true
+            } else {
+                nextStartsUpper = false
+            }
+
+            let shouldBreak = isShortLine ||
+                              (endsWithSentence && nextStartsUpper && currentLines.count >= 2)
+
+            if shouldBreak {
                 paragraphs.append(joinLines(currentLines))
                 currentLines = []
             }
@@ -366,10 +391,11 @@ final class PDFContentExtractor {
                 }
             } else if subtypeStr == "Form" {
                 // Form XObjects may contain images, diagrams, or complex compositions.
-                // Skip full-page forms — these are backgrounds, watermarks, or page templates
-                let pageArea = ctx.pageBounds.width * ctx.pageBounds.height
-                let formArea = normalizedRect.width * normalizedRect.height
-                if pageArea > 0 && formArea / pageArea < 0.6 {
+                // Skip only truly full-page forms (backgrounds, watermarks, templates)
+                // by checking if the form covers ~the entire page dimensions
+                let isFullPage = normalizedRect.width > ctx.pageBounds.width * 0.9 &&
+                                 normalizedRect.height > ctx.pageBounds.height * 0.9
+                if !isFullPage {
                     ctx.imageRects.append(normalizedRect)
                 }
             }

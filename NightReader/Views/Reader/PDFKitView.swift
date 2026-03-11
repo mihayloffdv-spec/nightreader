@@ -126,14 +126,18 @@ struct PDFKitView: UIViewRepresentable {
         pdfView.addGestureRecognizer(singleTap)
         pdfView.addGestureRecognizer(doubleTap)
 
-        // Restore reading position
-        if let doc = document, initialPageIndex > 0, initialPageIndex < doc.pageCount,
-           let page = doc.page(at: initialPageIndex) {
-            pdfView.go(to: page)
-        }
-
         context.coordinator.pdfView = pdfView
+        context.coordinator.lastPageIndex = initialPageIndex
         context.coordinator.startObserving()
+
+        // Restore reading position — delay to ensure view is in hierarchy and laid out
+        let targetPage = initialPageIndex
+        DispatchQueue.main.async {
+            if let doc = pdfView.document, targetPage > 0, targetPage < doc.pageCount,
+               let page = doc.page(at: targetPage) {
+                pdfView.go(to: page)
+            }
+        }
 
         return pdfView
     }
