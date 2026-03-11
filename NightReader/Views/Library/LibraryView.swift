@@ -12,8 +12,8 @@ struct LibraryView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                NightTheme.background
-                    .ignoresSafeArea()
+                // Layered background: starry art faded at top, solid dark below
+                libraryBackground
 
                 Group {
                     if books.isEmpty {
@@ -23,7 +23,7 @@ struct LibraryView: View {
                     }
                 }
             }
-            .navigationTitle("NightReader")
+            .navigationTitle("Library")
             .navigationBarTitleDisplayMode(.large)
             .toolbarColorScheme(.dark, for: .navigationBar)
             .toolbar {
@@ -81,8 +81,7 @@ struct LibraryView: View {
             }
             .onAppear {
                 let appearance = UINavigationBarAppearance()
-                appearance.configureWithOpaqueBackground()
-                appearance.backgroundColor = NightTheme.backgroundUI
+                appearance.configureWithTransparentBackground()
                 appearance.largeTitleTextAttributes = [
                     .foregroundColor: UIColor(NightTheme.accent),
                     .font: UIFont(name: "Georgia-Bold", size: 34) ?? UIFont.systemFont(ofSize: 34, weight: .bold)
@@ -107,19 +106,55 @@ struct LibraryView: View {
         }
     }
 
-    // MARK: - Empty State (open book with stars rising — echoes the splash art)
+    // MARK: - Background: faded splash art at top + scattered stars + gradient to dark
+
+    private var libraryBackground: some View {
+        ZStack {
+            NightTheme.background
+                .ignoresSafeArea()
+
+            // Faded splash art peeking at the top — very subtle
+            VStack {
+                Image("SplashArt")
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+                    .frame(height: 350)
+                    .clipped()
+                    .opacity(0.12)
+                    .blur(radius: 8)
+                    .overlay(
+                        LinearGradient(
+                            colors: [
+                                NightTheme.background.opacity(0),
+                                NightTheme.background.opacity(0.6),
+                                NightTheme.background
+                            ],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    )
+
+                Spacer()
+            }
+            .ignoresSafeArea()
+
+            // Scattered subtle stars across the background
+            StarFieldView()
+                .ignoresSafeArea()
+        }
+    }
+
+    // MARK: - Empty State
 
     private var emptyState: some View {
         VStack(spacing: 24) {
             Spacer()
 
-            // Book icon with stars — simplified echo of the splash art
             ZStack {
                 Image(systemName: "book.fill")
                     .font(.system(size: 52, weight: .light))
                     .foregroundStyle(NightTheme.accentSoft.opacity(0.4))
 
-                // Tiny stars rising from the book
                 ForEach(0..<5, id: \.self) { i in
                     Image(systemName: "star.fill")
                         .font(.system(size: CGFloat([5, 7, 4, 6, 3][i])))
@@ -180,6 +215,43 @@ struct LibraryView: View {
     }
 }
 
+// MARK: - Scattered star field (subtle, ambient)
+
+struct StarFieldView: View {
+    // Pre-computed star positions for consistency
+    private let stars: [(x: CGFloat, y: CGFloat, size: CGFloat, opacity: Double)] = {
+        var result: [(CGFloat, CGFloat, CGFloat, Double)] = []
+        // Use a simple deterministic "random" based on index
+        for i in 0..<30 {
+            let seed = Double(i)
+            let x = CGFloat((seed * 137.5).truncatingRemainder(dividingBy: 1.0) * 1.0)
+            let y = CGFloat((seed * 251.3).truncatingRemainder(dividingBy: 1.0) * 1.0)
+            let xNorm = CGFloat(abs(sin(seed * 3.14 * 0.37)))
+            let yNorm = CGFloat(abs(cos(seed * 2.71 * 0.43)))
+            let size = CGFloat(1.0 + abs(sin(seed * 1.7)) * 2.0)
+            let opacity = 0.08 + abs(sin(seed * 2.3)) * 0.15
+            result.append((xNorm, yNorm, size, opacity))
+        }
+        return result
+    }()
+
+    var body: some View {
+        GeometryReader { geo in
+            ForEach(0..<stars.count, id: \.self) { i in
+                let star = stars[i]
+                Circle()
+                    .fill(NightTheme.accentSoft)
+                    .frame(width: star.size, height: star.size)
+                    .opacity(star.opacity)
+                    .position(
+                        x: star.x * geo.size.width,
+                        y: star.y * geo.size.height
+                    )
+            }
+        }
+    }
+}
+
 // MARK: - Book Card
 
 struct BookCard: View {
@@ -190,7 +262,6 @@ struct BookCard: View {
     var body: some View {
         Button(action: onTap) {
             VStack(alignment: .leading, spacing: 8) {
-                // Cover thumbnail with subtle border glow
                 BookThumbnail(book: book)
                     .frame(height: 220)
                     .frame(maxWidth: .infinity)
@@ -201,14 +272,12 @@ struct BookCard: View {
                     )
                     .shadow(color: NightTheme.accentBlue.opacity(0.15), radius: 8, y: 4)
 
-                // Title
                 Text(book.title)
                     .font(.system(size: 13, weight: .medium, design: .serif))
                     .foregroundStyle(NightTheme.primaryText)
                     .lineLimit(2)
                     .multilineTextAlignment(.leading)
 
-                // Author
                 if let author = book.author {
                     Text(author)
                         .font(.system(size: 11))
@@ -216,7 +285,6 @@ struct BookCard: View {
                         .lineLimit(1)
                 }
 
-                // Progress bar — golden fill
                 if book.readProgress > 0 {
                     GeometryReader { geo in
                         ZStack(alignment: .leading) {
