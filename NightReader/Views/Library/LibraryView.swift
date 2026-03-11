@@ -80,16 +80,15 @@ struct LibraryView: View {
                 ReaderView(book: book)
             }
             .onAppear {
-                // Style navigation bar for night theme
                 let appearance = UINavigationBarAppearance()
                 appearance.configureWithOpaqueBackground()
                 appearance.backgroundColor = NightTheme.backgroundUI
                 appearance.largeTitleTextAttributes = [
-                    .foregroundColor: UIColor(NightTheme.primaryText),
-                    .font: UIFont.systemFont(ofSize: 34, weight: .light)
+                    .foregroundColor: UIColor(NightTheme.accent),
+                    .font: UIFont(name: "Georgia-Bold", size: 34) ?? UIFont.systemFont(ofSize: 34, weight: .bold)
                 ]
                 appearance.titleTextAttributes = [
-                    .foregroundColor: UIColor(NightTheme.primaryText)
+                    .foregroundColor: UIColor(NightTheme.accent)
                 ]
                 UINavigationBar.appearance().standardAppearance = appearance
                 UINavigationBar.appearance().scrollEdgeAppearance = appearance
@@ -108,25 +107,32 @@ struct LibraryView: View {
         }
     }
 
-    // MARK: - Empty State (matches Canva design: moon + star + "Your shelf is empty")
+    // MARK: - Empty State (open book with stars rising — echoes the splash art)
 
     private var emptyState: some View {
-        VStack(spacing: 20) {
+        VStack(spacing: 24) {
             Spacer()
 
+            // Book icon with stars — simplified echo of the splash art
             ZStack {
-                MoonShape()
-                    .fill(NightTheme.moonGray.opacity(0.5))
-                    .frame(width: 64, height: 64)
+                Image(systemName: "book.fill")
+                    .font(.system(size: 52, weight: .light))
+                    .foregroundStyle(NightTheme.accentSoft.opacity(0.4))
 
-                Image(systemName: "star.fill")
-                    .font(.system(size: 8))
-                    .foregroundStyle(NightTheme.starColor.opacity(0.6))
-                    .offset(x: 10, y: -38)
+                // Tiny stars rising from the book
+                ForEach(0..<5, id: \.self) { i in
+                    Image(systemName: "star.fill")
+                        .font(.system(size: CGFloat([5, 7, 4, 6, 3][i])))
+                        .foregroundStyle(NightTheme.accent.opacity(Double([0.7, 0.5, 0.8, 0.4, 0.6][i])))
+                        .offset(
+                            x: CGFloat([-12, 8, -4, 14, 0][i]),
+                            y: CGFloat([-40, -52, -62, -46, -72][i])
+                        )
+                }
             }
 
             Text("Your shelf is empty")
-                .font(.system(size: 18, weight: .regular))
+                .font(.system(size: 18, weight: .regular, design: .serif))
                 .foregroundStyle(NightTheme.secondaryText)
 
             Button {
@@ -134,12 +140,12 @@ struct LibraryView: View {
             } label: {
                 Text("Import PDF")
                     .font(.system(size: 15, weight: .medium))
-                    .foregroundStyle(NightTheme.primaryText)
-                    .padding(.horizontal, 24)
-                    .padding(.vertical, 10)
+                    .foregroundStyle(NightTheme.accent)
+                    .padding(.horizontal, 28)
+                    .padding(.vertical, 12)
                     .background(
                         Capsule()
-                            .stroke(NightTheme.secondaryText.opacity(0.4), lineWidth: 1)
+                            .stroke(NightTheme.accent.opacity(0.5), lineWidth: 1)
                     )
             }
 
@@ -147,7 +153,7 @@ struct LibraryView: View {
         }
     }
 
-    // MARK: - Book Grid (2-column grid with cover thumbnails)
+    // MARK: - Book Grid
 
     private var bookGrid: some View {
         ScrollView {
@@ -184,15 +190,20 @@ struct BookCard: View {
     var body: some View {
         Button(action: onTap) {
             VStack(alignment: .leading, spacing: 8) {
-                // Cover thumbnail
+                // Cover thumbnail with subtle border glow
                 BookThumbnail(book: book)
-                    .frame(height: 200)
+                    .frame(height: 220)
                     .frame(maxWidth: .infinity)
                     .clipShape(RoundedRectangle(cornerRadius: 8))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8)
+                            .stroke(NightTheme.accentBlue.opacity(0.3), lineWidth: 0.5)
+                    )
+                    .shadow(color: NightTheme.accentBlue.opacity(0.15), radius: 8, y: 4)
 
                 // Title
                 Text(book.title)
-                    .font(.system(size: 13, weight: .medium))
+                    .font(.system(size: 13, weight: .medium, design: .serif))
                     .foregroundStyle(NightTheme.primaryText)
                     .lineLimit(2)
                     .multilineTextAlignment(.leading)
@@ -205,7 +216,7 @@ struct BookCard: View {
                         .lineLimit(1)
                 }
 
-                // Progress bar
+                // Progress bar — golden fill
                 if book.readProgress > 0 {
                     GeometryReader { geo in
                         ZStack(alignment: .leading) {

@@ -43,14 +43,16 @@
       "Bash(sips -z 1024 1024 /tmp/NightReaderIcon.png --out /Users/dmitriymikhailov/NightReader/NightReader/Assets.xcassets/AppIcon.appiconset/AppIcon.png)",
       "Bash(xcodebuild -project NightReader.xcodeproj -scheme NightReader -destination 'platform=iOS Simulator,name=iPhone 16' -quiet build)",
       "Bash(xcodebuild -project /Users/dmitriymikhailov/NightReader/NightReader.xcodeproj -scheme NightReader -destination 'platform=iOS Simulator,name=iPhone 16,OS=18.4' -quiet build)",
-      "Bash(xcodebuild -project /Users/dmitriymikhailov/NightReader/NightReader.xcodeproj -scheme NightReader -destination 'platform=iOS Simulator,name=iPhone 17 Pro' -quiet build)"
+      "Bash(xcodebuild -project /Users/dmitriymikhailov/NightReader/NightReader.xcodeproj -scheme NightReader -destination 'platform=iOS Simulator,name=iPhone 17 Pro' -quiet build)",
+      "mcp__claude_ai_Canva__export-design"
     ],
     "additionalDirectories": [
       "/private/tmp/SpikeTestResults.xcresult",
       "/tmp",
       "/private/tmp",
       "/Users/dmitriymikhailov/Library/Developer/Xcode/DerivedData/NightReader-gpxsbonzaszdougrhcsnnjgenuni/Build/Intermediates.noindex/XCBuildData",
-      "/Users/dmitriymikhailov/Library/Developer/Xcode/DerivedData/NightReader-gpxsbonzaszdougrhcsnnjgenuni"
+      "/Users/dmitriymikhailov/Library/Developer/Xcode/DerivedData/NightReader-gpxsbonzaszdougrhcsnnjgenuni",
+      "/Users/dmitriymikhailov/Downloads"
     ]
   }
 }
