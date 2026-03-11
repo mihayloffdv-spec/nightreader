@@ -224,20 +224,57 @@ final class PDFContentExtractor {
 
     // MARK: - Text block extraction
 
-    /// Extract text from a region covering multiple line bounds using a single
-    /// page.selection(for:). This preserves proper character ordering, including
-    /// styled first characters, bullets, and list markers that selectionsByLine
-    /// may split into separate selections.
+    /// Extract text from line bounds, detecting paragraph breaks via line spacing.
+    /// Uses full page width for selection to capture styled first characters.
     private static func flushTextBlock(_ lineBounds: [CGRect], page: PDFPage) -> [ContentBlock] {
         guard !lineBounds.isEmpty else { return [] }
-        let combined = lineBounds.reduce(lineBounds[0]) { $0.union($1) }
-        // Slightly widen horizontally to capture any characters at line edges
-        let expanded = combined.insetBy(dx: -2, dy: -1)
-        guard let sel = page.selection(for: expanded) else { return [] }
-        let text = sel.string ?? ""
-        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        if trimmed.isEmpty { return [] }
-        return [.text(trimmed)]
+        let pageBounds = page.bounds(for: .mediaBox)
+
+        // Detect paragraph breaks: group lines by spacing
+        var paragraphGroups: [[CGRect]] = [[lineBounds[0]]]
+
+        if lineBounds.count > 1 {
+            // Calculate typical line spacing (median)
+            var spacings: [CGFloat] = []
+            for i in 1..<lineBounds.count {
+                let gap = lineBounds[i - 1].minY - lineBounds[i].maxY
+                if gap > 0 { spacings.append(gap) }
+            }
+            spacings.sort()
+            let medianSpacing = spacings.isEmpty ? 0 : spacings[spacings.count / 2]
+            // Paragraph break = gap > 1.8× median line spacing (minimum 8pt)
+            let paraThreshold = max(medianSpacing * 1.8, 8)
+
+            for i in 1..<lineBounds.count {
+                let gap = lineBounds[i - 1].minY - lineBounds[i].maxY
+                if gap > paraThreshold {
+                    paragraphGroups.append([lineBounds[i]])
+                } else {
+                    paragraphGroups[paragraphGroups.count - 1].append(lineBounds[i])
+                }
+            }
+        }
+
+        // Extract text for each paragraph using full page width
+        var blocks: [ContentBlock] = []
+        for group in paragraphGroups {
+            let combined = group.reduce(group[0]) { $0.union($1) }
+            // Full page width captures styled/offset first characters
+            let expanded = CGRect(
+                x: pageBounds.minX,
+                y: combined.minY - 2,
+                width: pageBounds.width,
+                height: combined.height + 4
+            )
+            guard let sel = page.selection(for: expanded) else { continue }
+            let text = sel.string ?? ""
+            let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !trimmed.isEmpty {
+                blocks.append(.text(trimmed))
+            }
+        }
+
+        return blocks
     }
 
     // MARK: - Gap resolution: prefer extracted images over snapshots
@@ -267,7 +304,21 @@ final class PDFContentExtractor {
             }
         }
 
-        // No matching extracted images — fall back to region snapshot
+        // No matching extracted images — only snapshot if gap is large enough
+        // to likely contain real content (diagrams, figures, etc.)
+        // Small gaps are just paragraph/section spacing → skip them
+        guard gapRect.height > 80 else { return [] }
+
+        // Check if the gap region actually has visible content by looking for
+        // non-whitespace text or drawing operators
+        if let sel = page.selection(for: gapRect), let text = sel.string,
+           !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            // Gap has text we missed — extract it as text block
+            let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+            return [.text(trimmed)]
+        }
+
+        // Large gap with no text — might be a diagram/figure, render as snapshot
         if let img = renderRegion(of: page, region: gapRect, fitWidth: pageWidth) {
             return [.snapshot(img)]
         }
