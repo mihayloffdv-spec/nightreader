@@ -82,35 +82,6 @@ final class PDFContentExtractor {
             return []
         }
 
-        // Extract text lines sorted top-to-bottom
-        guard let fullSelection = page.selection(for: pageBounds),
-              let lineSelections = fullSelection.selectionsByLine() as [PDFSelection]?,
-              !lineSelections.isEmpty else {
-            if let image = renderFullPage(page, fitWidth: pageWidth) {
-                return [.snapshot(image)]
-            }
-            return []
-        }
-
-        var textLines: [(bounds: CGRect, text: String)] = []
-        for lineSel in lineSelections {
-            let bounds = lineSel.bounds(for: page)
-            let text = lineSel.string ?? ""
-            if !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                textLines.append((bounds, text))
-            }
-        }
-
-        guard !textLines.isEmpty else {
-            if let image = renderFullPage(page, fitWidth: pageWidth) {
-                return [.snapshot(image)]
-            }
-            return []
-        }
-
-        // Sort top-to-bottom (PDF coords: higher Y = higher on page)
-        textLines.sort { $0.bounds.maxY > $1.bounds.maxY }
-
         // Scan page content: images, rectangles, lines, fonts
         let scanResult: ScannerContext
         if let cgPage = page.pageRef {
@@ -118,211 +89,160 @@ final class PDFContentExtractor {
         } else {
             scanResult = ScannerContext()
         }
-        let extractedImages = scanResult.images
 
-        // Phase 3: Detect complex regions → force snapshot
+        // Get line selections for layout analysis (multi-column, complex regions)
+        var textLines: [(bounds: CGRect, text: String)] = []
+        if let fullSelection = page.selection(for: pageBounds),
+           let lineSelections = fullSelection.selectionsByLine() as [PDFSelection]? {
+            for lineSel in lineSelections {
+                let bounds = lineSel.bounds(for: page)
+                let text = lineSel.string ?? ""
+                if !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    textLines.append((bounds, text))
+                }
+            }
+            textLines.sort { $0.bounds.maxY > $1.bounds.maxY }
+        }
+
+        // Detect complex layouts
         let tableRegions = detectTableRegions(context: scanResult, pageBounds: pageBounds)
         let formulaRegions = detectFormulaRegions(context: scanResult)
-        let isMultiColumn = detectMultiColumnLayout(textLines: textLines, pageBounds: pageBounds)
+        let complexRegions = tableRegions + formulaRegions
+        let isMultiColumn = !textLines.isEmpty && detectMultiColumnLayout(textLines: textLines, pageBounds: pageBounds)
 
-        // If multi-column detected, render entire page as snapshot (text reflow won't work)
-        if isMultiColumn {
+        // Multi-column or complex regions → full page snapshot
+        if isMultiColumn || !complexRegions.isEmpty {
             if let image = renderFullPage(page, fitWidth: pageWidth) {
                 return [.snapshot(image)]
             }
             return []
         }
 
-        let complexRegions = tableRegions + formulaRegions
-
-        // Build content blocks with gap-based detection
-        var blocks: [ContentBlock] = []
-        let gapThreshold: CGFloat = 30
-
-        // Gap from page top to first text line
-        let pageTop = pageBounds.maxY
-        let firstLineTop = textLines[0].bounds.maxY
-        if pageTop - firstLineTop > gapThreshold {
-            let gapRect = CGRect(
-                x: pageBounds.minX, y: firstLineTop,
-                width: pageBounds.width, height: pageTop - firstLineTop
-            )
-            blocks.append(contentsOf: resolveGap(gapRect, page: page, pageWidth: pageWidth, images: extractedImages))
+        // === New approach: use page.string for reliable text extraction ===
+        // page.string captures ALL characters including styled/offset first letters
+        // that selectionsByLine() misses due to spatial splitting
+        guard let fullText = page.string,
+              !fullText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            if let image = renderFullPage(page, fitWidth: pageWidth) {
+                return [.snapshot(image)]
+            }
+            return []
         }
 
-        // Track which complex regions have been snapshotted
-        var snapshotRegions = Set<Int>()
+        let extractedImages = scanResult.images
 
-        // Collect line bounds for text blocks, then extract text via
-        // page.selection(for:) to preserve proper character ordering
-        // (individual selectionsByLine can split styled first characters)
-        var pendingLineBounds: [CGRect] = []
+        // If no images, just split text into paragraphs
+        if extractedImages.isEmpty {
+            return splitIntoParagraphs(fullText).map { .text($0) }
+        }
 
-        for i in 0..<textLines.count {
-            let line = textLines[i]
+        // With images: interleave text paragraphs and images by Y position
+        return interleaveTextAndImages(
+            fullText: fullText,
+            textLines: textLines,
+            images: extractedImages,
+            pageBounds: pageBounds
+        )
+    }
 
-            // Check if this line falls within a complex region (table/formula)
-            if let regionIdx = complexRegions.firstIndex(where: { $0.intersects(line.bounds) }) {
-                // Flush pending text block first
-                if !pendingLineBounds.isEmpty {
-                    blocks.append(contentsOf: flushTextBlock(pendingLineBounds, page: page))
-                    pendingLineBounds = []
+    // MARK: - Text paragraph splitting
+
+    /// Split full page text into paragraphs using line-length heuristics.
+    /// PDFKit's page.string uses \n between lines. Short lines indicate paragraph ends.
+    private static func splitIntoParagraphs(_ text: String) -> [String] {
+        let lines = text.components(separatedBy: .newlines)
+        let nonEmptyLines = lines.map { $0.trimmingCharacters(in: .whitespaces) }
+                                 .filter { !$0.isEmpty }
+        guard !nonEmptyLines.isEmpty else { return [] }
+
+        // Find typical line length to detect short (paragraph-ending) lines
+        let lengths = nonEmptyLines.map { $0.count }
+        let sortedLengths = lengths.sorted()
+        // Use 75th percentile as "typical" line length
+        let typicalLength = sortedLengths[min(sortedLengths.count * 3 / 4, sortedLengths.count - 1)]
+        let shortThreshold = max(typicalLength / 2, 15)
+
+        var paragraphs: [String] = []
+        var currentLines: [String] = []
+
+        for line in lines {
+            let trimmed = line.trimmingCharacters(in: .whitespaces)
+
+            if trimmed.isEmpty {
+                // Blank line → paragraph break
+                if !currentLines.isEmpty {
+                    paragraphs.append(currentLines.joined(separator: " "))
+                    currentLines = []
                 }
-                // Snapshot the complex region (only once per region)
-                if !snapshotRegions.contains(regionIdx) {
-                    snapshotRegions.insert(regionIdx)
-                    let region = complexRegions[regionIdx]
-                    if let img = renderRegion(of: page, region: region, fitWidth: pageWidth) {
-                        blocks.append(.snapshot(img))
-                    }
-                }
-                // Skip this text line (it's part of the snapshot)
                 continue
             }
 
-            pendingLineBounds.append(line.bounds)
+            currentLines.append(trimmed)
 
-            if i + 1 < textLines.count {
-                let thisBottom = line.bounds.minY
-                let nextTop = textLines[i + 1].bounds.maxY
-                let gap = thisBottom - nextTop
-
-                if gap > gapThreshold {
-                    // Flush pending text block
-                    if !pendingLineBounds.isEmpty {
-                        blocks.append(contentsOf: flushTextBlock(pendingLineBounds, page: page))
-                        pendingLineBounds = []
-                    }
-                    // Resolve gap — use extracted image if available, else snapshot
-                    let gapRect = CGRect(
-                        x: pageBounds.minX, y: nextTop,
-                        width: pageBounds.width, height: gap
-                    )
-                    blocks.append(contentsOf: resolveGap(gapRect, page: page, pageWidth: pageWidth, images: extractedImages))
-                }
+            // Short line = likely end of paragraph
+            if trimmed.count < shortThreshold {
+                paragraphs.append(currentLines.joined(separator: " "))
+                currentLines = []
             }
         }
 
-        // Flush remaining text block
-        if !pendingLineBounds.isEmpty {
-            blocks.append(contentsOf: flushTextBlock(pendingLineBounds, page: page))
+        if !currentLines.isEmpty {
+            paragraphs.append(currentLines.joined(separator: " "))
         }
 
-        // Gap from last text line to page bottom
-        let lastLineBottom = textLines.last!.bounds.minY
-        let pageBottom = pageBounds.minY
-        if lastLineBottom - pageBottom > gapThreshold {
-            let gapRect = CGRect(
-                x: pageBounds.minX, y: pageBottom,
-                width: pageBounds.width, height: lastLineBottom - pageBottom
-            )
-            blocks.append(contentsOf: resolveGap(gapRect, page: page, pageWidth: pageWidth, images: extractedImages))
-        }
-
-        return blocks
+        return paragraphs.filter { !$0.isEmpty }
     }
 
-    // MARK: - Text block extraction
+    // MARK: - Text + image interleaving
 
-    /// Extract text from line bounds, detecting paragraph breaks via line spacing.
-    /// Uses full page width for selection to capture styled first characters.
-    private static func flushTextBlock(_ lineBounds: [CGRect], page: PDFPage) -> [ContentBlock] {
-        guard !lineBounds.isEmpty else { return [] }
-        let pageBounds = page.bounds(for: .mediaBox)
-
-        // Detect paragraph breaks: group lines by spacing
-        var paragraphGroups: [[CGRect]] = [[lineBounds[0]]]
-
-        if lineBounds.count > 1 {
-            // Calculate typical line spacing (median)
-            var spacings: [CGFloat] = []
-            for i in 1..<lineBounds.count {
-                let gap = lineBounds[i - 1].minY - lineBounds[i].maxY
-                if gap > 0 { spacings.append(gap) }
-            }
-            spacings.sort()
-            let medianSpacing = spacings.isEmpty ? 0 : spacings[spacings.count / 2]
-            // Paragraph break = gap > 1.8× median line spacing (minimum 8pt)
-            let paraThreshold = max(medianSpacing * 1.8, 8)
-
-            for i in 1..<lineBounds.count {
-                let gap = lineBounds[i - 1].minY - lineBounds[i].maxY
-                if gap > paraThreshold {
-                    paragraphGroups.append([lineBounds[i]])
-                } else {
-                    paragraphGroups[paragraphGroups.count - 1].append(lineBounds[i])
-                }
-            }
-        }
-
-        // Extract text for each paragraph using full page width
-        var blocks: [ContentBlock] = []
-        for group in paragraphGroups {
-            let combined = group.reduce(group[0]) { $0.union($1) }
-            // Full page width captures styled/offset first characters
-            let expanded = CGRect(
-                x: pageBounds.minX,
-                y: combined.minY - 2,
-                width: pageBounds.width,
-                height: combined.height + 4
-            )
-            guard let sel = page.selection(for: expanded) else { continue }
-            let text = sel.string ?? ""
-            let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-            if !trimmed.isEmpty {
-                blocks.append(.text(trimmed))
-            }
-        }
-
-        return blocks
-    }
-
-    // MARK: - Gap resolution: prefer extracted images over snapshots
-
-    /// Check if an extracted image falls within the gap. If so, use it directly.
-    /// Otherwise, render the gap region as a snapshot.
-    private static func resolveGap(
-        _ gapRect: CGRect,
-        page: PDFPage,
-        pageWidth: CGFloat,
-        images: [ExtractedImage]
+    /// Interleave text paragraphs with extracted images based on Y positions.
+    private static func interleaveTextAndImages(
+        fullText: String,
+        textLines: [(bounds: CGRect, text: String)],
+        images: [ExtractedImage],
+        pageBounds: CGRect
     ) -> [ContentBlock] {
-        // Find images that overlap with this gap (at least 50% of their area inside the gap)
-        let matchingImages = images.filter { img in
-            let intersection = img.rect.intersection(gapRect)
-            guard !intersection.isNull else { return false }
-            let overlapArea = intersection.width * intersection.height
-            let imageArea = img.rect.width * img.rect.height
-            return imageArea > 0 && overlapArea / imageArea > 0.5
-        }.sorted { $0.rect.maxY > $1.rect.maxY } // top-to-bottom
+        let paragraphs = splitIntoParagraphs(fullText)
+        guard !paragraphs.isEmpty else {
+            return images.map { .image(UIImage(cgImage: $0.cgImage)) }
+        }
 
-        if !matchingImages.isEmpty {
-            // Use extracted images directly
-            return matchingImages.map { extracted in
-                let uiImage = UIImage(cgImage: extracted.cgImage)
-                return .image(uiImage)
+        // Sort images top-to-bottom
+        let sortedImages = images.sorted { $0.rect.maxY > $1.rect.maxY }
+
+        // Map each image to a fractional position on the page (0 = top, 1 = bottom)
+        let pageHeight = pageBounds.height
+        let imagePositions: [(image: ExtractedImage, fraction: CGFloat)] = sortedImages.map { img in
+            let fraction = 1.0 - (img.rect.midY - pageBounds.minY) / pageHeight
+            return (img, min(max(fraction, 0), 1))
+        }
+
+        // Build interleaved blocks
+        var blocks: [ContentBlock] = []
+        var nextImageIdx = 0
+
+        for (paraIdx, para) in paragraphs.enumerated() {
+            let paraFraction = CGFloat(paraIdx) / CGFloat(max(paragraphs.count - 1, 1))
+
+            // Insert any images that should appear before this paragraph
+            while nextImageIdx < imagePositions.count,
+                  imagePositions[nextImageIdx].fraction <= paraFraction + 0.05 {
+                let uiImage = UIImage(cgImage: imagePositions[nextImageIdx].image.cgImage)
+                blocks.append(.image(uiImage))
+                nextImageIdx += 1
             }
+
+            blocks.append(.text(para))
         }
 
-        // No matching extracted images — only snapshot if gap is large enough
-        // to likely contain real content (diagrams, figures, etc.)
-        // Small gaps are just paragraph/section spacing → skip them
-        guard gapRect.height > 80 else { return [] }
-
-        // Check if the gap region actually has visible content by looking for
-        // non-whitespace text or drawing operators
-        if let sel = page.selection(for: gapRect), let text = sel.string,
-           !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            // Gap has text we missed — extract it as text block
-            let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-            return [.text(trimmed)]
+        // Append remaining images at the end
+        while nextImageIdx < imagePositions.count {
+            let uiImage = UIImage(cgImage: imagePositions[nextImageIdx].image.cgImage)
+            blocks.append(.image(uiImage))
+            nextImageIdx += 1
         }
 
-        // Large gap with no text — might be a diagram/figure, render as snapshot
-        if let img = renderRegion(of: page, region: gapRect, fitWidth: pageWidth) {
-            return [.snapshot(img)]
-        }
-        return []
+        return blocks
     }
 
     // MARK: - CGPDFScanner content extraction
