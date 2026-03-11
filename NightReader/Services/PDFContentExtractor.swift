@@ -104,14 +104,9 @@ final class PDFContentExtractor {
             textLines.sort { $0.bounds.maxY > $1.bounds.maxY }
         }
 
-        // Detect complex layouts
-        let tableRegions = detectTableRegions(context: scanResult, pageBounds: pageBounds)
-        let formulaRegions = detectFormulaRegions(context: scanResult)
-        let complexRegions = tableRegions + formulaRegions
+        // Detect multi-column layout → full page snapshot (text reflow won't work)
         let isMultiColumn = !textLines.isEmpty && detectMultiColumnLayout(textLines: textLines, pageBounds: pageBounds)
-
-        // Multi-column or complex regions → full page snapshot
-        if isMultiColumn || !complexRegions.isEmpty {
+        if isMultiColumn {
             if let image = renderFullPage(page, fitWidth: pageWidth) {
                 return [.snapshot(image)]
             }
@@ -172,7 +167,7 @@ final class PDFContentExtractor {
             if trimmed.isEmpty {
                 // Blank line → paragraph break
                 if !currentLines.isEmpty {
-                    paragraphs.append(currentLines.joined(separator: " "))
+                    paragraphs.append(joinLines(currentLines))
                     currentLines = []
                 }
                 continue
@@ -182,16 +177,35 @@ final class PDFContentExtractor {
 
             // Short line = likely end of paragraph
             if trimmed.count < shortThreshold {
-                paragraphs.append(currentLines.joined(separator: " "))
+                paragraphs.append(joinLines(currentLines))
                 currentLines = []
             }
         }
 
         if !currentLines.isEmpty {
-            paragraphs.append(currentLines.joined(separator: " "))
+            paragraphs.append(joinLines(currentLines))
         }
 
         return paragraphs.filter { !$0.isEmpty }
+    }
+
+    /// Join lines handling hyphenated word breaks: "технол-" + "огия" → "технология"
+    private static func joinLines(_ lines: [String]) -> String {
+        guard lines.count > 1 else { return lines.first ?? "" }
+        var result = ""
+        for (i, line) in lines.enumerated() {
+            if i > 0 {
+                // If previous line ended with hyphen, join without space (dehyphenate)
+                if result.hasSuffix("-") {
+                    // Remove trailing hyphen and join directly
+                    result.removeLast()
+                } else {
+                    result += " "
+                }
+            }
+            result += line
+        }
+        return result
     }
 
     // MARK: - Text + image interleaving
@@ -271,6 +285,7 @@ final class PDFContentExtractor {
     /// Scan a PDF page for images, rectangles, lines, and font usage.
     private static func scanPageContent(from cgPage: CGPDFPage) -> ScannerContext {
         let context = ScannerContext()
+        context.pageBounds = cgPage.getBoxRect(.mediaBox)
 
         guard let operatorTable = CGPDFOperatorTableCreate() else { return context }
 
@@ -397,8 +412,13 @@ final class PDFContentExtractor {
                     ctx.images.append(ExtractedImage(cgImage: cgImage, rect: normalizedRect))
                 }
             } else if subtypeStr == "Form" {
-                // Form XObjects may contain images, diagrams, or complex compositions
-                ctx.imageRects.append(normalizedRect)
+                // Form XObjects may contain images, diagrams, or complex compositions.
+                // Skip full-page forms — these are backgrounds, watermarks, or page templates
+                let pageArea = ctx.pageBounds.width * ctx.pageBounds.height
+                let formArea = normalizedRect.width * normalizedRect.height
+                if pageArea > 0 && formArea / pageArea < 0.6 {
+                    ctx.imageRects.append(normalizedRect)
+                }
             }
         }
 
@@ -484,6 +504,7 @@ final class PDFContentExtractor {
         var stateStack: [CGAffineTransform] = []
         var images: [ExtractedImage] = []       // Successfully extracted CGImages
         var imageRects: [CGRect] = []           // ALL image/form XObject positions (for snapshot fallback)
+        var pageBounds: CGRect = .zero          // Page bounds for relative size filtering
 
         // Phase 3: tracking for table/formula/column detection
         var rectangles: [CGRect] = []         // from `re` operator
@@ -727,8 +748,8 @@ final class PDFContentExtractor {
         ) else { return nil }
 
         ctx.scaleBy(x: scale, y: scale)
-        ctx.setFillColor(CGColor(red: 1, green: 1, blue: 1, alpha: 1))
-        ctx.fill(CGRect(origin: .zero, size: outputSize))
+        // Clear with transparent background (avoids white blocks in dark themes)
+        ctx.clear(CGRect(origin: .zero, size: outputSize))
 
         ctx.scaleBy(x: scaleFactor, y: scaleFactor)
         // Clip in PDF coords before translating (clip is in current user space)
