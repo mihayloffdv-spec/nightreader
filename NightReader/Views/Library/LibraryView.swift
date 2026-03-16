@@ -80,18 +80,6 @@ struct LibraryView: View {
                 ReaderView(book: book)
             }
             .onAppear {
-                let appearance = UINavigationBarAppearance()
-                appearance.configureWithTransparentBackground()
-                appearance.largeTitleTextAttributes = [
-                    .foregroundColor: UIColor(NightTheme.accent),
-                    .font: UIFont(name: "Georgia-Bold", size: 34) ?? UIFont.systemFont(ofSize: 34, weight: .bold)
-                ]
-                appearance.titleTextAttributes = [
-                    .foregroundColor: UIColor(NightTheme.accent)
-                ]
-                UINavigationBar.appearance().standardAppearance = appearance
-                UINavigationBar.appearance().scrollEdgeAppearance = appearance
-
                 PDFImportService.scanForUntrackedPDFs(context: modelContext)
                 #if DEBUG
                 if ProcessInfo.processInfo.arguments.contains("-autoOpenFirst") {
@@ -215,22 +203,32 @@ struct LibraryView: View {
     }
 }
 
-// MARK: - Scattered star field (subtle, ambient)
+// MARK: - Scattered star field
 
 struct StarFieldView: View {
-    // Pre-computed star positions for consistency
-    private let stars: [(x: CGFloat, y: CGFloat, size: CGFloat, opacity: Double)] = {
-        var result: [(CGFloat, CGFloat, CGFloat, Double)] = []
-        // Use a simple deterministic "random" based on index
-        for i in 0..<30 {
+    private struct Star {
+        let x: CGFloat    // 0...1 normalized
+        let y: CGFloat    // 0...1 normalized
+        let size: CGFloat
+        let opacity: Double
+        let isGlowing: Bool  // brighter "feature" stars
+    }
+
+    private let stars: [Star] = {
+        var result: [Star] = []
+        // ~60 stars: mix of tiny background dots and a few brighter ones
+        for i in 0..<60 {
             let seed = Double(i)
-            let x = CGFloat((seed * 137.5).truncatingRemainder(dividingBy: 1.0) * 1.0)
-            let y = CGFloat((seed * 251.3).truncatingRemainder(dividingBy: 1.0) * 1.0)
-            let xNorm = CGFloat(abs(sin(seed * 3.14 * 0.37)))
-            let yNorm = CGFloat(abs(cos(seed * 2.71 * 0.43)))
-            let size = CGFloat(1.0 + abs(sin(seed * 1.7)) * 2.0)
-            let opacity = 0.08 + abs(sin(seed * 2.3)) * 0.15
-            result.append((xNorm, yNorm, size, opacity))
+            let xNorm = CGFloat(abs(sin(seed * 3.14 * 0.37 + 0.5)))
+            let yNorm = CGFloat(abs(cos(seed * 2.71 * 0.43 + 0.3)))
+            let isFeature = i % 8 == 0  // every 8th star is a "bright" one
+            let size: CGFloat = isFeature
+                ? CGFloat(2.5 + abs(sin(seed * 1.3)) * 2.0)
+                : CGFloat(1.0 + abs(sin(seed * 1.7)) * 1.5)
+            let opacity = isFeature
+                ? 0.5 + abs(sin(seed * 2.3)) * 0.35
+                : 0.15 + abs(sin(seed * 2.3)) * 0.25
+            result.append(Star(x: xNorm, y: yNorm, size: size, opacity: opacity, isGlowing: isFeature))
         }
         return result
     }()
@@ -239,14 +237,27 @@ struct StarFieldView: View {
         GeometryReader { geo in
             ForEach(0..<stars.count, id: \.self) { i in
                 let star = stars[i]
-                Circle()
-                    .fill(NightTheme.accentSoft)
-                    .frame(width: star.size, height: star.size)
-                    .opacity(star.opacity)
-                    .position(
-                        x: star.x * geo.size.width,
-                        y: star.y * geo.size.height
-                    )
+                if star.isGlowing {
+                    // Brighter stars with a soft golden glow
+                    Circle()
+                        .fill(NightTheme.accent)
+                        .frame(width: star.size, height: star.size)
+                        .shadow(color: NightTheme.accent.opacity(0.6), radius: 4)
+                        .opacity(star.opacity)
+                        .position(
+                            x: star.x * geo.size.width,
+                            y: star.y * geo.size.height
+                        )
+                } else {
+                    Circle()
+                        .fill(NightTheme.accentSoft)
+                        .frame(width: star.size, height: star.size)
+                        .opacity(star.opacity)
+                        .position(
+                            x: star.x * geo.size.width,
+                            y: star.y * geo.size.height
+                        )
+                }
             }
         }
     }
@@ -317,6 +328,8 @@ struct BookThumbnail: View {
     let book: Book
     @State private var image: UIImage?
 
+    private static let cache = NSCache<NSString, UIImage>()
+
     var body: some View {
         Group {
             if let image {
@@ -332,7 +345,15 @@ struct BookThumbnail: View {
             }
         }
         .task {
-            image = await generateThumbnail(for: book)
+            let key = book.id.uuidString as NSString
+            if let cached = Self.cache.object(forKey: key) {
+                image = cached
+                return
+            }
+            if let generated = await generateThumbnail(for: book) {
+                Self.cache.setObject(generated, forKey: key)
+                image = generated
+            }
         }
     }
 

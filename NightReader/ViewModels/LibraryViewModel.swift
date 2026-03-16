@@ -18,6 +18,11 @@ final class LibraryViewModel {
     func deleteBook(_ book: Book, context: ModelContext) {
         let fileURL = book.fileURL
         context.delete(book)
-        try? FileManager.default.removeItem(at: fileURL)
+        do {
+            try context.save()
+            try? FileManager.default.removeItem(at: fileURL)
+        } catch {
+            errorMessage = "Failed to delete book: \(error.localizedDescription)"
+        }
     }
 }

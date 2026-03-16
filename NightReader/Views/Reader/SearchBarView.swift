@@ -9,6 +9,7 @@ struct SearchBarView: View {
     @State private var searchText = ""
     @State private var results: [SearchResult] = []
     @State private var currentResultIndex = 0
+    @State private var isSearching = false
 
     struct SearchResult: Identifiable {
         let id = UUID()
@@ -27,6 +28,11 @@ struct SearchBarView: View {
                     .textFieldStyle(.plain)
                     .autocorrectionDisabled()
                     .onSubmit { performSearch() }
+
+                if isSearching {
+                    ProgressView()
+                        .tint(.secondary)
+                }
 
                 if !searchText.isEmpty {
                     Text("\(results.isEmpty ? 0 : currentResultIndex + 1)/\(results.count)")
@@ -95,21 +101,26 @@ struct SearchBarView: View {
             return
         }
 
-        var found: [SearchResult] = []
-        let selections = document.findString(searchText, withOptions: .caseInsensitive)
-
-        for selection in selections {
-            guard let page = selection.pages.first else { continue }
-            let pageIndex = document.index(for: page)
-            let context = selection.string ?? searchText
-            found.append(SearchResult(selection: selection, pageIndex: pageIndex, contextText: context))
-        }
-
-        results = found
-        currentResultIndex = 0
-
-        if let first = found.first {
-            onGoToSelection(first.selection)
+        isSearching = true
+        let query = searchText
+        let doc = document
+        Task.detached {
+            let selections = doc.findString(query, withOptions: .caseInsensitive)
+            var found: [SearchResult] = []
+            for selection in selections {
+                guard let page = selection.pages.first else { continue }
+                let pageIndex = doc.index(for: page)
+                let context = selection.string ?? query
+                found.append(SearchResult(selection: selection, pageIndex: pageIndex, contextText: context))
+            }
+            await MainActor.run {
+                results = found
+                currentResultIndex = 0
+                isSearching = false
+                if let first = found.first {
+                    onGoToSelection(first.selection)
+                }
+            }
         }
     }
 

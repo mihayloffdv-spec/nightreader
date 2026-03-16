@@ -12,11 +12,11 @@ struct TOCView: View {
     let document: PDFDocument?
     let onSelectPage: (Int) -> Void
     @Environment(\.dismiss) private var dismiss
+    @State private var entries: [TOCEntry] = []
 
     var body: some View {
         NavigationStack {
             Group {
-                let entries = buildEntries()
                 if entries.isEmpty {
                     ContentUnavailableView {
                         Label("No Table of Contents", systemImage: "list.bullet")
@@ -49,6 +49,9 @@ struct TOCView: View {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Done") { dismiss() }
                 }
+            }
+            .onAppear {
+                entries = buildEntries()
             }
         }
     }

@@ -15,14 +15,18 @@ final class Book {
     var readProgress: Double
     var renderingModeRaw: String
     var bookmarksData: Data?
+    @Transient private var _bookmarksCache: Set<Int>?
 
     var bookmarks: Set<Int> {
         get {
+            if let cached = _bookmarksCache { return cached }
             guard let data = bookmarksData,
                   let decoded = try? JSONDecoder().decode(Set<Int>.self, from: data) else { return [] }
+            _bookmarksCache = decoded
             return decoded
         }
         set {
+            _bookmarksCache = newValue
             bookmarksData = try? JSONEncoder().encode(newValue)
         }
     }

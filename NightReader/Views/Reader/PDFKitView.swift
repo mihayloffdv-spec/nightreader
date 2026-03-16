@@ -194,11 +194,14 @@ struct PDFKitView: UIViewRepresentable {
             context.coordinator.lastNavigatedSelection = nil
         }
 
-        // Simple mode uses compositing filter overlays
-        if renderingMode == .simple {
-            DarkModeRenderer.applyDarkMode(to: pdfView, theme: theme)
-        } else {
-            DarkModeRenderer.removeDarkMode(from: pdfView)
+        // Simple mode uses compositing filter overlays — skip if unchanged
+        if context.coordinator.lastAppliedRenderingMode != renderingMode {
+            context.coordinator.lastAppliedRenderingMode = renderingMode
+            if renderingMode == .simple {
+                DarkModeRenderer.applyDarkMode(to: pdfView, theme: theme)
+            } else {
+                DarkModeRenderer.removeDarkMode(from: pdfView)
+            }
         }
     }
 
@@ -208,6 +211,7 @@ struct PDFKitView: UIViewRepresentable {
         var lastPageIndex: Int = 0
         var lastNavigatedPage: Int?
         var lastNavigatedSelection: PDFSelection?
+        var lastAppliedRenderingMode: RenderingMode?
 
         init(onPageChange: @escaping (Int, Double) -> Void) {
             self.onPageChange = onPageChange

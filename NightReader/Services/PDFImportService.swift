@@ -30,7 +30,12 @@ struct PDFImportService {
             totalPages: pageCount
         )
         context.insert(book)
-        try context.save()
+        do {
+            try context.save()
+        } catch {
+            try? FileManager.default.removeItem(at: destURL)
+            throw error
+        }
 
         return book
     }

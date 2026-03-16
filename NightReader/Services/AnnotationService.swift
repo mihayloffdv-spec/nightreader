@@ -109,7 +109,22 @@ struct AnnotationService {
 
     static func saveAnnotations(in document: PDFDocument) {
         guard let url = document.documentURL else { return }
-        document.write(to: url)
+        let doc = document
+        DispatchQueue.global(qos: .utility).async {
+            let tempURL = url.deletingLastPathComponent()
+                .appendingPathComponent(UUID().uuidString + ".pdf")
+            if doc.write(to: tempURL) {
+                do {
+                    _ = try FileManager.default.replaceItemAt(url, withItemAt: tempURL)
+                } catch {
+                    print("[AnnotationService] Failed to replace PDF: \(error)")
+                    try? FileManager.default.removeItem(at: tempURL)
+                }
+            } else {
+                print("[AnnotationService] Failed to write PDF to temp file")
+                try? FileManager.default.removeItem(at: tempURL)
+            }
+        }
     }
 }
 

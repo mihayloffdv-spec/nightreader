@@ -82,9 +82,10 @@ class DarkModePDFPage: PDFPage {
             return
         }
 
-        // 3. Draw processed result
+        // 3. Draw processed result (account for non-zero page origin)
         context.saveGState()
-        context.draw(outputCGImage, in: bounds)
+        context.translateBy(x: bounds.origin.x, y: bounds.origin.y)
+        context.draw(outputCGImage, in: CGRect(origin: .zero, size: bounds.size))
         context.restoreGState()
     }
 

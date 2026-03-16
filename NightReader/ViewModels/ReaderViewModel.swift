@@ -152,6 +152,8 @@ final class ReaderViewModel {
         if let url = ExportService.exportAnnotationsToFile(from: document, title: book.title) {
             exportURL = url
             showExportShare = true
+        } else {
+            loadError = "Failed to export annotations."
         }
     }
 
@@ -180,13 +182,24 @@ final class ReaderViewModel {
 
     private func applySmartMode() {
         guard let original = originalDocument else { return }
-        let smartDoc = PDFDocument()
-        for i in 0..<original.pageCount {
-            guard let page = original.page(at: i) else { continue }
-            let smartPage = DarkModePDFPage(wrapping: page, theme: selectedTheme)
-            smartDoc.insert(smartPage, at: i)
+        let savedPage = currentPage
+        let theme = selectedTheme
+        isLoading = true
+        Task.detached {
+            let smartDoc = PDFDocument()
+            for i in 0..<original.pageCount {
+                guard let page = original.page(at: i) else { continue }
+                let smartPage = DarkModePDFPage(wrapping: page, theme: theme)
+                smartDoc.insert(smartPage, at: i)
+            }
+            await MainActor.run { [weak self] in
+                self?.document = smartDoc
+                self?.isLoading = false
+                if savedPage > 0 {
+                    self?.goToPageIndex = savedPage
+                }
+            }
         }
-        document = smartDoc
     }
 
     private func restoreOriginalDocument() {

@@ -515,10 +515,17 @@ final class PDFContentExtractor {
             let halfGap = clusterGap / 2
             let col1Lines = textLines.filter { abs($0.bounds.minX - firstClusterAvg) < halfGap }
             let col2Lines = textLines.filter { abs($0.bounds.minX - secondClusterAvg) < halfGap }
+            let col2MidYs = col2Lines.map { $0.bounds.midY }.sorted()
             let hasVerticalOverlap = col1Lines.contains { line1 in
-                col2Lines.contains { line2 in
-                    abs(line1.bounds.midY - line2.bounds.midY) < 20
+                let target = line1.bounds.midY
+                // Binary search for nearest midY in col2
+                var lo = 0, hi = col2MidYs.count - 1
+                while lo <= hi {
+                    let mid = (lo + hi) / 2
+                    if abs(col2MidYs[mid] - target) < 20 { return true }
+                    if col2MidYs[mid] < target { lo = mid + 1 } else { hi = mid - 1 }
                 }
+                return false
             }
             return hasVerticalOverlap
         }

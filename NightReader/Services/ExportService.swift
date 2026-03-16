@@ -40,6 +40,7 @@ struct ExportService {
             try text.write(to: tempURL, atomically: true, encoding: .utf8)
             return tempURL
         } catch {
+            print("[ExportService] Failed to write annotations file: \(error)")
             return nil
         }
     }

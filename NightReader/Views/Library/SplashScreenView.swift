@@ -1,39 +1,37 @@
 import SwiftUI
 
 struct SplashScreenView: View {
+    private static let displayDuration: Double = 4.2
+    private static let fadeOutDuration: Double = 0.4
+
     @State private var opacity: Double = 0
     @State private var isFinished = false
 
     var onFinished: () -> Void
 
     var body: some View {
-        ZStack {
-            NightTheme.background
-                .ignoresSafeArea()
-
-            // Van Gogh "Starry Night" splash image
-            // .fit ensures the entire image (including "NightReader" text)
-            // is always visible regardless of device aspect ratio.
-            // The dark background blends with the painting's dark edges.
+        GeometryReader { geo in
             Image("SplashArt")
                 .resizable()
-                .aspectRatio(contentMode: .fit)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .ignoresSafeArea()
+                .aspectRatio(contentMode: .fill)
+                .frame(width: geo.size.width, height: geo.size.height)
+                .clipped()
                 .opacity(opacity)
         }
-        .onAppear {
+        .ignoresSafeArea()
+        .background(Color(hex: "#01081E"))
+        .task {
             withAnimation(.easeIn(duration: 0.6)) {
                 opacity = 1
             }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 4.2) {
-                withAnimation(.easeOut(duration: 0.4)) {
-                    isFinished = true
-                }
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
-                    onFinished()
-                }
+            try? await Task.sleep(for: .seconds(Self.displayDuration))
+            guard !Task.isCancelled else { return }
+            withAnimation(.easeOut(duration: Self.fadeOutDuration)) {
+                isFinished = true
             }
+            try? await Task.sleep(for: .seconds(Self.fadeOutDuration))
+            guard !Task.isCancelled else { return }
+            onFinished()
         }
         .opacity(isFinished ? 0 : 1)
     }
