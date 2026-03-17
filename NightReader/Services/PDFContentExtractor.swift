@@ -124,9 +124,10 @@ final class PDFContentExtractor {
             let prefix2 = String(lower.prefix(2))
             return fragmentVowelStarts.contains(prefix2)
         }
-        // Extract consonant cluster
+        // Extract leading consonant cluster
         var clusterEnd = lower.startIndex
-        for ch in lower {
+        while clusterEnd < lower.endIndex {
+            let ch = lower[clusterEnd]
             if russianVowels.contains(ch) || ch == "ь" || ch == "ъ" { break }
             clusterEnd = lower.index(after: clusterEnd)
         }
@@ -521,16 +522,16 @@ final class PDFContentExtractor {
 
 
     /// Guess the missing prefix for a word fragment using common Russian word patterns.
-    /// Returns the character to prepend, or nil if ambiguous/unknown.
-    private static func guessMissingPrefix(fragment: String) -> Character? {
+    /// Returns the string to prepend (1-2 chars), or nil if ambiguous/unknown.
+    private static func guessMissingPrefix(fragment: String) -> String? {
         let lower = fragment.lowercased()
 
         // Table: fragment prefix → missing character(s)
         // Ordered longest-first within each group for correct matching
-        // "от-" words (most common: Отсюда, Открыть, Отдавать, etc.)
-        let prefixRules: [(prefix: String, insert: Character)] = [
-            // "от-" derivatives
+        let prefixRules: [(prefix: String, insert: String)] = [
+            // "от-" derivatives (Отсюда, Открыть, Отдавать, Откуда, Отпугивать, etc.)
             ("тсюда", "О"),     // Отсюда
+            ("ткуда", "О"),     // Откуда
             ("ткры", "О"),      // Открыть, Открытый
             ("тдав", "О"),      // Отдавать
             ("тдать", "О"),     // Отдать
@@ -552,7 +553,9 @@ final class PDFContentExtractor {
             ("тслеж", "О"),     // Отслеживать
             ("тток", "О"),      // Отток
             ("ттал", "О"),      // Оттолкнуть, Отталкивать
-            // "об-" derivatives
+            ("тпугив", "О"),    // Отпугивать
+            ("тпуг", "О"),      // Отпугнуть
+            // "об-" derivatives (Общее, Обман, etc.)
             ("бщ", "О"),        // Общее, Общий, Общая
             ("бъяв", "О"),      // Объявление
             ("бъект", "О"),     // Объект
@@ -572,6 +575,12 @@ final class PDFContentExtractor {
             ("бзор", "О"),      // Обзор
             ("бход", "О"),      // Обход
             ("бсто", "О"),      // Обстоятельство
+            ("бман", "О"),      // Обман
+            // "он-/оф-" derivatives (Онлайн, Оффер, etc.)
+            ("нлайн", "О"),     // Онлайн
+            ("ффер", "О"),      // Оффер
+            ("ффлайн", "О"),    // Оффлайн
+            ("ффици", "О"),     // Официальный
             // "К-" words
             ("ейсы", "К"),      // Кейсы
             ("ейс", "К"),       // Кейс
@@ -586,8 +595,13 @@ final class PDFContentExtractor {
             ("ятое", "П"),      // Пятое
             ("ять", "П"),       // Пять
             ("яток", "П"),      // Пяток
-            // "С-" words (Суть, etc.)
-            ("уть", "С"),       // Суть — most common "уть" after punctuation
+            // "Ни-" words (2-char prefix)
+            ("зкая", "Ни"),     // Низкая
+            ("зкий", "Ни"),     // Низкий
+            ("зкое", "Ни"),     // Низкое
+            ("зких", "Ни"),     // Низких
+            ("зком", "Ни"),     // Низком
+            ("зко", "Ни"),      // Низко
         ]
 
         for rule in prefixRules {
@@ -709,7 +723,7 @@ final class PDFContentExtractor {
         var renderedPage: (image: CGImage, scale: CGFloat, outputSize: CGSize)?
 
         for candidate in candidates {
-            var insertChar: Character? = nil
+            var insertStr: String? = nil
             let searchPrefix = candidate.searchPrefix
             let matchingLine = candidate.matchingLine
 
@@ -727,9 +741,9 @@ final class PDFContentExtractor {
                     return ch.isUppercase || cmapChar.fontSize > matchingLine.bounds.height * 1.2
                 }) {
                     let bestChar = best.char.first!
-                    insertChar = bestChar.isUppercase ? bestChar : Character(String(bestChar).uppercased())
+                    insertStr = String(bestChar.isUppercase ? bestChar : Character(String(bestChar).uppercased()))
                     #if DEBUG
-                    print("[PDFExtractor] CMap match: '\(searchPrefix.prefix(15))' → '\(insertChar!)' at y=\(Int(best.position.y))")
+                    print("[PDFExtractor] CMap match: '\(searchPrefix.prefix(15))' → '\(insertStr!)' at y=\(Int(best.position.y))")
                     #endif
                 }
             }
@@ -737,7 +751,7 @@ final class PDFContentExtractor {
             let isLikelyFragment = isFragment(searchPrefix)
 
             // Strategy 2: OCR — render full page once, crop each line
-            if insertChar == nil {
+            if insertStr == nil {
                 // Lazy render
                 if renderedPage == nil {
                     renderedPage = renderPageForOCR(page)
@@ -795,9 +809,9 @@ final class PDFContentExtractor {
                                         let charBeforeIdx = wideTrimmed.index(before: foundStart)
                                         let charBefore = wideTrimmed[charBeforeIdx]
                                         if charBefore.isLetter {
-                                            insertChar = Character(String(charBefore).uppercased())
+                                            insertStr = String(charBefore).uppercased()
                                             #if DEBUG
-                                            print("[PDFExtractor] Wide OCR found: '\(searchPrefix.prefix(15))' → '\(insertChar!)' (OCR: '\(wideTrimmed.prefix(50))')")
+                                            print("[PDFExtractor] Wide OCR found: '\(searchPrefix.prefix(15))' → '\(insertStr!)' (OCR: '\(wideTrimmed.prefix(50))')")
                                             #endif
                                         }
                                     }
@@ -822,8 +836,8 @@ final class PDFContentExtractor {
                                 let charBeforeIdx = ocrTrimmed.index(before: foundStart)
                                 let charBefore = ocrTrimmed[charBeforeIdx]
                                 if charBefore.isLetter {
-                                    let upper = Character(String(charBefore).uppercased())
-                                    insertChar = upper
+                                    let upper = String(charBefore).uppercased()
+                                    insertStr = upper
                                     #if DEBUG
                                     print("[PDFExtractor] OCR found: '\(searchPrefix.prefix(15))' → '\(upper)' (OCR: '\(ocrTrimmed.prefix(30))')")
                                     #endif
@@ -844,16 +858,16 @@ final class PDFContentExtractor {
 
             // Strategy 3 (Pass 3): Dictionary-based fragment repair
             // If OCR failed and the word is clearly a fragment, try known prefix patterns
-            if insertChar == nil && isLikelyFragment {
-                insertChar = guessMissingPrefix(fragment: searchPrefix)
+            if insertStr == nil && isLikelyFragment {
+                insertStr = guessMissingPrefix(fragment: searchPrefix)
                 #if DEBUG
-                if let ch = insertChar {
-                    print("[PDFExtractor] Fragment repair: '\(searchPrefix.prefix(15))' → '\(ch)' (dictionary)")
+                if let s = insertStr {
+                    print("[PDFExtractor] Fragment repair: '\(searchPrefix.prefix(15))' → '\(s)' (dictionary)")
                 }
                 #endif
             }
 
-            if let ch = insertChar, tryInsertChar(ch, beforeTextMatching: searchPrefix, in: &text) {
+            if let s = insertStr, tryInsertStr(s, beforeTextMatching: searchPrefix, in: &text) {
                 insertions += 1
             }
         }
@@ -883,9 +897,9 @@ final class PDFContentExtractor {
         return text
     }
 
-    /// Try to insert a character before text matching the given continuation string.
-    private static func tryInsertChar(_ char: Character, beforeTextMatching continuation: String, in text: inout String) -> Bool {
-        let searchLengths = [20, 12, 8]
+    /// Try to insert a string (1+ chars) before text matching the given continuation string.
+    private static func tryInsertStr(_ prefix: String, beforeTextMatching continuation: String, in text: inout String) -> Bool {
+        let searchLengths = [20, 12, 8, 5, 3]
         for searchLen in searchLengths {
             guard continuation.count >= searchLen else { continue }
             let searchStr = String(continuation.prefix(searchLen))
@@ -901,20 +915,21 @@ final class PDFContentExtractor {
                 }()
 
                 if isAtBoundary {
-                    // Don't double-insert
-                    if pos > text.startIndex {
-                        let prev = text[text.index(before: pos)]
-                        if prev == char {
+                    // Don't double-insert: check if prefix is already there
+                    if text[pos...].hasPrefix(prefix + searchStr) {
+                        searchStart = range.upperBound
+                        continue
+                    }
+                    // Also check if prefix chars are immediately before pos
+                    if text.distance(from: text.startIndex, to: pos) >= prefix.count {
+                        let prefixStart = text.index(pos, offsetBy: -prefix.count)
+                        if String(text[prefixStart..<pos]) == prefix {
                             searchStart = range.upperBound
                             continue
                         }
                     }
-                    if text[pos...].hasPrefix(String(char) + searchStr) {
-                        searchStart = range.upperBound
-                        continue
-                    }
 
-                    text.insert(char, at: pos)
+                    text.insert(contentsOf: prefix, at: pos)
                     return true
                 }
 
@@ -1035,9 +1050,7 @@ final class PDFContentExtractor {
         guard let cropped = fullImage.cropping(to: cropRect) else { return nil }
 
         let request = VNRecognizeTextRequest()
-        // .fast is sufficient for single-character recovery and avoids blocking
-        // the serial extraction queue for 200-800ms per crop that .accurate requires
-        request.recognitionLevel = .fast
+        request.recognitionLevel = .accurate
         request.recognitionLanguages = ["ru", "en"]
         request.usesLanguageCorrection = true
 
