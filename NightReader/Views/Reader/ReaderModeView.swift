@@ -118,14 +118,16 @@ struct ReaderModeView: View {
     private func blockView(_ block: ContentBlock, contentWidth: CGFloat) -> some View {
         switch block {
         case .text(let content):
-            Text(content)
-                .font(.system(size: fontSize, weight: .regular, design: fontFamily.design))
-                .lineSpacing(fontSize * 0.4)
-                .foregroundStyle(theme.textColor)
-                .textSelection(.enabled)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.bottom, fontSize * 0.3)
-                .padding(.horizontal, 16)
+            JustifiedText(
+                content,
+                fontSize: fontSize,
+                fontDesign: fontFamily.design,
+                textColor: UIColor(theme.textColor),
+                lineSpacing: fontSize * 0.4
+            )
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.bottom, fontSize * 0.3)
+            .padding(.horizontal, 16)
 
         case .heading(let content):
             Text(content)
@@ -160,6 +162,19 @@ struct ReaderModeView: View {
         pages = Array(0..<doc.pageCount)
     }
 
+    static func uiFont(size: CGFloat, design: Font.Design) -> UIFont {
+        switch design {
+        case .serif:
+            return UIFont(descriptor: UIFontDescriptor.preferredFontDescriptor(withTextStyle: .body)
+                .withDesign(.serif)!, size: size)
+        case .rounded:
+            return UIFont(descriptor: UIFontDescriptor.preferredFontDescriptor(withTextStyle: .body)
+                .withDesign(.rounded)!, size: size)
+        default:
+            return UIFont.systemFont(ofSize: size)
+        }
+    }
+
     private func extractPage(_ pageIndex: Int, contentWidth: CGFloat) {
         guard let doc = document,
               !loadingPages.contains(pageIndex),
@@ -189,5 +204,56 @@ struct ReaderModeView: View {
                 loadingPages.remove(pageIndex)
             }
         }
+    }
+}
+
+// MARK: - Justified Text (UIKit-backed for proper text justification)
+
+private struct JustifiedText: UIViewRepresentable {
+    let text: String
+    let fontSize: CGFloat
+    let fontDesign: Font.Design
+    let textColor: UIColor
+    let lineSpacing: CGFloat
+
+    init(_ text: String, fontSize: CGFloat, fontDesign: Font.Design, textColor: UIColor, lineSpacing: CGFloat) {
+        self.text = text
+        self.fontSize = fontSize
+        self.fontDesign = fontDesign
+        self.textColor = textColor
+        self.lineSpacing = lineSpacing
+    }
+
+    func makeUIView(context: Context) -> UILabel {
+        let label = UILabel()
+        label.numberOfLines = 0
+        label.lineBreakMode = .byWordWrapping
+        label.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        return label
+    }
+
+    func updateUIView(_ label: UILabel, context: Context) {
+        let font = ReaderModeView.uiFont(size: fontSize, design: fontDesign)
+
+        let paragraphStyle = NSMutableParagraphStyle()
+        paragraphStyle.alignment = .natural
+        paragraphStyle.lineBreakMode = .byWordWrapping
+        paragraphStyle.lineSpacing = lineSpacing
+        paragraphStyle.hyphenationFactor = 1.0
+
+        label.attributedText = NSAttributedString(
+            string: text,
+            attributes: [
+                .font: font,
+                .foregroundColor: textColor,
+                .paragraphStyle: paragraphStyle
+            ]
+        )
+    }
+
+    func sizeThatFits(_ proposal: ProposedViewSize, uiView: UILabel, context: Context) -> CGSize? {
+        guard let width = proposal.width, width > 0 else { return nil }
+        let size = uiView.sizeThatFits(CGSize(width: width, height: CGFloat.greatestFiniteMagnitude))
+        return CGSize(width: width, height: size.height)
     }
 }

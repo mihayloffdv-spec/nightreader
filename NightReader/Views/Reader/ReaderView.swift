@@ -74,11 +74,10 @@ struct ReaderView: View {
                 }
                 .animation(.easeInOut(duration: 0.3), value: viewModel.isReaderMode)
 
-                // Dimmer overlay — exclude toolbar areas
+                // Dimmer overlay
                 if viewModel.dimmerOpacity > 0 {
                     DimmerOverlay(opacity: viewModel.dimmerOpacity)
-                        .padding(.top, viewModel.toolbarVisible ? 52 : 0)
-                        .padding(.bottom, viewModel.toolbarVisible ? 120 : 0)
+                        .allowsHitTesting(false)
                 }
 
                 // Search bar (top, below status bar)

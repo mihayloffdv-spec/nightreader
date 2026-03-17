@@ -581,6 +581,41 @@ final class PDFContentExtractor {
             ("ффер", "О"),      // Оффер
             ("ффлайн", "О"),    // Оффлайн
             ("ффици", "О"),     // Официальный
+            // "С-" words
+            ("иловой", "С"),    // Силовой
+            ("иловые", "С"),    // Силовые
+            ("иловых", "С"),    // Силовых
+            ("иловая", "С"),    // Силовая
+            ("илов", "С"),      // Сило... (general)
+            ("истем", "С"),     // Система, Системный
+            ("ервис", "С"),     // Сервис
+            ("айт", "С"),       // Сайт
+            // "П-" words (По, При, Про, etc.)
+            ("о ним", "П"),     // По ним
+            ("о нем", "П"),     // По нему (colloquial)
+            ("о нём", "П"),     // По нём
+            ("о ней", "П"),     // По ней
+            ("о сути", "П"),    // По сути
+            ("о факту", "П"),   // По факту
+            ("о данным", "П"),  // По данным
+            ("о результат", "П"), // По результатам
+            ("о итог", "П"),    // По итогу
+            ("о сравнен", "П"), // По сравнению
+            ("о правил", "П"),  // По правилам
+            ("о запрос", "П"),  // По запросам
+            ("ример", "П"),     // Пример
+            ("рактик", "П"),    // Практика
+            ("родаж", "П"),     // Продажа
+            ("ричин", "П"),     // Причина
+            ("роцент", "П"),    // Процент
+            ("роблем", "П"),    // Проблема
+            ("отому", "П"),     // Потому
+            ("оэтому", "П"),    // Поэтому
+            ("осетител", "П"),  // Посетитель
+            ("редложен", "П"),  // Предложение
+            ("ервый", "П"),     // Первый
+            ("ервая", "П"),     // Первая
+            ("ервое", "П"),     // Первое
             // "К-" words
             ("ейсы", "К"),      // Кейсы
             ("ейс", "К"),       // Кейс
@@ -689,7 +724,8 @@ final class PDFContentExtractor {
 
         // Pass 2: Mid-line drops — lowercase word after sentence-ending punctuation
         // Catches ". отому что" (should be ". Потому что"), ". ейсы" (should be ". Кейсы")
-        if let midLineRegex = try? NSRegularExpression(pattern: "[.!?»]\\s+([а-яa-z]\\S{2,})", options: []) {
+        // Also catches "«иловые" after punctuation+space (guillemet before word)
+        if let midLineRegex = try? NSRegularExpression(pattern: "[.!?»]\\s+[«\"„]?([а-яa-z]\\S{2,})", options: []) {
             let nsText = text as NSString
             let matches = midLineRegex.matches(in: text, range: NSRange(location: 0, length: nsText.length))
             for match in matches {
@@ -857,8 +893,9 @@ final class PDFContentExtractor {
             }
 
             // Strategy 3 (Pass 3): Dictionary-based fragment repair
-            // If OCR failed and the word is clearly a fragment, try known prefix patterns
-            if insertStr == nil && isLikelyFragment {
+            // Try known prefix patterns even if isFragment didn't flag it —
+            // the dictionary is explicit enough to be trusted on its own
+            if insertStr == nil {
                 insertStr = guessMissingPrefix(fragment: searchPrefix)
                 #if DEBUG
                 if let s = insertStr {
