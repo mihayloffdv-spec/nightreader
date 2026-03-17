@@ -5,6 +5,7 @@ struct ReaderModeView: View {
     let document: PDFDocument?
     let theme: Theme
     let fontSize: Double
+    let fontFamily: ReaderFont
     let currentPageIndex: Int
     @Binding var goToPageIndex: Int?
     let onPageChange: (Int) -> Void
@@ -25,15 +26,16 @@ struct ReaderModeView: View {
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 0) {
                         ForEach(pages, id: \.self) { pageIndex in
-                            pageSection(pageIndex: pageIndex, contentWidth: geo.size.width - 32)
+                            pageSection(pageIndex: pageIndex, screenWidth: geo.size.width)
                                 .id(pageIndex)
                         }
                     }
-                    .padding(.horizontal, 16)
+                    // No horizontal padding here — text blocks handle their own padding,
+                    // images extend to full screen width.
                     .padding(.vertical, 20)
                 }
-                // Force full rebuild when font size changes (onAppear won't re-fire otherwise)
-                .id(fontSize)
+                // Force full rebuild when font size or family changes
+                .id("\(fontSize)_\(fontFamily.rawValue)")
                 .onAppear {
                     screenWidth = geo.size.width
                     loadPages()
@@ -68,18 +70,19 @@ struct ReaderModeView: View {
     // MARK: - Page section
 
     @ViewBuilder
-    private func pageSection(pageIndex: Int, contentWidth: CGFloat) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
+    private func pageSection(pageIndex: Int, screenWidth: CGFloat) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
             if let blocks = blocksByPage[pageIndex] {
                 ForEach(Array(blocks.enumerated()), id: \.offset) { _, block in
-                    blockView(block, contentWidth: contentWidth)
+                    blockView(block, contentWidth: screenWidth)
                 }
             } else {
                 ProgressView()
                     .tint(theme.textColor)
                     .frame(maxWidth: .infinity, minHeight: 100)
+                    .padding(.horizontal, 16)
                     .onAppear {
-                        extractPage(pageIndex, contentWidth: contentWidth)
+                        extractPage(pageIndex, contentWidth: screenWidth)
                     }
             }
 
@@ -94,6 +97,7 @@ struct ReaderModeView: View {
                 }
                 .foregroundStyle(theme.textColor)
                 .padding(.vertical, 16)
+                .padding(.horizontal, 16)
             }
         }
         .onAppear {
@@ -103,7 +107,7 @@ struct ReaderModeView: View {
             // Prefetch next page
             let next = pageIndex + 1
             if next < (document?.pageCount ?? 0), blocksByPage[next] == nil {
-                extractPage(next, contentWidth: contentWidth)
+                extractPage(next, contentWidth: screenWidth)
             }
         }
     }
@@ -115,25 +119,36 @@ struct ReaderModeView: View {
         switch block {
         case .text(let content):
             Text(content)
-                .font(.system(size: fontSize, weight: .regular, design: .serif))
-                .lineSpacing(fontSize * 0.5)
+                .font(.system(size: fontSize, weight: .regular, design: fontFamily.design))
+                .lineSpacing(fontSize * 0.4)
                 .foregroundStyle(theme.textColor)
                 .textSelection(.enabled)
                 .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.bottom, fontSize * 0.3)
+                .padding(.horizontal, 16)
+
+        case .heading(let content):
+            Text(content)
+                .font(.system(size: fontSize * 1.3, weight: .bold, design: fontFamily.design))
+                .lineSpacing(fontSize * 0.3)
+                .foregroundStyle(theme.textColor)
+                .textSelection(.enabled)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.top, 8)
+                .padding(.horizontal, 16)
 
         case .image(let image):
             Image(uiImage: image)
                 .resizable()
                 .aspectRatio(contentMode: .fit)
-                .frame(maxWidth: contentWidth)
+                .frame(maxWidth: .infinity)
                 .clipShape(RoundedRectangle(cornerRadius: 4))
 
         case .snapshot(let image):
-            let aspect = image.size.height / image.size.width
             Image(uiImage: image)
                 .resizable()
                 .aspectRatio(contentMode: .fit)
-                .frame(width: contentWidth, height: contentWidth * aspect)
+                .frame(maxWidth: .infinity)
                 .clipShape(RoundedRectangle(cornerRadius: 4))
         }
     }
@@ -152,6 +167,9 @@ struct ReaderModeView: View {
 
         // Check cache first
         if let cached = BlockCache.shared.blocks(forPage: pageIndex, width: contentWidth) {
+            #if DEBUG
+            print("[ReaderMode] Page \(pageIndex): loaded from cache (\(cached.count) blocks)")
+            #endif
             blocksByPage[pageIndex] = cached
             return
         }

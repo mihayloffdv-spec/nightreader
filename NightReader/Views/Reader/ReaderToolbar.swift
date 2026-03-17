@@ -96,16 +96,18 @@ struct ReaderToolbar: View {
 
                 // Mode picker + settings gear
                 HStack(spacing: 12) {
-                    Picker("Mode", selection: Binding(
-                        get: { viewModel.renderingMode },
-                        set: { viewModel.setRenderingMode($0) }
-                    )) {
-                        ForEach(RenderingMode.allCases) { mode in
-                            Text(mode.displayName).tag(mode)
+                    if !viewModel.isReaderMode {
+                        Picker("Mode", selection: Binding(
+                            get: { viewModel.renderingMode },
+                            set: { viewModel.setRenderingMode($0) }
+                        )) {
+                            ForEach(RenderingMode.allCases) { mode in
+                                Text(mode.displayName).tag(mode)
+                            }
                         }
+                        .pickerStyle(.segmented)
+                        .controlSize(.regular)
                     }
-                    .pickerStyle(.segmented)
-                    .controlSize(.regular)
 
                     Button {
                         withAnimation { showSettings.toggle() }
@@ -187,7 +189,64 @@ struct ReaderToolbar: View {
                         .frame(width: 24)
                 }
                 .frame(height: 36)
+
+                // Font family picker
+                HStack(spacing: 0) {
+                    ForEach(ReaderFont.allCases) { font in
+                        Button {
+                            viewModel.setReaderFontFamily(font)
+                            viewModel.scheduleHideToolbar()
+                        } label: {
+                            Text("Aa")
+                                .font(.system(size: 15, weight: viewModel.readerFontFamily == font ? .bold : .regular, design: font.design))
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 8)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 8)
+                                        .fill(viewModel.readerFontFamily == font ? .white.opacity(0.2) : .clear)
+                                )
+                        }
+                    }
+                }
+                .background(
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(.white.opacity(0.08))
+                )
+                .frame(height: 36)
             }
+
+            #if DEBUG
+            // Diagnostic button for testing drop cap recovery
+            Button {
+                viewModel.runDropCapDiagnostics()
+            } label: {
+                HStack {
+                    if viewModel.isRunningDiagnostics {
+                        ProgressView().tint(.white)
+                        Text("Running diagnostics...").font(.footnote)
+                    } else {
+                        Image(systemName: "stethoscope")
+                        Text("Drop Cap Diagnostics").font(.footnote)
+                    }
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 8)
+                .background(RoundedRectangle(cornerRadius: 8).fill(.white.opacity(0.12)))
+            }
+            .disabled(viewModel.isRunningDiagnostics)
+
+            if let report = viewModel.diagnosticReport {
+                ScrollView {
+                    Text(report)
+                        .font(.system(size: 11, design: .monospaced))
+                        .foregroundStyle(.white)
+                        .textSelection(.enabled)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .frame(maxHeight: 200)
+                .background(RoundedRectangle(cornerRadius: 8).fill(.black.opacity(0.5)))
+            }
+            #endif
         }
         .padding(.top, 4)
     }

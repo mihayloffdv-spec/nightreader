@@ -106,12 +106,11 @@ struct SearchBarView: View {
         let doc = document
         Task.detached {
             let selections = doc.findString(query, withOptions: .caseInsensitive)
-            var found: [SearchResult] = []
-            for selection in selections {
-                guard let page = selection.pages.first else { continue }
+            let found = selections.compactMap { selection -> SearchResult? in
+                guard let page = selection.pages.first else { return nil }
                 let pageIndex = doc.index(for: page)
                 let context = selection.string ?? query
-                found.append(SearchResult(selection: selection, pageIndex: pageIndex, contextText: context))
+                return SearchResult(selection: selection, pageIndex: pageIndex, contextText: context)
             }
             await MainActor.run {
                 results = found

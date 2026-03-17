@@ -24,6 +24,7 @@ final class ReaderViewModel {
     var loadError: String?
     var isReaderMode = false
     var readerFontSize: Double = AppSettings.shared.readerFontSize
+    var readerFontFamily: ReaderFont = AppSettings.shared.currentReaderFont
 
     private var hideToolbarTask: Task<Void, Never>?
     private(set) var originalDocument: PDFDocument?
@@ -175,9 +176,12 @@ final class ReaderViewModel {
     func setReaderFontSize(_ size: Double) {
         readerFontSize = size
         AppSettings.shared.readerFontSize = size
-        // Text blocks don't need re-extraction, but cached snapshots may
-        // have different layout context — clear in-memory blocks so they reload
         BlockCache.shared.invalidate()
+    }
+
+    func setReaderFontFamily(_ font: ReaderFont) {
+        readerFontFamily = font
+        AppSettings.shared.readerFontFamily = font.rawValue
     }
 
     private func applySmartMode() {
@@ -205,4 +209,24 @@ final class ReaderViewModel {
     private func restoreOriginalDocument() {
         document = originalDocument
     }
+
+    #if DEBUG
+    var diagnosticReport: String?
+    var isRunningDiagnostics = false
+
+    func runDropCapDiagnostics() {
+        guard let doc = originalDocument ?? document else { return }
+        isRunningDiagnostics = true
+        diagnosticReport = nil
+        BlockCache.shared.clearAll()
+        Task.detached {
+            let report = PDFContentExtractor.diagnoseDropCaps(document: doc)
+            await MainActor.run { [weak self] in
+                self?.diagnosticReport = report
+                self?.isRunningDiagnostics = false
+                print(report)
+            }
+        }
+    }
+    #endif
 }

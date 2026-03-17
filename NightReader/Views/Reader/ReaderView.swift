@@ -32,6 +32,7 @@ struct ReaderView: View {
                             document: viewModel.originalDoc,
                             theme: viewModel.selectedTheme,
                             fontSize: viewModel.readerFontSize,
+                            fontFamily: viewModel.readerFontFamily,
                             currentPageIndex: viewModel.currentPage,
                             goToPageIndex: $viewModel.goToPageIndex,
                             onPageChange: { page in

@@ -31,6 +31,15 @@ final class AppSettings {
         set { UserDefaults.standard.set(newValue, forKey: "readerFontSize") }
     }
 
+    var readerFontFamily: String {
+        get { UserDefaults.standard.string(forKey: "readerFontFamily") ?? ReaderFont.serif.rawValue }
+        set { UserDefaults.standard.set(newValue, forKey: "readerFontFamily") }
+    }
+
+    var currentReaderFont: ReaderFont {
+        ReaderFont(rawValue: readerFontFamily) ?? .serif
+    }
+
     var currentRenderingMode: RenderingMode {
         RenderingMode(rawValue: defaultRenderingMode) ?? .simple
     }
