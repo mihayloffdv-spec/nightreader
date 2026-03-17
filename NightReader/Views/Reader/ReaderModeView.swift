@@ -141,14 +141,14 @@ struct ReaderModeView: View {
             Image(uiImage: image)
                 .resizable()
                 .aspectRatio(contentMode: .fit)
-                .frame(maxWidth: .infinity)
+                .frame(width: contentWidth)
                 .clipShape(RoundedRectangle(cornerRadius: 4))
 
         case .snapshot(let image):
             Image(uiImage: image)
                 .resizable()
                 .aspectRatio(contentMode: .fit)
-                .frame(maxWidth: .infinity)
+                .frame(width: contentWidth)
                 .clipShape(RoundedRectangle(cornerRadius: 4))
         }
     }

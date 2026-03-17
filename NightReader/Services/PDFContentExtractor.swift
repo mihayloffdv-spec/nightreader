@@ -867,8 +867,11 @@ final class PDFContentExtractor {
                 #endif
             }
 
-            if let s = insertStr, tryInsertStr(s, beforeTextMatching: searchPrefix, in: &text) {
-                insertions += 1
+            if let s = insertStr {
+                // Loop to fix ALL occurrences of this fragment on the page
+                while tryInsertStr(s, beforeTextMatching: searchPrefix, in: &text) {
+                    insertions += 1
+                }
             }
         }
 
@@ -1794,7 +1797,9 @@ final class PDFContentExtractor {
 
             // Check if we have a matching extracted CGImage for this rect
             if let extracted = extractedImages.first(where: { $0.rect.intersects(rect) }) {
-                let uiImage = UIImage(cgImage: extracted.cgImage)
+                // Scale the raw CGImage to pageWidth — PDF images may have arbitrary
+                // native pixel dimensions unrelated to screen size
+                let uiImage = scaleImageToWidth(extracted.cgImage, targetWidth: pageWidth)
                 positionedImages.append(PositionedImage(block: .image(uiImage), fraction: clampedFraction))
             } else {
                 // Render the region as a snapshot
@@ -2106,14 +2111,38 @@ final class PDFContentExtractor {
 
     // MARK: - Rendering
 
+    /// Scale a CGImage to a target width (points), preserving aspect ratio.
+    /// Produces a @2x UIImage for Retina displays.
+    private static func scaleImageToWidth(_ cgImage: CGImage, targetWidth: CGFloat) -> UIImage {
+        let srcW = CGFloat(cgImage.width)
+        let srcH = CGFloat(cgImage.height)
+        let scale: CGFloat = 2.0 // Retina
+        let aspectRatio = srcH / max(srcW, 1)
+        let targetH = targetWidth * aspectRatio
+
+        let pixelW = Int(targetWidth * scale)
+        let pixelH = Int(targetH * scale)
+
+        // If the source is already close to target size, skip re-rendering
+        if abs(srcW - CGFloat(pixelW)) < 4 && abs(srcH - CGFloat(pixelH)) < 4 {
+            return UIImage(cgImage: cgImage, scale: scale, orientation: .up)
+        }
+
+        let renderer = UIGraphicsImageRenderer(size: CGSize(width: targetWidth, height: targetH))
+        return renderer.image { ctx in
+            let drawRect = CGRect(x: 0, y: 0, width: targetWidth, height: targetH)
+            UIImage(cgImage: cgImage).draw(in: drawRect)
+        }
+    }
+
     /// Render a specific region of a PDF page to a UIImage.
     static func renderRegion(of page: PDFPage, region: CGRect, fitWidth: CGFloat) -> UIImage? {
         guard let cgPage = page.pageRef,
               region.width > 0 && region.height > 0,
               region.width.isFinite && region.height.isFinite else { return nil }
 
-        let pageBounds = page.bounds(for: .mediaBox)
-        let scaleFactor = fitWidth / pageBounds.width
+        // Scale so the REGION fills fitWidth (not the whole page)
+        let scaleFactor = fitWidth / region.width
         let outputSize = CGSize(
             width: fitWidth,
             height: region.height * scaleFactor
