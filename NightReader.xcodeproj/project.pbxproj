@@ -33,6 +33,12 @@
 		C0000024 /* NightTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1000024 /* NightTheme.swift */; };
 		C0000025 /* SplashScreenView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1000025 /* SplashScreenView.swift */; };
 		C0000026 /* ReaderFont.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1000026 /* ReaderFont.swift */; };
+		C0000027 /* ContentTypes.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1000027 /* ContentTypes.swift */; };
+		C0000028 /* TextExtractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1000028 /* TextExtractor.swift */; };
+		C0000029 /* ImageExtractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1000029 /* ImageExtractor.swift */; };
+		C0000030 /* LayoutAnalyzer.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1000030 /* LayoutAnalyzer.swift */; };
+		C0000031 /* PageRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1000031 /* PageRenderer.swift */; };
+		C0000032 /* ChapterDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1000032 /* ChapterDetector.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -62,6 +68,12 @@
 		C1000024 /* NightTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NightTheme.swift; sourceTree = "<group>"; };
 		C1000025 /* SplashScreenView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SplashScreenView.swift; sourceTree = "<group>"; };
 		C1000026 /* ReaderFont.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReaderFont.swift; sourceTree = "<group>"; };
+		C1000027 /* ContentTypes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentTypes.swift; sourceTree = "<group>"; };
+		C1000028 /* TextExtractor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextExtractor.swift; sourceTree = "<group>"; };
+		C1000029 /* ImageExtractor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageExtractor.swift; sourceTree = "<group>"; };
+		C1000030 /* LayoutAnalyzer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LayoutAnalyzer.swift; sourceTree = "<group>"; };
+		C1000031 /* PageRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PageRenderer.swift; sourceTree = "<group>"; };
+		C1000032 /* ChapterDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChapterDetector.swift; sourceTree = "<group>"; };
 		C2000001 /* NightReader.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = NightReader.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -177,6 +189,12 @@
 				C1000016 /* AnnotationService.swift */,
 				C1000021 /* ExportService.swift */,
 				C1000022 /* PDFContentExtractor.swift */,
+				C1000027 /* ContentTypes.swift */,
+				C1000028 /* TextExtractor.swift */,
+				C1000029 /* ImageExtractor.swift */,
+				C1000030 /* LayoutAnalyzer.swift */,
+				C1000031 /* PageRenderer.swift */,
+				C1000032 /* ChapterDetector.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -275,6 +293,12 @@
 				C0000024 /* NightTheme.swift in Sources */,
 				C0000025 /* SplashScreenView.swift in Sources */,
 				C0000026 /* ReaderFont.swift in Sources */,
+				C0000027 /* ContentTypes.swift in Sources */,
+				C0000028 /* TextExtractor.swift in Sources */,
+				C0000029 /* ImageExtractor.swift in Sources */,
+				C0000030 /* LayoutAnalyzer.swift in Sources */,
+				C0000031 /* PageRenderer.swift in Sources */,
+				C0000032 /* ChapterDetector.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -405,6 +429,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 7N37858XB8;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_LSSupportsOpeningDocumentsInPlace = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -435,6 +460,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 7N37858XB8;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_LSSupportsOpeningDocumentsInPlace = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;

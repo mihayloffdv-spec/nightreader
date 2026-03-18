@@ -1,9 +1,9 @@
 import Foundation
-import PDFKit
+@preconcurrency import PDFKit
 import SwiftUI
 
 @Observable
-final class ReaderViewModel {
+final class ReaderViewModel: @unchecked Sendable {
     let book: Book
     var document: PDFDocument?
     var renderingMode: RenderingMode
@@ -25,12 +25,21 @@ final class ReaderViewModel {
     var isReaderMode = false
     var readerFontSize: Double = AppSettings.shared.readerFontSize
     var readerFontFamily: ReaderFont = AppSettings.shared.currentReaderFont
+    var totalWordCount: Int = 0
+    var chapters: [Chapter] = []
+    var currentChapter: Chapter?
+    var chapterProgress: Double = 0
 
     private var hideToolbarTask: Task<Void, Never>?
     private(set) var originalDocument: PDFDocument?
 
     /// Original (unprocessed) document for Reader Mode.
     var originalDoc: PDFDocument? { originalDocument }
+
+    /// Estimated reading time in minutes (200 wpm average).
+    var estimatedReadingMinutes: Int {
+        max(1, totalWordCount / 200)
+    }
 
     init(book: Book) {
         self.book = book
@@ -44,9 +53,11 @@ final class ReaderViewModel {
         isLoading = true
         BlockCache.shared.invalidate()
         let url = book.fileURL
-        let doc = await Task.detached {
-            PDFDocument(url: url)
-        }.value
+        let doc: PDFDocument? = await withCheckedContinuation { continuation in
+            DispatchQueue.global(qos: .userInitiated).async {
+                continuation.resume(returning: PDFDocument(url: url))
+            }
+        }
 
         if let doc {
             self.originalDocument = doc
@@ -56,6 +67,18 @@ final class ReaderViewModel {
                 self.document = doc
             }
             isLoading = false
+            // Count words on the same serial queue used for PDF extraction
+            // (PDFDocument is NOT thread-safe — all access must be serialized)
+            nonisolated(unsafe) let countDoc = doc
+            ReaderModeView.extractionQueue.async { [weak self] in
+                let count = Self.countWords(in: countDoc)
+                let detectedChapters = ChapterDetector.detectChapters(in: countDoc)
+                DispatchQueue.main.async {
+                    self?.totalWordCount = count
+                    self?.chapters = detectedChapters
+                    self?.updateChapterInfo()
+                }
+            }
         } else {
             loadError = "File is missing or corrupted."
             isLoading = false
@@ -111,6 +134,7 @@ final class ReaderViewModel {
             book.readProgress = Double(pageIndex + 1) / Double(book.totalPages)
         }
         currentPage = pageIndex
+        updateChapterInfo()
     }
 
     func setRenderingMode(_ mode: RenderingMode) {
@@ -184,19 +208,39 @@ final class ReaderViewModel {
         AppSettings.shared.readerFontFamily = font.rawValue
     }
 
+    private func updateChapterInfo() {
+        currentChapter = ChapterDetector.currentChapter(forPage: currentPage, in: chapters)
+        chapterProgress = ChapterDetector.chapterProgress(
+            forPage: currentPage, in: chapters, totalPages: book.totalPages
+        )
+    }
+
+    private static func countWords(in document: PDFDocument) -> Int {
+        var total = 0
+        for i in 0..<document.pageCount {
+            if let text = document.page(at: i)?.string {
+                total += text.split(whereSeparator: { $0.isWhitespace || $0.isNewline }).count
+            }
+        }
+        return total
+    }
+
     private func applySmartMode() {
         guard let original = originalDocument else { return }
         let savedPage = currentPage
         let theme = selectedTheme
         isLoading = true
-        Task.detached {
+        // Route through extractionQueue to avoid data race with countWords/detectChapters
+        // (PDFDocument is NOT thread-safe — all access must be serialized)
+        nonisolated(unsafe) let safeOriginal = original
+        ReaderModeView.extractionQueue.async { [weak self] in
             let smartDoc = PDFDocument()
-            for i in 0..<original.pageCount {
-                guard let page = original.page(at: i) else { continue }
+            for i in 0..<safeOriginal.pageCount {
+                guard let page = safeOriginal.page(at: i) else { continue }
                 let smartPage = DarkModePDFPage(wrapping: page, theme: theme)
                 smartDoc.insert(smartPage, at: i)
             }
-            await MainActor.run { [weak self] in
+            DispatchQueue.main.async {
                 self?.document = smartDoc
                 self?.isLoading = false
                 if savedPage > 0 {
@@ -220,7 +264,7 @@ final class ReaderViewModel {
         diagnosticReport = nil
         BlockCache.shared.clearAll()
         Task.detached {
-            let report = PDFContentExtractor.diagnoseDropCaps(document: doc)
+            let report = TextExtractor.diagnoseDropCaps(document: doc)
             await MainActor.run { [weak self] in
                 self?.diagnosticReport = report
                 self?.isRunningDiagnostics = false

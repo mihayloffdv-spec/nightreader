@@ -34,9 +34,10 @@ struct ReaderView: View {
                             fontSize: viewModel.readerFontSize,
                             fontFamily: viewModel.readerFontFamily,
                             currentPageIndex: viewModel.currentPage,
+                            savedBlockID: Int(viewModel.book.scrollOffsetY),
                             goToPageIndex: $viewModel.goToPageIndex,
-                            onPageChange: { page in
-                                viewModel.savePosition(pageIndex: page, scrollOffset: 0)
+                            onPageChange: { page, blockID in
+                                viewModel.savePosition(pageIndex: page, scrollOffset: Double(blockID))
                             },
                             onTap: {
                                 withAnimation(.easeInOut(duration: 0.25)) {
@@ -135,7 +136,7 @@ struct ReaderView: View {
         }
         .sheet(isPresented: $viewModel.showTOC) {
             TOCView(
-                document: viewModel.originalDoc ?? viewModel.document,
+                chapters: viewModel.chapters,
                 onSelectPage: { viewModel.goToPage($0) }
             )
             .presentationDetents([.medium, .large])

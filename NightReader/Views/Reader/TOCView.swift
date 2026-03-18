@@ -1,5 +1,4 @@
 import SwiftUI
-import PDFKit
 
 struct TOCEntry: Identifiable {
     let id = UUID()
@@ -9,7 +8,7 @@ struct TOCEntry: Identifiable {
 }
 
 struct TOCView: View {
-    let document: PDFDocument?
+    let chapters: [Chapter]
     let onSelectPage: (Int) -> Void
     @Environment(\.dismiss) private var dismiss
     @State private var entries: [TOCEntry] = []
@@ -57,25 +56,9 @@ struct TOCView: View {
     }
 
     private func buildEntries() -> [TOCEntry] {
-        guard let document, let root = document.outlineRoot else { return [] }
-        var entries: [TOCEntry] = []
-        flattenOutline(root, level: 0, into: &entries)
-        return entries
-    }
-
-    private func flattenOutline(_ item: PDFOutline, level: Int, into entries: inout [TOCEntry]) {
-        for i in 0..<item.numberOfChildren {
-            guard let child = item.child(at: i) else { continue }
-            let pageIndex: Int
-            if let page = child.destination?.page, let document {
-                pageIndex = document.index(for: page)
-            } else {
-                pageIndex = 0
-            }
-            entries.append(TOCEntry(label: child.label ?? "Untitled", pageIndex: pageIndex, level: level))
-            if child.numberOfChildren > 0 {
-                flattenOutline(child, level: level + 1, into: &entries)
-            }
+        // Use pre-computed chapters (from PDF outline or auto-detected headings)
+        chapters.map {
+            TOCEntry(label: $0.title, pageIndex: $0.pageIndex, level: $0.level)
         }
     }
 }

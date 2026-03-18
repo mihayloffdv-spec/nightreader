@@ -46,6 +46,29 @@ struct ReaderToolbar: View {
                 .lineLimit(1)
                 .frame(maxWidth: .infinity)
 
+            // Font size quick buttons (Reader Mode only)
+            if viewModel.isReaderMode {
+                Button {
+                    let newSize = max(12, viewModel.readerFontSize - 1)
+                    viewModel.setReaderFontSize(newSize)
+                } label: {
+                    Text("A")
+                        .font(.system(size: 13, weight: .medium))
+                        .frame(width: 34, height: 44)
+                }
+                .accessibilityLabel("Decrease font size")
+
+                Button {
+                    let newSize = min(32, viewModel.readerFontSize + 1)
+                    viewModel.setReaderFontSize(newSize)
+                } label: {
+                    Text("A")
+                        .font(.system(size: 19, weight: .medium))
+                        .frame(width: 34, height: 44)
+                }
+                .accessibilityLabel("Increase font size")
+            }
+
             // Bookmark
             Button {
                 viewModel.toggleBookmark()
@@ -214,6 +237,27 @@ struct ReaderToolbar: View {
                 Text("\(Int(viewModel.progressFraction * 100))%")
                     .font(.caption.monospacedDigit())
                     .foregroundStyle(.white.opacity(0.6))
+            }
+
+            // Chapter name + progress
+            if let chapter = viewModel.currentChapter {
+                HStack(spacing: 8) {
+                    Text(chapter.title)
+                        .font(.caption2)
+                        .lineLimit(1)
+                        .foregroundStyle(.white.opacity(0.5))
+
+                    Text("— \(Int(viewModel.chapterProgress * 100))%")
+                        .font(.caption2.monospacedDigit())
+                        .foregroundStyle(.white.opacity(0.4))
+                }
+            }
+
+            // Reading time (Reader Mode only)
+            if viewModel.isReaderMode && viewModel.totalWordCount > 0 {
+                Text("\(viewModel.estimatedReadingMinutes) min read")
+                    .font(.caption2)
+                    .foregroundStyle(.white.opacity(0.4))
             }
         }
         .padding(.horizontal, 20)
