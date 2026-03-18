@@ -183,16 +183,20 @@ struct ReaderModeView: View {
     }
 
     static func uiFont(size: CGFloat, design: Font.Design) -> UIFont {
+        let base = UIFontDescriptor.preferredFontDescriptor(withTextStyle: .body)
         switch design {
         case .serif:
-            return UIFont(descriptor: UIFontDescriptor.preferredFontDescriptor(withTextStyle: .body)
-                .withDesign(.serif)!, size: size)
+            if let desc = base.withDesign(.serif) {
+                return UIFont(descriptor: desc, size: size)
+            }
         case .rounded:
-            return UIFont(descriptor: UIFontDescriptor.preferredFontDescriptor(withTextStyle: .body)
-                .withDesign(.rounded)!, size: size)
+            if let desc = base.withDesign(.rounded) {
+                return UIFont(descriptor: desc, size: size)
+            }
         default:
-            return UIFont.systemFont(ofSize: size)
+            break
         }
+        return UIFont.systemFont(ofSize: size)
     }
 
     // MARK: - Cross-page paragraph joining
