@@ -127,10 +127,13 @@ enum ClaudeAPIService {
         case 529:
             throw ClaudeAPIError.serverOverloaded
         default:
+            // Log raw error for debugging but show sanitized message to user
             if let errorResponse = try? JSONDecoder().decode(ClaudeErrorResponse.self, from: data) {
-                throw ClaudeAPIError.apiError(errorResponse.error.message)
+                #if DEBUG
+                print("[ClaudeAPI] Error \(httpResponse.statusCode): \(errorResponse.error.message)")
+                #endif
             }
-            throw ClaudeAPIError.apiError("Ошибка сервера (\(httpResponse.statusCode))")
+            throw ClaudeAPIError.apiError("Ошибка сервера (\(httpResponse.statusCode)). Попробуйте позже.")
         }
 
         let claudeResponse = try JSONDecoder().decode(ClaudeResponse.self, from: data)

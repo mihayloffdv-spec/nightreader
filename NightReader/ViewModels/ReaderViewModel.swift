@@ -228,8 +228,20 @@ final class ReaderViewModel: @unchecked Sendable {
         requestAIAction(.translate, text: text)
     }
 
+    private static let maxAITextLength = 2000
+
     private func requestAIAction(_ action: AIActionType, text: String) {
-        guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+
+        // Cap input size to avoid excessive API costs and token limit errors
+        guard trimmed.count <= Self.maxAITextLength else {
+            aiActionType = action
+            aiSelectedText = String(trimmed.prefix(200))
+            aiResponseState = .error("Выберите фрагмент короче \(Self.maxAITextLength) символов.")
+            showAISheet = true
+            return
+        }
 
         // Check API key first
         guard KeychainManager.hasAPIKey else {
@@ -238,25 +250,27 @@ final class ReaderViewModel: @unchecked Sendable {
         }
 
         aiActionType = action
-        aiSelectedText = text
+        aiSelectedText = trimmed
         aiResponseState = .loading
         showAISheet = true
 
         aiTask?.cancel()
-        aiTask = Task { @MainActor in
+        aiTask = Task { @MainActor [weak self] in
+            guard let self else { return }
+            defer { self.aiTask = nil }
             do {
                 let response: String
                 switch action {
                 case .explain:
-                    response = try await ClaudeAPIService.explain(text: text)
+                    response = try await ClaudeAPIService.explain(text: trimmed)
                 case .translate:
-                    response = try await ClaudeAPIService.translate(text: text)
+                    response = try await ClaudeAPIService.translate(text: trimmed)
                 }
                 guard !Task.isCancelled else { return }
-                aiResponseState = .success(response)
+                self.aiResponseState = .success(response)
             } catch {
                 guard !Task.isCancelled else { return }
-                aiResponseState = .error(error.localizedDescription)
+                self.aiResponseState = .error(error.localizedDescription)
             }
         }
     }
@@ -268,8 +282,9 @@ final class ReaderViewModel: @unchecked Sendable {
 
     /// Dismiss AI sheet and reset state.
     func dismissAISheet() {
-        showAISheet = false
         aiTask?.cancel()
+        aiTask = nil
+        showAISheet = false
         aiResponseState = .idle
     }
 
