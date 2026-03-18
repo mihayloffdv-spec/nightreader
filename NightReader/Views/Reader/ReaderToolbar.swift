@@ -189,6 +189,15 @@ struct ReaderToolbar: View {
                     Label("Theme", systemImage: "paintpalette")
                 }
 
+                Divider()
+
+                // AI Settings
+                Button {
+                    viewModel.showAPIKeySettings = true
+                } label: {
+                    Label("AI Настройки", systemImage: "key")
+                }
+
                 #if DEBUG
                 Divider()
                 Button {

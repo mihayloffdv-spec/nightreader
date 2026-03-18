@@ -43,6 +43,13 @@ struct ReaderView: View {
                                 withAnimation(.easeInOut(duration: 0.25)) {
                                     viewModel.toggleToolbar()
                                 }
+                            },
+                            onAIAction: { action, text in
+                                if action == .explain {
+                                    viewModel.requestExplain(text: text)
+                                } else {
+                                    viewModel.requestTranslate(text: text)
+                                }
                             }
                         )
                         .ignoresSafeArea()
@@ -146,6 +153,27 @@ struct ReaderView: View {
             if let url = viewModel.exportURL {
                 ShareSheet(items: [url])
             }
+        }
+        .sheet(isPresented: $viewModel.showAISheet) {
+            AIActionSheet(
+                actionType: viewModel.aiActionType,
+                selectedText: viewModel.aiSelectedText,
+                state: viewModel.aiResponseState,
+                theme: viewModel.selectedTheme,
+                onDismiss: { viewModel.dismissAISheet() },
+                onRetry: { viewModel.retryAIAction() },
+                onOpenSettings: {
+                    viewModel.dismissAISheet()
+                    viewModel.showAPIKeySettings = true
+                }
+            )
+            .presentationDetents([.medium, .large])
+            .presentationDragIndicator(.visible)
+        }
+        .sheet(isPresented: $viewModel.showAPIKeySettings) {
+            APIKeySettingsView()
+                .presentationDetents([.medium])
+                .presentationDragIndicator(.visible)
         }
     }
 }

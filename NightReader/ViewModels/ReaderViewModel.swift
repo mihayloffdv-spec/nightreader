@@ -30,6 +30,14 @@ final class ReaderViewModel: @unchecked Sendable {
     var currentChapter: Chapter?
     var chapterProgress: Double = 0
 
+    // AI features state
+    var showAISheet = false
+    var showAPIKeySettings = false
+    var aiActionType: AIActionType = .explain
+    var aiSelectedText: String = ""
+    var aiResponseState: AIResponseState = .idle
+    private var aiTask: Task<Void, Never>?
+
     private var hideToolbarTask: Task<Void, Never>?
     private(set) var originalDocument: PDFDocument?
 
@@ -206,6 +214,63 @@ final class ReaderViewModel: @unchecked Sendable {
     func setReaderFontFamily(_ font: ReaderFont) {
         readerFontFamily = font
         AppSettings.shared.readerFontFamily = font.rawValue
+    }
+
+    // MARK: - AI Actions
+
+    /// Request AI explanation for selected text.
+    func requestExplain(text: String) {
+        requestAIAction(.explain, text: text)
+    }
+
+    /// Request AI translation for selected text.
+    func requestTranslate(text: String) {
+        requestAIAction(.translate, text: text)
+    }
+
+    private func requestAIAction(_ action: AIActionType, text: String) {
+        guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+
+        // Check API key first
+        guard KeychainManager.hasAPIKey else {
+            showAPIKeySettings = true
+            return
+        }
+
+        aiActionType = action
+        aiSelectedText = text
+        aiResponseState = .loading
+        showAISheet = true
+
+        aiTask?.cancel()
+        aiTask = Task { @MainActor in
+            do {
+                let response: String
+                switch action {
+                case .explain:
+                    response = try await ClaudeAPIService.explain(text: text)
+                case .translate:
+                    response = try await ClaudeAPIService.translate(text: text)
+                }
+                guard !Task.isCancelled else { return }
+                aiResponseState = .success(response)
+            } catch {
+                guard !Task.isCancelled else { return }
+                aiResponseState = .error(error.localizedDescription)
+            }
+        }
+    }
+
+    /// Retry the last AI action.
+    func retryAIAction() {
+        requestAIAction(aiActionType, text: aiSelectedText)
+    }
+
+    /// Dismiss AI sheet and reset state.
+    func dismissAISheet() {
+        showAISheet = false
+        aiTask?.cancel()
+        aiResponseState = .idle
     }
 
     private func updateChapterInfo() {

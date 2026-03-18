@@ -39,6 +39,11 @@
 		C0000030 /* LayoutAnalyzer.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1000030 /* LayoutAnalyzer.swift */; };
 		C0000031 /* PageRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1000031 /* PageRenderer.swift */; };
 		C0000032 /* ChapterDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1000032 /* ChapterDetector.swift */; };
+		C0000033 /* KeychainManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1000033 /* KeychainManager.swift */; };
+		C0000034 /* ClaudeAPIService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1000034 /* ClaudeAPIService.swift */; };
+		C0000035 /* AIModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1000035 /* AIModels.swift */; };
+		C0000036 /* AIActionSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1000036 /* AIActionSheet.swift */; };
+		C0000037 /* APIKeySettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1000037 /* APIKeySettingsView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -74,6 +79,11 @@
 		C1000030 /* LayoutAnalyzer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LayoutAnalyzer.swift; sourceTree = "<group>"; };
 		C1000031 /* PageRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PageRenderer.swift; sourceTree = "<group>"; };
 		C1000032 /* ChapterDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChapterDetector.swift; sourceTree = "<group>"; };
+		C1000033 /* KeychainManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainManager.swift; sourceTree = "<group>"; };
+		C1000034 /* ClaudeAPIService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudeAPIService.swift; sourceTree = "<group>"; };
+		C1000035 /* AIModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIModels.swift; sourceTree = "<group>"; };
+		C1000036 /* AIActionSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIActionSheet.swift; sourceTree = "<group>"; };
+		C1000037 /* APIKeySettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIKeySettingsView.swift; sourceTree = "<group>"; };
 		C2000001 /* NightReader.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = NightReader.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -133,6 +143,7 @@
 				C1000004 /* Theme.swift */,
 				C1000005 /* AppSettings.swift */,
 				C1000026 /* ReaderFont.swift */,
+				C1000035 /* AIModels.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -151,6 +162,7 @@
 			children = (
 				C4000014 /* Library */,
 				C4000015 /* Reader */,
+				C4000018 /* Settings */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -176,6 +188,7 @@
 				C1000018 /* SearchBarView.swift */,
 				C1000019 /* TOCView.swift */,
 				C1000023 /* ReaderModeView.swift */,
+				C1000036 /* AIActionSheet.swift */,
 			);
 			path = Reader;
 			sourceTree = "<group>";
@@ -195,8 +208,18 @@
 				C1000030 /* LayoutAnalyzer.swift */,
 				C1000031 /* PageRenderer.swift */,
 				C1000032 /* ChapterDetector.swift */,
+				C1000033 /* KeychainManager.swift */,
+				C1000034 /* ClaudeAPIService.swift */,
 			);
 			path = Services;
+			sourceTree = "<group>";
+		};
+		C4000018 /* Settings */ = {
+			isa = PBXGroup;
+			children = (
+				C1000037 /* APIKeySettingsView.swift */,
+			);
+			path = Settings;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -299,6 +322,11 @@
 				C0000030 /* LayoutAnalyzer.swift in Sources */,
 				C0000031 /* PageRenderer.swift in Sources */,
 				C0000032 /* ChapterDetector.swift in Sources */,
+				C0000033 /* KeychainManager.swift in Sources */,
+				C0000034 /* ClaudeAPIService.swift in Sources */,
+				C0000035 /* AIModels.swift in Sources */,
+				C0000036 /* AIActionSheet.swift in Sources */,
+				C0000037 /* APIKeySettingsView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

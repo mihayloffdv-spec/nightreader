@@ -11,6 +11,7 @@ struct ReaderModeView: View {
     @Binding var goToPageIndex: Int?
     let onPageChange: (Int, Int) -> Void  // (pageIndex, blockID)
     let onTap: () -> Void
+    let onAIAction: (AIActionType, String) -> Void  // (action, selectedText)
 
     @State private var pages: [Int] = []
     @State private var blocksByPage: [Int: [ContentBlock]] = [:]
@@ -139,7 +140,8 @@ struct ReaderModeView: View {
                 fontSize: fontSize,
                 fontDesign: fontFamily.design,
                 textColor: UIColor(theme.textColor),
-                lineSpacing: fontSize * 0.4
+                lineSpacing: fontSize * 0.4,
+                onAIAction: onAIAction
             )
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.bottom, fontSize * 0.3)
@@ -151,7 +153,8 @@ struct ReaderModeView: View {
                 fontSize: fontSize * 1.3,
                 fontDesign: fontFamily.design,
                 textColor: UIColor(theme.textColor),
-                lineSpacing: fontSize * 0.3
+                lineSpacing: fontSize * 0.3,
+                onAIAction: onAIAction
             )
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.top, 8)
@@ -287,6 +290,10 @@ struct ReaderModeView: View {
 // MARK: - Tap-through UITextView (passes single taps to parent for toolbar toggle)
 
 private class ReaderTextView: UITextView {
+
+    /// Callback for AI actions (explain/translate) from context menu.
+    var onAIAction: ((AIActionType, String) -> Void)?
+
     override func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
         // Long press → always allow (starts text selection)
         if gestureRecognizer is UILongPressGestureRecognizer { return true }
@@ -298,6 +305,38 @@ private class ReaderTextView: UITextView {
         }
         return super.gestureRecognizerShouldBegin(gestureRecognizer)
     }
+
+    // Add "Explain" and "Translate" to the text selection context menu
+    override func buildMenu(with builder: any UIMenuBuilder) {
+        super.buildMenu(with: builder)
+
+        let explainAction = UIAction(
+            title: AIActionType.explain.menuTitle,
+            image: UIImage(systemName: AIActionType.explain.menuIcon)
+        ) { [weak self] _ in
+            guard let self, let text = self.selectedText, !text.isEmpty else { return }
+            self.onAIAction?(.explain, text)
+        }
+
+        let translateAction = UIAction(
+            title: AIActionType.translate.menuTitle,
+            image: UIImage(systemName: AIActionType.translate.menuIcon)
+        ) { [weak self] _ in
+            guard let self, let text = self.selectedText, !text.isEmpty else { return }
+            self.onAIAction?(.translate, text)
+        }
+
+        let aiMenu = UIMenu(title: "AI", image: UIImage(systemName: "sparkles"), children: [explainAction, translateAction])
+        builder.insertChild(aiMenu, atStartOfMenu: .root)
+    }
+
+    /// Get the currently selected text.
+    private var selectedText: String? {
+        guard selectedRange.length > 0,
+              let text = self.text,
+              let range = Range(selectedRange, in: text) else { return nil }
+        return String(text[range])
+    }
 }
 
 // MARK: - Justified Text (UITextView-backed for selection + justification)
@@ -308,13 +347,15 @@ private struct JustifiedText: UIViewRepresentable {
     let fontDesign: Font.Design
     let textColor: UIColor
     let lineSpacing: CGFloat
+    let onAIAction: (AIActionType, String) -> Void
 
-    init(_ text: String, fontSize: CGFloat, fontDesign: Font.Design, textColor: UIColor, lineSpacing: CGFloat) {
+    init(_ text: String, fontSize: CGFloat, fontDesign: Font.Design, textColor: UIColor, lineSpacing: CGFloat, onAIAction: @escaping (AIActionType, String) -> Void) {
         self.text = text
         self.fontSize = fontSize
         self.fontDesign = fontDesign
         self.textColor = textColor
         self.lineSpacing = lineSpacing
+        self.onAIAction = onAIAction
     }
 
     func makeUIView(context: Context) -> ReaderTextView {
@@ -328,6 +369,7 @@ private struct JustifiedText: UIViewRepresentable {
         tv.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
         // Tint color for selection handles
         tv.tintColor = UIColor.systemBlue.withAlphaComponent(0.6)
+        tv.onAIAction = onAIAction
         return tv
     }
 
@@ -353,6 +395,7 @@ private struct JustifiedText: UIViewRepresentable {
         if tv.attributedText != newText {
             tv.attributedText = newText
         }
+        tv.onAIAction = onAIAction
     }
 
     func sizeThatFits(_ proposal: ProposedViewSize, uiView: ReaderTextView, context: Context) -> CGSize? {
@@ -370,13 +413,15 @@ private struct SelectableHeading: UIViewRepresentable {
     let fontDesign: Font.Design
     let textColor: UIColor
     let lineSpacing: CGFloat
+    let onAIAction: (AIActionType, String) -> Void
 
-    init(_ text: String, fontSize: CGFloat, fontDesign: Font.Design, textColor: UIColor, lineSpacing: CGFloat) {
+    init(_ text: String, fontSize: CGFloat, fontDesign: Font.Design, textColor: UIColor, lineSpacing: CGFloat, onAIAction: @escaping (AIActionType, String) -> Void) {
         self.text = text
         self.fontSize = fontSize
         self.fontDesign = fontDesign
         self.textColor = textColor
         self.lineSpacing = lineSpacing
+        self.onAIAction = onAIAction
     }
 
     func makeUIView(context: Context) -> ReaderTextView {
@@ -389,6 +434,7 @@ private struct SelectableHeading: UIViewRepresentable {
         tv.backgroundColor = .clear
         tv.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
         tv.tintColor = UIColor.systemBlue.withAlphaComponent(0.6)
+        tv.onAIAction = onAIAction
         return tv
     }
 
@@ -414,6 +460,7 @@ private struct SelectableHeading: UIViewRepresentable {
         if tv.attributedText != newText {
             tv.attributedText = newText
         }
+        tv.onAIAction = onAIAction
     }
 
     func sizeThatFits(_ proposal: ProposedViewSize, uiView: ReaderTextView, context: Context) -> CGSize? {
