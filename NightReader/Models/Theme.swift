@@ -55,6 +55,30 @@ struct Theme: Identifiable, Codable, Hashable {
     )
 
     static let allBuiltIn: [Theme] = [.midnight, .sepia, .forest, .ocean, .sunset, .paper]
+
+    // MARK: - Custom themes (UserDefaults)
+
+    private static let customThemesKey = "customThemes"
+
+    static func loadCustomThemes() -> [Theme] {
+        guard let data = UserDefaults.standard.data(forKey: customThemesKey),
+              let themes = try? JSONDecoder().decode([Theme].self, from: data) else { return [] }
+        return themes
+    }
+
+    static func saveCustomThemes(_ themes: [Theme]) {
+        if let data = try? JSONEncoder().encode(themes) {
+            UserDefaults.standard.set(data, forKey: customThemesKey)
+        }
+    }
+
+    static var allThemes: [Theme] {
+        allBuiltIn + loadCustomThemes()
+    }
+
+    static func find(byId id: String) -> Theme? {
+        allThemes.first { $0.id == id }
+    }
 }
 
 extension Color {
@@ -67,5 +91,12 @@ extension Color {
         let g = Double((rgbValue & 0x00FF00) >> 8) / 255
         let b = Double(rgbValue & 0x0000FF) / 255
         self.init(red: r, green: g, blue: b)
+    }
+
+    func toHex() -> String {
+        let uiColor = UIColor(self)
+        var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
+        uiColor.getRed(&r, green: &g, blue: &b, alpha: &a)
+        return String(format: "#%02X%02X%02X", Int(r * 255), Int(g * 255), Int(b * 255))
     }
 }

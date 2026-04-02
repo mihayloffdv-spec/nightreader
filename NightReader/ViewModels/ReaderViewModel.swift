@@ -25,6 +25,7 @@ final class ReaderViewModel: @unchecked Sendable {
     var isReaderMode = false
     var readerFontSize: Double = AppSettings.shared.readerFontSize
     var readerFontFamily: ReaderFont = AppSettings.shared.currentReaderFont
+    var cropMargin: Double = 0
     var totalWordCount: Int = 0
     var chapters: [Chapter] = []
     var currentChapter: Chapter?
@@ -39,6 +40,7 @@ final class ReaderViewModel: @unchecked Sendable {
     private var aiTask: Task<Void, Never>?
 
     private var hideToolbarTask: Task<Void, Never>?
+    private var sessionStartTime: Date?
     private(set) var originalDocument: PDFDocument?
 
     /// Original (unprocessed) document for Reader Mode.
@@ -52,6 +54,7 @@ final class ReaderViewModel: @unchecked Sendable {
     init(book: Book) {
         self.book = book
         self.renderingMode = book.renderingMode
+        self.cropMargin = book.cropMargin
         self.selectedTheme = AppSettings.shared.currentTheme
         self.dimmerOpacity = AppSettings.shared.defaultDimmerOpacity
     }
@@ -69,6 +72,10 @@ final class ReaderViewModel: @unchecked Sendable {
 
         if let doc {
             self.originalDocument = doc
+            // Update page count if it was 0 (e.g. imported without opening)
+            if book.totalPages == 0 {
+                book.totalPages = doc.pageCount
+            }
             if renderingMode == .smart {
                 applySmartMode()
             } else {
@@ -198,6 +205,22 @@ final class ReaderViewModel: @unchecked Sendable {
         goToSelectionValue = selection
     }
 
+    // MARK: - Reading Time Tracking
+
+    func startReadingSession() {
+        sessionStartTime = Date()
+    }
+
+    func stopReadingSession() {
+        guard let start = sessionStartTime else { return }
+        let elapsed = Date().timeIntervalSince(start)
+        // Only count sessions longer than 5 seconds (ignore accidental opens)
+        if elapsed > 5 {
+            book.totalReadingTime += elapsed
+        }
+        sessionStartTime = nil
+    }
+
     func toggleReaderMode() {
         scheduleHideToolbar()
         isReaderMode.toggle()
@@ -214,6 +237,11 @@ final class ReaderViewModel: @unchecked Sendable {
     func setReaderFontFamily(_ font: ReaderFont) {
         readerFontFamily = font
         AppSettings.shared.readerFontFamily = font.rawValue
+    }
+
+    func setCropMargin(_ margin: Double) {
+        cropMargin = margin
+        book.cropMargin = margin
     }
 
     // MARK: - AI Actions

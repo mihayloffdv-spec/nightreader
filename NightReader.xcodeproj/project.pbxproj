@@ -44,6 +44,7 @@
 		C0000035 /* AIModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1000035 /* AIModels.swift */; };
 		C0000036 /* AIActionSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1000036 /* AIActionSheet.swift */; };
 		C0000037 /* APIKeySettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1000037 /* APIKeySettingsView.swift */; };
+		C0000038 /* ThemeEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1000038 /* ThemeEditorView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -84,6 +85,7 @@
 		C1000035 /* AIModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIModels.swift; sourceTree = "<group>"; };
 		C1000036 /* AIActionSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIActionSheet.swift; sourceTree = "<group>"; };
 		C1000037 /* APIKeySettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIKeySettingsView.swift; sourceTree = "<group>"; };
+		C1000038 /* ThemeEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThemeEditorView.swift; sourceTree = "<group>"; };
 		C2000001 /* NightReader.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = NightReader.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -218,6 +220,7 @@
 			isa = PBXGroup;
 			children = (
 				C1000037 /* APIKeySettingsView.swift */,
+				C1000038 /* ThemeEditorView.swift */,
 			);
 			path = Settings;
 			sourceTree = "<group>";
@@ -327,6 +330,7 @@
 				C0000035 /* AIModels.swift in Sources */,
 				C0000036 /* AIActionSheet.swift in Sources */,
 				C0000037 /* APIKeySettingsView.swift in Sources */,
+				C0000038 /* ThemeEditorView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

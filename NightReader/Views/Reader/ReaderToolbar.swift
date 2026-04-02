@@ -6,18 +6,22 @@ struct ReaderToolbar: View {
 
     @State private var showMenu = false
     @State private var showSettings = false
+    @State private var showThemeEditor = false
+    @State private var editingTheme: Theme?
 
     var body: some View {
         VStack(spacing: 0) {
             // ── Top bar: Back · Title · Bookmark · Menu ──
             topBar
                 .background(.ultraThinMaterial)
+                .transition(.move(edge: .top).combined(with: .opacity))
 
             Spacer()
 
             // ── Bottom bar: page slider + progress ──
             bottomBar
                 .background(.ultraThinMaterial)
+                .transition(.move(edge: .bottom).combined(with: .opacity))
         }
         .foregroundStyle(.white)
         .sheet(isPresented: $showSettings) {
@@ -26,6 +30,29 @@ struct ReaderToolbar: View {
                 .presentationDragIndicator(.visible)
                 .presentationBackground(.ultraThinMaterial)
         }
+        .sheet(isPresented: $showThemeEditor) {
+            ThemeEditorView(editingTheme: editingTheme) { theme in
+                saveCustomTheme(theme)
+                viewModel.setTheme(theme)
+            }
+            .presentationDetents([.medium, .large])
+            .presentationDragIndicator(.visible)
+        }
+    }
+
+    private func saveCustomTheme(_ theme: Theme) {
+        var customs = Theme.loadCustomThemes()
+        customs.removeAll { $0.id == theme.id }
+        customs.append(theme)
+        Theme.saveCustomThemes(customs)
+    }
+
+    private func deleteCurrentCustomTheme() {
+        let themeId = viewModel.selectedTheme.id
+        var customs = Theme.loadCustomThemes()
+        customs.removeAll { $0.id == themeId }
+        Theme.saveCustomThemes(customs)
+        viewModel.setTheme(.midnight)
     }
 
     // MARK: - Top Bar
@@ -71,11 +98,15 @@ struct ReaderToolbar: View {
 
             // Bookmark
             Button {
-                viewModel.toggleBookmark()
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.5)) {
+                    viewModel.toggleBookmark()
+                }
             } label: {
                 Image(systemName: viewModel.isCurrentPageBookmarked ? "bookmark.fill" : "bookmark")
                     .font(.body.weight(.regular))
                     .frame(width: 44, height: 44)
+                    .scaleEffect(viewModel.isCurrentPageBookmarked ? 1.0 : 0.9)
+                    .animation(.spring(response: 0.3, dampingFraction: 0.5), value: viewModel.isCurrentPageBookmarked)
             }
             .accessibilityLabel("Bookmark")
 
@@ -173,7 +204,7 @@ struct ReaderToolbar: View {
 
                 // Theme submenu
                 Menu {
-                    ForEach(Theme.allBuiltIn) { theme in
+                    ForEach(Theme.allThemes) { theme in
                         Button {
                             viewModel.setTheme(theme)
                         } label: {
@@ -183,6 +214,31 @@ struct ReaderToolbar: View {
                                     Image(systemName: "checkmark")
                                 }
                             }
+                        }
+                    }
+
+                    Divider()
+
+                    Button {
+                        editingTheme = nil
+                        showThemeEditor = true
+                    } label: {
+                        Label("New Theme", systemImage: "plus")
+                    }
+
+                    // Edit current custom theme
+                    if !viewModel.selectedTheme.isBuiltIn {
+                        Button {
+                            editingTheme = viewModel.selectedTheme
+                            showThemeEditor = true
+                        } label: {
+                            Label("Edit Theme", systemImage: "pencil")
+                        }
+
+                        Button(role: .destructive) {
+                            deleteCurrentCustomTheme()
+                        } label: {
+                            Label("Delete Theme", systemImage: "trash")
                         }
                     }
                 } label: {
@@ -218,35 +274,71 @@ struct ReaderToolbar: View {
 
     // MARK: - Bottom Bar
 
+    @State private var isDraggingScrubber = false
+
     private var bottomBar: some View {
         VStack(spacing: 8) {
-            // Page scrubber
+            // Page scrubber — interactive
             HStack(spacing: 12) {
                 Text(viewModel.progressText)
                     .font(.caption.monospacedDigit())
                     .foregroundStyle(.white.opacity(0.6))
+                    .contentTransition(.numericText())
 
                 GeometryReader { geo in
                     ZStack(alignment: .leading) {
+                        // Track
                         Capsule()
                             .fill(.white.opacity(0.15))
-                            .frame(height: 3)
+                            .frame(height: isDraggingScrubber ? 6 : 3)
 
+                        // Fill
                         Capsule()
-                            .fill(.white.opacity(0.5))
+                            .fill(.white.opacity(isDraggingScrubber ? 0.7 : 0.5))
                             .frame(
                                 width: max(3, geo.size.width * viewModel.progressFraction),
-                                height: 3
+                                height: isDraggingScrubber ? 6 : 3
                             )
+
+                        // Thumb (visible on drag)
+                        if isDraggingScrubber {
+                            Circle()
+                                .fill(.white)
+                                .frame(width: 14, height: 14)
+                                .shadow(color: .black.opacity(0.3), radius: 2, y: 1)
+                                .offset(x: max(0, min(geo.size.width - 14, geo.size.width * viewModel.progressFraction - 7)))
+                                .transition(.scale.combined(with: .opacity))
+                        }
                     }
                     .frame(maxHeight: .infinity, alignment: .center)
+                    .contentShape(Rectangle())
+                    .gesture(
+                        DragGesture(minimumDistance: 0)
+                            .onChanged { value in
+                                withAnimation(.easeOut(duration: 0.1)) {
+                                    isDraggingScrubber = true
+                                }
+                                let fraction = max(0, min(1, value.location.x / geo.size.width))
+                                let page = Int(fraction * Double(max(1, viewModel.book.totalPages - 1)))
+                                viewModel.goToPage(page)
+                            }
+                            .onEnded { _ in
+                                withAnimation(.easeOut(duration: 0.2)) {
+                                    isDraggingScrubber = false
+                                }
+                                viewModel.scheduleHideToolbar()
+                            }
+                    )
                 }
-                .frame(height: 20)
+                .frame(height: 24)
+                .animation(.easeInOut(duration: 0.15), value: isDraggingScrubber)
 
                 Text("\(Int(viewModel.progressFraction * 100))%")
                     .font(.caption.monospacedDigit())
                     .foregroundStyle(.white.opacity(0.6))
+                    .contentTransition(.numericText())
             }
+            .animation(.easeInOut(duration: 0.2), value: viewModel.progressFraction)
 
             // Chapter name + progress
             if let chapter = viewModel.currentChapter {
@@ -259,6 +351,7 @@ struct ReaderToolbar: View {
                     Text("— \(Int(viewModel.chapterProgress * 100))%")
                         .font(.caption2.monospacedDigit())
                         .foregroundStyle(.white.opacity(0.4))
+                        .contentTransition(.numericText())
                 }
             }
 
@@ -318,6 +411,28 @@ struct ReaderSettingsSheet: View {
                     Text("Dimmer")
                 }
 
+                // ── Crop Margins (PDF mode only) ──
+                if !viewModel.isReaderMode {
+                    Section {
+                        HStack(spacing: 16) {
+                            Image(systemName: "arrow.left.and.right.square")
+                                .font(.body)
+                                .foregroundStyle(.secondary)
+                            Slider(value: Binding(
+                                get: { viewModel.cropMargin },
+                                set: { viewModel.setCropMargin($0) }
+                            ), in: 0...0.5)
+                            Text("\(Int(viewModel.cropMargin * 100))%")
+                                .font(.caption.monospacedDigit())
+                                .foregroundStyle(.secondary)
+                                .frame(width: 36, alignment: .trailing)
+                        }
+                        .listRowBackground(Color.clear)
+                    } header: {
+                        Text("Crop Margins")
+                    }
+                }
+
                 // ── Font (Reader Mode only) ──
                 if viewModel.isReaderMode {
                     Section {
@@ -369,6 +484,33 @@ struct ReaderSettingsSheet: View {
                     } header: {
                         Text("Font")
                     }
+                }
+                // ── Auto Theme Switching ──
+                Section {
+                    Picker("Mode", selection: Binding(
+                        get: { AppSettings.shared.autoSwitchMode },
+                        set: { AppSettings.shared.autoSwitchMode = $0 }
+                    )) {
+                        Text("Manual").tag("manual")
+                        Text("Schedule").tag("schedule")
+                        Text("Match Device").tag("device")
+                    }
+                    .pickerStyle(.segmented)
+                    .listRowBackground(Color.clear)
+
+                    if AppSettings.shared.autoSwitchMode == "schedule" {
+                        HStack {
+                            Text("Dark hours")
+                                .foregroundStyle(.secondary)
+                            Spacer()
+                            Text("\(AppSettings.shared.darkStartHour):00 – \(AppSettings.shared.darkEndHour):00")
+                                .font(.caption.monospacedDigit())
+                                .foregroundStyle(.secondary)
+                        }
+                        .listRowBackground(Color.clear)
+                    }
+                } header: {
+                    Text("Auto Theme")
                 }
             }
             .listStyle(.insetGrouped)

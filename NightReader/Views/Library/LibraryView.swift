@@ -141,7 +141,11 @@ struct LibraryView: View {
             ) {
                 ForEach(books) { book in
                     BookCard(book: book) {
-                        selectedBook = book
+                        if FileManager.default.fileExists(atPath: book.fileURL.path) {
+                            selectedBook = book
+                        } else {
+                            viewModel.errorMessage = "PDF file not found. It may have been deleted."
+                        }
                     } onDelete: {
                         bookToDelete = book
                     }
@@ -172,12 +176,41 @@ struct BookCard: View {
                     .clipShape(RoundedRectangle(cornerRadius: 6))
                     .shadow(color: .black.opacity(0.3), radius: 6, y: 3)
 
-                // Title
-                Text(book.title)
-                    .font(.footnote.weight(.medium))
-                    .foregroundStyle(NightTheme.primaryText)
-                    .lineLimit(2)
-                    .multilineTextAlignment(.leading)
+                // Title + author + reading time
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(book.title)
+                        .font(.footnote.weight(.medium))
+                        .foregroundStyle(NightTheme.primaryText)
+                        .lineLimit(2)
+                        .multilineTextAlignment(.leading)
+
+                    if let author = book.author, !author.isEmpty {
+                        Text(author)
+                            .font(.caption2)
+                            .foregroundStyle(NightTheme.secondaryText)
+                            .lineLimit(1)
+                    }
+
+                    HStack(spacing: 8) {
+                        // Progress
+                        if book.readProgress > 0 {
+                            Text("\(Int(book.readProgress * 100))%")
+                                .font(.caption2.monospacedDigit())
+                                .foregroundStyle(NightTheme.tertiaryText)
+                        }
+
+                        // Reading time
+                        if let readingTime = book.formattedReadingTime {
+                            HStack(spacing: 3) {
+                                Image(systemName: "clock")
+                                    .font(.system(size: 9))
+                                Text(readingTime)
+                                    .font(.caption2)
+                            }
+                            .foregroundStyle(NightTheme.tertiaryText)
+                        }
+                    }
+                }
             }
         }
         .contextMenu {

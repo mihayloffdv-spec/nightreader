@@ -92,6 +92,7 @@ struct PDFKitView: UIViewRepresentable {
     let theme: Theme
     let initialPageIndex: Int
     let highlightColor: HighlightColor
+    var cropMargin: Double = 0
     let goToPageIndex: Int?
     let goToSelection: PDFSelection?
     let onPageChange: (Int, Double) -> Void
@@ -160,11 +161,18 @@ struct PDFKitView: UIViewRepresentable {
         // Update background color from theme
         pdfView.backgroundColor = UIColor(theme.bgColor)
 
-        // Update zoom limits (scaleFactorForSizeToFit is only valid after layout)
+        // Apply crop margin: scale up to push margins off-screen
         let fitScale = pdfView.scaleFactorForSizeToFit
         if fitScale > 0 {
-            pdfView.minScaleFactor = fitScale
+            let cropScale = 1.0 + cropMargin  // cropMargin 0..0.5 → 1x..1.5x
+            let effectiveMinScale = fitScale * cropScale
+            pdfView.minScaleFactor = effectiveMinScale
             pdfView.maxScaleFactor = fitScale * 4
+
+            // Only apply crop zoom if user isn't manually zoomed
+            if pdfView.scaleFactor < effectiveMinScale {
+                pdfView.scaleFactor = effectiveMinScale
+            }
         }
 
         // Navigate to page if requested (skip if already navigated to this page)

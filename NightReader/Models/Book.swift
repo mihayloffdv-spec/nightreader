@@ -14,6 +14,8 @@ final class Book {
     var totalPages: Int
     var readProgress: Double
     var renderingModeRaw: String
+    var totalReadingTime: Double
+    var cropMargin: Double
     var bookmarksData: Data?
     @Transient private var _bookmarksCache: Set<Int>?
 
@@ -52,11 +54,25 @@ final class Book {
         self.scrollOffsetY = 0
         self.totalPages = totalPages
         self.readProgress = 0
+        self.totalReadingTime = 0
+        self.cropMargin = 0
         self.renderingModeRaw = RenderingMode.simple.rawValue
     }
 
     var fileURL: URL {
         let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
         return docs.appendingPathComponent(fileName)
+    }
+
+    /// Formatted reading time string (e.g. "2h 15m", "45m", "< 1m").
+    var formattedReadingTime: String? {
+        guard totalReadingTime >= 60 else { return nil }
+        let totalMinutes = Int(totalReadingTime) / 60
+        let hours = totalMinutes / 60
+        let minutes = totalMinutes % 60
+        if hours > 0 {
+            return minutes > 0 ? "\(hours)h \(minutes)m" : "\(hours)h"
+        }
+        return "\(minutes)m"
     }
 }

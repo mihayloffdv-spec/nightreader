@@ -3,6 +3,7 @@ import SwiftData
 
 struct ReaderView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.colorScheme) private var colorScheme
     @State var viewModel: ReaderViewModel
 
     init(book: Book) {
@@ -53,7 +54,10 @@ struct ReaderView: View {
                             }
                         )
                         .ignoresSafeArea()
-                        .transition(.opacity)
+                        .transition(.asymmetric(
+                            insertion: .move(edge: .trailing).combined(with: .opacity),
+                            removal: .move(edge: .leading).combined(with: .opacity)
+                        ))
                     } else {
                         // PDF content
                         PDFKitView(
@@ -62,6 +66,7 @@ struct ReaderView: View {
                             theme: viewModel.selectedTheme,
                             initialPageIndex: viewModel.book.lastPageIndex,
                             highlightColor: viewModel.highlightColor,
+                            cropMargin: viewModel.cropMargin,
                             goToPageIndex: viewModel.goToPageIndex,
                             goToSelection: viewModel.goToSelectionValue,
                             onPageChange: { page, offset in
@@ -77,7 +82,10 @@ struct ReaderView: View {
                             }
                         )
                         .ignoresSafeArea()
-                        .transition(.opacity)
+                        .transition(.asymmetric(
+                            insertion: .move(edge: .leading).combined(with: .opacity),
+                            removal: .move(edge: .trailing).combined(with: .opacity)
+                        ))
                     }
                 }
                 .animation(.easeInOut(duration: 0.3), value: viewModel.isReaderMode)
@@ -117,11 +125,11 @@ struct ReaderView: View {
                     ReaderToolbar(viewModel: viewModel) {
                         dismiss()
                     }
-                    .transition(.opacity)
                 }
             }
         }
         .background(Color.black)
+        .animation(.easeInOut(duration: 0.3), value: viewModel.selectedTheme.id)
         .navigationBarHidden(true)
         .statusBarHidden(!viewModel.toolbarVisible)
         .task {
@@ -129,9 +137,22 @@ struct ReaderView: View {
         }
         .onAppear {
             viewModel.scheduleHideToolbar()
+            viewModel.startReadingSession()
+            // Auto-switch theme based on settings
+            let resolved = AppSettings.shared.resolvedTheme(isDarkAppearance: colorScheme == .dark)
+            if AppSettings.shared.autoSwitchMode != "manual" && resolved.id != viewModel.selectedTheme.id {
+                viewModel.setTheme(resolved)
+            }
+        }
+        .onChange(of: colorScheme) { _, newScheme in
+            if AppSettings.shared.autoSwitchMode == "device" {
+                let resolved = AppSettings.shared.resolvedTheme(isDarkAppearance: newScheme == .dark)
+                viewModel.setTheme(resolved)
+            }
         }
         .onDisappear {
             viewModel.cancelHideToolbar()
+            viewModel.stopReadingSession()
         }
         .sheet(isPresented: $viewModel.showAnnotationList) {
             AnnotationListView(
