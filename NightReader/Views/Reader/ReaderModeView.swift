@@ -90,7 +90,7 @@ struct ReaderModeView: View {
 
     @ViewBuilder
     private func pageSection(pageIndex: Int, screenWidth: CGFloat) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: 0) {
             if let blocks = blocksByPage[pageIndex] {
                 ForEach(Array(blocks.enumerated()), id: \.offset) { offset, block in
                     blockView(block, contentWidth: screenWidth)
@@ -100,7 +100,7 @@ struct ReaderModeView: View {
                 ProgressView()
                     .tint(theme.textColor)
                     .frame(maxWidth: .infinity, minHeight: 100)
-                    .padding(.horizontal, 16)
+                    .padding(.horizontal, 24)
                     .onAppear {
                         extractPage(pageIndex, contentWidth: screenWidth)
                     }
@@ -117,7 +117,7 @@ struct ReaderModeView: View {
                 }
                 .foregroundStyle(theme.textColor)
                 .padding(.vertical, 16)
-                .padding(.horizontal, 16)
+                .padding(.horizontal, 24)
             }
         }
         .onAppear {
@@ -140,12 +140,12 @@ struct ReaderModeView: View {
                 fontSize: fontSize,
                 fontDesign: fontFamily.design,
                 textColor: UIColor(theme.textColor),
-                lineSpacing: fontSize * 0.4,
+                lineSpacing: fontSize * 0.15,
                 onAIAction: onAIAction
             )
             .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.bottom, fontSize * 0.3)
-            .padding(.horizontal, 16)
+            .padding(.bottom, fontSize * 0.15)
+            .padding(.horizontal, 24)
 
         case .heading(let content):
             SelectableHeading(
@@ -153,12 +153,12 @@ struct ReaderModeView: View {
                 fontSize: fontSize * 1.3,
                 fontDesign: fontFamily.design,
                 textColor: UIColor(theme.textColor),
-                lineSpacing: fontSize * 0.3,
+                lineSpacing: fontSize * 0.1,
                 onAIAction: onAIAction
             )
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.top, 8)
-            .padding(.horizontal, 16)
+            .padding(.horizontal, 24)
 
         case .image(let image):
             Image(uiImage: image)
@@ -377,17 +377,18 @@ private struct JustifiedText: UIViewRepresentable {
         let font = ReaderModeView.uiFont(size: fontSize, design: fontDesign)
 
         let paragraphStyle = NSMutableParagraphStyle()
-        paragraphStyle.alignment = .natural
+        paragraphStyle.alignment = .justified
         paragraphStyle.lineBreakMode = .byWordWrapping
         paragraphStyle.lineSpacing = lineSpacing
-        paragraphStyle.hyphenationFactor = 1.0
+        paragraphStyle.hyphenationFactor = 0.7
 
         let newText = NSAttributedString(
             string: text,
             attributes: [
                 .font: font,
                 .foregroundColor: textColor,
-                .paragraphStyle: paragraphStyle
+                .paragraphStyle: paragraphStyle,
+                .kern: fontSize * 0.01
             ]
         )
 
