@@ -72,7 +72,8 @@ enum PDFContentExtractor {
             }
             return []
         }
-        let strippedPageString = TextExtractor.stripLeadingPageNumber(from: pageString)
+        let pageIndex = page.document?.index(for: page)
+        let strippedPageString = TextExtractor.stripLeadingPageNumber(from: pageString, pageIndex: pageIndex)
         let fullText = TextExtractor.recoverDropCaps(
             pageString: strippedPageString,
             textLines: textLines,
@@ -100,8 +101,8 @@ enum PDFContentExtractor {
         }
 
         #if DEBUG
-        let pageIndex = page.document?.index(for: page) ?? -1
-        print("[PDFExtractor] Page \(pageIndex): textLines=\(textLines.count), xobjectRects=\(scanResult.imageRects.count), gapRegions=\(gapSnapshots.count), headings=\(headingTexts.count)")
+        let debugPageIndex = pageIndex ?? -1
+        print("[PDFExtractor] Page \(debugPageIndex): textLines=\(textLines.count), xobjectRects=\(scanResult.imageRects.count), gapRegions=\(gapSnapshots.count), headings=\(headingTexts.count)")
         if !headingTexts.isEmpty {
             print("[PDFExtractor]   headings: \(headingTexts)")
         }

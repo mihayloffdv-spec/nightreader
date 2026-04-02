@@ -89,14 +89,49 @@ enum TextExtractor {
     // MARK: - Text line extraction
 
     /// Strip leading page number from page text (e.g., "6\nГлобальная..." → "Глобальная...")
-    static func stripLeadingPageNumber(from pageString: String) -> String {
-        guard let firstNewline = pageString.firstIndex(of: "\n") else { return pageString }
-        let firstLine = pageString[pageString.startIndex..<firstNewline]
-            .trimmingCharacters(in: .whitespaces)
-        if firstLine.count <= 4 && firstLine.allSatisfy({ $0.isNumber || $0.isWhitespace }) {
-            return String(pageString[pageString.index(after: firstNewline)...])
+    static func stripLeadingPageNumber(from pageString: String, pageIndex: Int? = nil) -> String {
+        var text = pageString
+
+        // Case 1: page number on its own line at the top
+        if let firstNewline = text.firstIndex(of: "\n") {
+            let firstLine = text[text.startIndex..<firstNewline]
+                .trimmingCharacters(in: .whitespaces)
+            if firstLine.count <= 4 && firstLine.allSatisfy({ $0.isNumber || $0.isWhitespace }) {
+                text = String(text[text.index(after: firstNewline)...])
+            }
         }
-        return pageString
+
+        // Case 2: page number inline at start ("6 Глобальная..." → "Глобальная...")
+        // Only strip if the number matches expected page number (±1 for 0-based/1-based)
+        if let pageIndex = pageIndex {
+            let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+            let expectedNumbers = [pageIndex, pageIndex + 1, pageIndex - 1].filter { $0 > 0 }
+            for expected in expectedNumbers {
+                let numStr = "\(expected)"
+                if trimmed.hasPrefix(numStr) {
+                    let afterNum = trimmed.dropFirst(numStr.count)
+                    if let next = afterNum.first, (next == " " || next == "\t" || next == "\n") {
+                        // Verify the text after the number starts with a letter (not more digits)
+                        let rest = afterNum.drop(while: { $0.isWhitespace })
+                        if let firstChar = rest.first, firstChar.isLetter {
+                            text = String(rest)
+                            break
+                        }
+                    }
+                }
+            }
+        }
+
+        // Case 3: page number on its own line at the bottom
+        if let lastNewline = text.lastIndex(of: "\n") {
+            let lastLine = text[text.index(after: lastNewline)...]
+                .trimmingCharacters(in: .whitespaces)
+            if lastLine.count <= 4 && !lastLine.isEmpty && lastLine.allSatisfy({ $0.isNumber || $0.isWhitespace }) {
+                text = String(text[..<lastNewline])
+            }
+        }
+
+        return text
     }
 
     /// Extract sorted text lines from a PDF page using selectionsByLine().
@@ -132,7 +167,7 @@ enum TextExtractor {
         let lengths = nonEmptyLines.map { $0.count }
         let sortedLengths = lengths.sorted()
         let typicalLength = sortedLengths[min(sortedLengths.count * 3 / 4, sortedLengths.count - 1)]
-        let shortThreshold = max(typicalLength * 2 / 3, 15)
+        let shortThreshold = max(typicalLength / 2, 20)
 
         // Build array of non-empty trimmed lines with their indices for lookahead
         struct IndexedLine { let index: Int; let text: String }
@@ -173,8 +208,8 @@ enum TextExtractor {
                 nextStartsUpper = false
             }
 
-            let shouldBreak = isShortLine ||
-                              (endsWithSentence && nextStartsUpper && currentLines.count >= 2)
+            let shouldBreak = (isShortLine && endsWithSentence) ||
+                              (endsWithSentence && nextStartsUpper && currentLines.count >= 3)
 
             if shouldBreak {
                 paragraphs.append(joinLines(currentLines))
@@ -278,7 +313,8 @@ enum TextExtractor {
         }
 
         // Pass 2: Mid-line drops — lowercase word after sentence-ending punctuation
-        if let midLineRegex = try? NSRegularExpression(pattern: "[.!?»]\\s+[«\"„]?([а-яa-z]\\S{2,})", options: []) {
+        // Match single-char words too (e.g., ". о есть" where "Т" was dropped from "То")
+        if let midLineRegex = try? NSRegularExpression(pattern: "[.!?»]\\s+[«\"„]?([а-яa-z]\\S*)", options: []) {
             let nsText = text as NSString
             let matches = midLineRegex.matches(in: text, range: NSRange(location: 0, length: nsText.length))
             for match in matches {
@@ -289,7 +325,11 @@ enum TextExtractor {
                 guard let firstIdx = wordStr.firstIndex(where: { $0.isLetter }),
                       wordStr[firstIdx].isLowercase else { continue }
                 let word = String(wordStr[firstIdx...].prefix(while: { $0.isLetter }))
-                if commonLower.contains(word) { continue }
+
+                // For multi-char common words (и, на, но, etc.) skip — they're valid lowercase starts.
+                // For single-char words (о, а, в...) allow through — CMap/OCR will verify
+                // whether there's actually a missing character (e.g., "о" → "То").
+                if word.count > 1 && commonLower.contains(word) { continue }
 
                 let fromWord = String(wordStr[firstIdx...])
                 let searchPrefix = String(fromWord.prefix(min(15, fromWord.count)))
