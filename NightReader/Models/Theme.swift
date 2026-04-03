@@ -1,60 +1,208 @@
 import SwiftUI
 
+// MARK: - Theme
+//
+// Full design token system. Each theme defines colors, fonts, and UI personality.
+//
+// ┌─────────────────────────────────────────────┐
+// │                  Theme                       │
+// │                                             │
+// │  Colors (10 tokens)                         │
+// │  ├── background / elevated / sheet          │
+// │  ├── textPrimary / textSecondary            │
+// │  ├── accent / accentMuted                   │
+// │  └── surface / surfaceLight / highlightBg   │
+// │                                             │
+// │  Fonts (5 tokens)                           │
+// │  ├── headlineFont (display, titles)         │
+// │  ├── bodyFont / bodyFontAlt (reading)       │
+// │  └── labelFont / captionFont (UI)           │
+// │                                             │
+// │  UI Language (theme personality)            │
+// │  └── libraryTitle, settingsTitle, etc.      │
+// │                                             │
+// │  Style (component shapes)                   │
+// │  └── buttonRadius, cardBorderAccent         │
+// └─────────────────────────────────────────────┘
+
 struct Theme: Identifiable, Codable, Hashable {
     let id: String
     let name: String
-    let bgColorHex: String
-    let textColorHex: String
-    let tintColorHex: String
+
+    // MARK: - Colors
+
+    let backgroundHex: String
+    let backgroundElevatedHex: String
+    let backgroundSheetHex: String
+    let textPrimaryHex: String
+    let textSecondaryHex: String
+    let accentHex: String
+    let accentMutedHex: String
+    let surfaceHex: String
+    let surfaceLightHex: String
+    let highlightOpacity: Double
+
+    // MARK: - Fonts
+
+    let headlineFontName: String
+    let bodyFontName: String
+    let bodyFontAltName: String
+    let labelFontName: String
+    let captionFontName: String
+
+    // MARK: - UI Language
+
+    let libraryTitle: String
+    let settingsTitle: String
+    let settingsSubtitle: String
+
+    // MARK: - Style
+
+    let buttonRadius: Double
+    let cardBorderAccent: Bool
     let isBuiltIn: Bool
 
-    var bgColor: Color { Color(hex: bgColorHex) }
-    var textColor: Color { Color(hex: textColorHex) }
-    var tintColor: Color { Color(hex: tintColorHex) }
+    // MARK: - Computed Colors
 
-    var tintUIColor: UIColor {
-        UIColor(Color(hex: tintColorHex))
+    var background: Color { Color(hex: backgroundHex) }
+    var backgroundElevated: Color { Color(hex: backgroundElevatedHex) }
+    var backgroundSheet: Color { Color(hex: backgroundSheetHex) }
+    var textPrimary: Color { Color(hex: textPrimaryHex) }
+    var textSecondary: Color { Color(hex: textSecondaryHex) }
+    var accent: Color { Color(hex: accentHex) }
+    var accentMuted: Color { Color(hex: accentMutedHex) }
+    var surface: Color { Color(hex: surfaceHex) }
+    var surfaceLight: Color { Color(hex: surfaceLightHex) }
+    var highlightColor: Color { Color(hex: accentHex).opacity(highlightOpacity) }
+
+    var accentUIColor: UIColor { UIColor(Color(hex: accentHex)) }
+    var backgroundUIColor: UIColor { UIColor(Color(hex: backgroundHex)) }
+
+    // MARK: - Backward compatibility
+
+    var bgColor: Color { background }
+    var textColor: Color { textPrimary }
+    var tintColor: Color { accent }
+    var bgColorHex: String { backgroundHex }
+    var textColorHex: String { textPrimaryHex }
+    var tintColorHex: String { accentHex }
+    var tintUIColor: UIColor { accentUIColor }
+
+    // MARK: - Font Helpers
+
+    func headlineFont(size: CGFloat) -> Font {
+        .custom(headlineFontName, size: size)
     }
 
-    // MARK: - Built-in themes
+    func bodyFont(size: CGFloat) -> Font {
+        .custom(bodyFontName, size: size)
+    }
 
-    static let midnight = Theme(
-        id: "midnight", name: "Midnight",
-        bgColorHex: "#0D0D0D", textColorHex: "#D4D4C8", tintColorHex: "#FFF0D4",
+    func bodyFontAlt(size: CGFloat) -> Font {
+        .custom(bodyFontAltName, size: size)
+    }
+
+    func labelFont(size: CGFloat) -> Font {
+        .custom(labelFontName, size: size)
+    }
+
+    func captionFont(size: CGFloat) -> Font {
+        .custom(captionFontName, size: size)
+    }
+
+    func headlineUIFont(size: CGFloat) -> UIFont {
+        UIFont(name: headlineFontName, size: size) ?? .systemFont(ofSize: size, weight: .bold)
+    }
+
+    func bodyUIFont(size: CGFloat) -> UIFont {
+        UIFont(name: bodyFontName, size: size) ?? .systemFont(ofSize: size)
+    }
+
+    func labelUIFont(size: CGFloat) -> UIFont {
+        UIFont(name: labelFontName, size: size) ?? .systemFont(ofSize: size, weight: .medium)
+    }
+
+    // MARK: - Built-in Themes
+
+    static let deepForest = Theme(
+        id: "deepForest",
+        name: "Deep Forest",
+        backgroundHex: "#0B120B",
+        backgroundElevatedHex: "#141E14",
+        backgroundSheetHex: "#111A11",
+        textPrimaryHex: "#E8E0D4",
+        textSecondaryHex: "#9A938A",
+        accentHex: "#CC704B",
+        accentMutedHex: "#8B5A3A",
+        surfaceHex: "#4D5B4D",
+        surfaceLightHex: "#8B9D83",
+        highlightOpacity: 0.25,
+        headlineFontName: "Onest-Bold",
+        bodyFontName: "NotoSerif",
+        bodyFontAltName: "SourceSerif4",
+        labelFontName: "Onest-Medium",
+        captionFontName: "Onest-Regular",
+        libraryTitle: "Private Collection",
+        settingsTitle: "Reading Interface",
+        settingsSubtitle: "Fine-tune your nocturnal sanctuary for the perfect focus.",
+        buttonRadius: 24,
+        cardBorderAccent: true,
         isBuiltIn: true
     )
 
-    static let sepia = Theme(
-        id: "sepia", name: "Sepia",
-        bgColorHex: "#1A1408", textColorHex: "#D4C4A0", tintColorHex: "#F5E6C8",
+    static let classicMidnight = Theme(
+        id: "classicMidnight",
+        name: "Classic Midnight",
+        backgroundHex: "#121212",
+        backgroundElevatedHex: "#1E1E1E",
+        backgroundSheetHex: "#181818",
+        textPrimaryHex: "#F0E6D2",
+        textSecondaryHex: "#8A7E6C",
+        accentHex: "#FFBF00",
+        accentMutedHex: "#907335",
+        surfaceHex: "#2A2520",
+        surfaceLightHex: "#00DCFF",
+        highlightOpacity: 0.2,
+        headlineFontName: "NotoSerif-Bold",
+        bodyFontName: "Literata",
+        bodyFontAltName: "NotoSerif",
+        labelFontName: "Inter",
+        captionFontName: "Inter",
+        libraryTitle: "The Midnight Library",
+        settingsTitle: "Reading Preferences",
+        settingsSubtitle: "Curate your midnight reading experience.",
+        buttonRadius: 8,
+        cardBorderAccent: true,
         isBuiltIn: true
     )
 
-    static let forest = Theme(
-        id: "forest", name: "Forest",
-        bgColorHex: "#0A1A0A", textColorHex: "#A8D4A8", tintColorHex: "#C8F0C8",
+    static let minimalistSlate = Theme(
+        id: "minimalistSlate",
+        name: "Minimalist Slate",
+        backgroundHex: "#1A1C1E",
+        backgroundElevatedHex: "#242628",
+        backgroundSheetHex: "#1F2123",
+        textPrimaryHex: "#E8E4DC",
+        textSecondaryHex: "#7A756E",
+        accentHex: "#D4AF37",
+        accentMutedHex: "#877645",
+        surfaceHex: "#2E3034",
+        surfaceLightHex: "#97B0FF",
+        highlightOpacity: 0.2,
+        headlineFontName: "Manrope-Bold",
+        bodyFontName: "PTSerif-Regular",
+        bodyFontAltName: "Spectral-Regular",
+        labelFontName: "Manrope-Medium",
+        captionFontName: "Manrope-Regular",
+        libraryTitle: "Your Library",
+        settingsTitle: "Reading Preferences",
+        settingsSubtitle: "Calibrate the quiet.",
+        buttonRadius: 24,
+        cardBorderAccent: false,
         isBuiltIn: true
     )
 
-    static let ocean = Theme(
-        id: "ocean", name: "Ocean",
-        bgColorHex: "#0A0F1A", textColorHex: "#A8C4D4", tintColorHex: "#C8DCF0",
-        isBuiltIn: true
-    )
-
-    static let sunset = Theme(
-        id: "sunset", name: "Sunset",
-        bgColorHex: "#1A0F0A", textColorHex: "#D4B4A0", tintColorHex: "#F0D4C0",
-        isBuiltIn: true
-    )
-
-    static let paper = Theme(
-        id: "paper", name: "Paper",
-        bgColorHex: "#1A1A14", textColorHex: "#E0E0D0", tintColorHex: "#FFFFF0",
-        isBuiltIn: true
-    )
-
-    static let allBuiltIn: [Theme] = [.midnight, .sepia, .forest, .ocean, .sunset, .paper]
+    static let allBuiltIn: [Theme] = [.deepForest, .classicMidnight, .minimalistSlate]
 
     // MARK: - Custom themes (UserDefaults + кэш)
 
@@ -84,6 +232,8 @@ struct Theme: Identifiable, Codable, Hashable {
         allThemes.first { $0.id == id }
     }
 }
+
+// MARK: - Color hex extension
 
 extension Color {
     init(hex: String) {

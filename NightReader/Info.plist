@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>UIAppFonts</key>
+	<array>
+		<string>EBGaramond.ttf</string>
+		<string>EBGaramond-Italic.ttf</string>
+		<string>Inter.ttf</string>
+		<string>Literata.ttf</string>
+		<string>Literata-Italic.ttf</string>
+		<string>Manrope.ttf</string>
+		<string>NotoSerif.ttf</string>
+		<string>NotoSerif-Italic.ttf</string>
+		<string>Onest.ttf</string>
+		<string>PTSerif-Regular.ttf</string>
+		<string>PTSerif-Bold.ttf</string>
+		<string>PTSerif-Italic.ttf</string>
+		<string>SourceSerif4.ttf</string>
+		<string>SourceSerif4-Italic.ttf</string>
+		<string>Spectral-Regular.ttf</string>
+		<string>Spectral-Italic.ttf</string>
+	</array>
+</dict>
+</plist>

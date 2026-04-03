@@ -46,6 +46,22 @@
 		C0000037 /* APIKeySettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1000037 /* APIKeySettingsView.swift */; };
 		C0000038 /* ThemeEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1000038 /* ThemeEditorView.swift */; };
 		C0000050 /* DropCapRecovery.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1000050 /* DropCapRecovery.swift */; };
+		CF000001 /* Onest.ttf in Resources */ = {isa = PBXBuildFile; fileRef = CF100001 /* Onest.ttf */; };
+		CF000002 /* NotoSerif.ttf in Resources */ = {isa = PBXBuildFile; fileRef = CF100002 /* NotoSerif.ttf */; };
+		CF000003 /* NotoSerif-Italic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = CF100003 /* NotoSerif-Italic.ttf */; };
+		CF000004 /* SourceSerif4.ttf in Resources */ = {isa = PBXBuildFile; fileRef = CF100004 /* SourceSerif4.ttf */; };
+		CF000005 /* SourceSerif4-Italic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = CF100005 /* SourceSerif4-Italic.ttf */; };
+		CF000006 /* Literata.ttf in Resources */ = {isa = PBXBuildFile; fileRef = CF100006 /* Literata.ttf */; };
+		CF000007 /* Literata-Italic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = CF100007 /* Literata-Italic.ttf */; };
+		CF000008 /* Manrope.ttf in Resources */ = {isa = PBXBuildFile; fileRef = CF100008 /* Manrope.ttf */; };
+		CF000009 /* PTSerif-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = CF100009 /* PTSerif-Regular.ttf */; };
+		CF000010 /* PTSerif-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = CF100010 /* PTSerif-Bold.ttf */; };
+		CF000011 /* PTSerif-Italic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = CF100011 /* PTSerif-Italic.ttf */; };
+		CF000012 /* Spectral-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = CF100012 /* Spectral-Regular.ttf */; };
+		CF000013 /* Spectral-Italic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = CF100013 /* Spectral-Italic.ttf */; };
+		CF000014 /* EBGaramond.ttf in Resources */ = {isa = PBXBuildFile; fileRef = CF100014 /* EBGaramond.ttf */; };
+		CF000015 /* EBGaramond-Italic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = CF100015 /* EBGaramond-Italic.ttf */; };
+		CF000016 /* Inter.ttf in Resources */ = {isa = PBXBuildFile; fileRef = CF100016 /* Inter.ttf */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -100,6 +116,22 @@
 		C1000038 /* ThemeEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThemeEditorView.swift; sourceTree = "<group>"; };
 		C1000050 /* DropCapRecovery.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DropCapRecovery.swift; sourceTree = "<group>"; };
 		C2000001 /* NightReader.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = NightReader.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		CF100001 /* Onest.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = Onest.ttf; sourceTree = "<group>"; };
+		CF100002 /* NotoSerif.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = NotoSerif.ttf; sourceTree = "<group>"; };
+		CF100003 /* NotoSerif-Italic.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "NotoSerif-Italic.ttf"; sourceTree = "<group>"; };
+		CF100004 /* SourceSerif4.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = SourceSerif4.ttf; sourceTree = "<group>"; };
+		CF100005 /* SourceSerif4-Italic.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "SourceSerif4-Italic.ttf"; sourceTree = "<group>"; };
+		CF100006 /* Literata.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = Literata.ttf; sourceTree = "<group>"; };
+		CF100007 /* Literata-Italic.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Literata-Italic.ttf"; sourceTree = "<group>"; };
+		CF100008 /* Manrope.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = Manrope.ttf; sourceTree = "<group>"; };
+		CF100009 /* PTSerif-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "PTSerif-Regular.ttf"; sourceTree = "<group>"; };
+		CF100010 /* PTSerif-Bold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "PTSerif-Bold.ttf"; sourceTree = "<group>"; };
+		CF100011 /* PTSerif-Italic.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "PTSerif-Italic.ttf"; sourceTree = "<group>"; };
+		CF100012 /* Spectral-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Spectral-Regular.ttf"; sourceTree = "<group>"; };
+		CF100013 /* Spectral-Italic.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Spectral-Italic.ttf"; sourceTree = "<group>"; };
+		CF100014 /* EBGaramond.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = EBGaramond.ttf; sourceTree = "<group>"; };
+		CF100015 /* EBGaramond-Italic.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "EBGaramond-Italic.ttf"; sourceTree = "<group>"; };
+		CF100016 /* Inter.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = Inter.ttf; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -141,6 +173,7 @@
 				C4000012 /* ViewModels */,
 				C4000013 /* Views */,
 				C4000017 /* Services */,
+				CF200001 /* Fonts */,
 				C1000020 /* Assets.xcassets */,
 			);
 			path = NightReader;
@@ -252,6 +285,30 @@
 			path = Settings;
 			sourceTree = "<group>";
 		};
+		CF200001 /* Fonts */ = {
+			isa = PBXGroup;
+			children = (
+				CF100001 /* Onest.ttf */,
+				CF100002 /* NotoSerif.ttf */,
+				CF100003 /* NotoSerif-Italic.ttf */,
+				CF100004 /* SourceSerif4.ttf */,
+				CF100005 /* SourceSerif4-Italic.ttf */,
+				CF100006 /* Literata.ttf */,
+				CF100007 /* Literata-Italic.ttf */,
+				CF100008 /* Manrope.ttf */,
+				CF100009 /* PTSerif-Regular.ttf */,
+				CF100010 /* PTSerif-Bold.ttf */,
+				CF100011 /* PTSerif-Italic.ttf */,
+				CF100012 /* Spectral-Regular.ttf */,
+				CF100013 /* Spectral-Italic.ttf */,
+				CF100014 /* EBGaramond.ttf */,
+				CF100015 /* EBGaramond-Italic.ttf */,
+				CF100016 /* Inter.ttf */,
+			);
+			name = Fonts;
+			path = Resources/Fonts;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -346,6 +403,22 @@
 			buildActionMask = 2147483647;
 			files = (
 				C0000020 /* Assets.xcassets in Resources */,
+				CF000001 /* Onest.ttf in Resources */,
+				CF000002 /* NotoSerif.ttf in Resources */,
+				CF000003 /* NotoSerif-Italic.ttf in Resources */,
+				CF000004 /* SourceSerif4.ttf in Resources */,
+				CF000005 /* SourceSerif4-Italic.ttf in Resources */,
+				CF000006 /* Literata.ttf in Resources */,
+				CF000007 /* Literata-Italic.ttf in Resources */,
+				CF000008 /* Manrope.ttf in Resources */,
+				CF000009 /* PTSerif-Regular.ttf in Resources */,
+				CF000010 /* PTSerif-Bold.ttf in Resources */,
+				CF000011 /* PTSerif-Italic.ttf in Resources */,
+				CF000012 /* Spectral-Regular.ttf in Resources */,
+				CF000013 /* Spectral-Italic.ttf in Resources */,
+				CF000014 /* EBGaramond.ttf in Resources */,
+				CF000015 /* EBGaramond-Italic.ttf in Resources */,
+				CF000016 /* Inter.ttf in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -591,6 +664,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 7N37858XB8;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = NightReader/Info.plist;
 				INFOPLIST_KEY_LSSupportsOpeningDocumentsInPlace = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -622,6 +696,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 7N37858XB8;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = NightReader/Info.plist;
 				INFOPLIST_KEY_LSSupportsOpeningDocumentsInPlace = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;

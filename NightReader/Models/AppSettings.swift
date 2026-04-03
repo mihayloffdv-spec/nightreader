@@ -12,7 +12,7 @@ final class AppSettings {
     static let shared = AppSettings()
 
     var defaultThemeId: String {
-        get { UserDefaults.standard.string(forKey: "defaultThemeId") ?? Theme.midnight.id }
+        get { UserDefaults.standard.string(forKey: "defaultThemeId") ?? Theme.deepForest.id }
         set { UserDefaults.standard.set(newValue, forKey: "defaultThemeId") }
     }
 
@@ -27,7 +27,7 @@ final class AppSettings {
     }
 
     var currentTheme: Theme {
-        Theme.find(byId: defaultThemeId) ?? .midnight
+        Theme.find(byId: defaultThemeId) ?? .deepForest
     }
 
     var readerFontSize: Double {
@@ -85,13 +85,13 @@ final class AppSettings {
 
     /// ID of the preferred dark theme for auto-switch.
     var darkThemeId: String {
-        get { UserDefaults.standard.string(forKey: "darkThemeId") ?? Theme.midnight.id }
+        get { UserDefaults.standard.string(forKey: "darkThemeId") ?? Theme.deepForest.id }
         set { UserDefaults.standard.set(newValue, forKey: "darkThemeId") }
     }
 
     /// ID of the preferred light/day theme for auto-switch.
     var lightThemeId: String {
-        get { UserDefaults.standard.string(forKey: "lightThemeId") ?? Theme.paper.id }
+        get { UserDefaults.standard.string(forKey: "lightThemeId") ?? Theme.minimalistSlate.id }
         set { UserDefaults.standard.set(newValue, forKey: "lightThemeId") }
     }
 
@@ -107,10 +107,10 @@ final class AppSettings {
                 isDarkTime = hour >= darkStartHour && hour < darkEndHour
             }
             let themeId = isDarkTime ? darkThemeId : lightThemeId
-            return Theme.find(byId: themeId) ?? .midnight
+            return Theme.find(byId: themeId) ?? .deepForest
         case .device:
             let themeId = isDarkAppearance ? darkThemeId : lightThemeId
-            return Theme.find(byId: themeId) ?? .midnight
+            return Theme.find(byId: themeId) ?? .deepForest
         case .manual:
             return currentTheme
         }
