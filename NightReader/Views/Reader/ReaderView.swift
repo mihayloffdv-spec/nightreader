@@ -27,8 +27,41 @@ struct ReaderView: View {
                 }
             } else {
                 Group {
-                    if viewModel.isReaderMode {
-                        // Reader Mode — reflowable text
+                    if viewModel.isDayMode {
+                        // Day Mode — light reading view
+                        DayModeReadingView(
+                            document: viewModel.originalDoc,
+                            theme: viewModel.selectedTheme,
+                            book: viewModel.book,
+                            fontSize: viewModel.readerFontSize,
+                            currentPageIndex: viewModel.currentPage,
+                            savedBlockID: Int(viewModel.book.scrollOffsetY),
+                            goToPageIndex: $viewModel.goToPageIndex,
+                            chapters: viewModel.chapters,
+                            currentChapter: viewModel.currentChapter,
+                            onPageChange: { page, blockID in
+                                viewModel.savePosition(pageIndex: page, scrollOffset: Double(blockID))
+                            },
+                            onTap: {
+                                withAnimation(.easeInOut(duration: 0.25)) {
+                                    viewModel.toggleToolbar()
+                                }
+                            },
+                            onAIAction: { action, text in
+                                if action == .explain {
+                                    viewModel.requestExplain(text: text)
+                                } else {
+                                    viewModel.requestTranslate(text: text)
+                                }
+                            },
+                            onOpenSettings: {
+                                // Could open settings sheet
+                            }
+                        )
+                        .ignoresSafeArea()
+                        .transition(.opacity)
+                    } else if viewModel.isReaderMode {
+                        // Reader Mode — reflowable text (night)
                         ReaderModeView(
                             document: viewModel.originalDoc,
                             theme: viewModel.selectedTheme,

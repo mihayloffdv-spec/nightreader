@@ -66,6 +66,7 @@
 		D0000002 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1000002 /* SettingsView.swift */; };
 		D0000003 /* ChapterReviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1000003 /* ChapterReviewView.swift */; };
 		D0000004 /* NotebookView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1000004 /* NotebookView.swift */; };
+		D0000005 /* DayModeReadingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1000005 /* DayModeReadingView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -140,6 +141,7 @@
 		D1000002 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		D1000003 /* ChapterReviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChapterReviewView.swift; sourceTree = "<group>"; };
 		D1000004 /* NotebookView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotebookView.swift; sourceTree = "<group>"; };
+		D1000005 /* DayModeReadingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DayModeReadingView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -261,6 +263,7 @@
 				C1000036 /* AIActionSheet.swift */,
 				D1000003 /* ChapterReviewView.swift */,
 				D1000004 /* NotebookView.swift */,
+				D1000005 /* DayModeReadingView.swift */,
 			);
 			path = Reader;
 			sourceTree = "<group>";
@@ -490,6 +493,7 @@
 				D0000002 /* SettingsView.swift in Sources */,
 				D0000003 /* ChapterReviewView.swift in Sources */,
 				D0000004 /* NotebookView.swift in Sources */,
+				D0000005 /* DayModeReadingView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

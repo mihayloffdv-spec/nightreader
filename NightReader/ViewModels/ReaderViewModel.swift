@@ -23,6 +23,7 @@ final class ReaderViewModel {
     var isLoading = true
     var loadError: String?
     var isReaderMode = false
+    var isDayMode = false
     var readerFontSize: Double = AppSettings.shared.readerFontSize
     var readerFontFamily: ReaderFont = AppSettings.shared.currentReaderFont
     var cropMargin: Double = 0
@@ -230,7 +231,16 @@ final class ReaderViewModel {
     func toggleReaderMode() {
         scheduleHideToolbar()
         isReaderMode.toggle()
-        // Navigate to the same page in the new mode
+        if !isReaderMode { isDayMode = false }
+        goToPageIndex = currentPage
+    }
+
+    func toggleDayMode() {
+        scheduleHideToolbar()
+        isDayMode.toggle()
+        if isDayMode && !isReaderMode {
+            isReaderMode = true
+        }
         goToPageIndex = currentPage
     }
 

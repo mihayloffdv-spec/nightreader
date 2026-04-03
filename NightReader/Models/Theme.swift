@@ -42,6 +42,19 @@ struct Theme: Identifiable, Codable, Hashable {
     let surfaceLightHex: String
     let highlightOpacity: Double
 
+    // MARK: - Day Mode Colors
+
+    let dayBackgroundHex: String
+    let dayTextPrimaryHex: String
+    let dayTextSecondaryHex: String
+    let dayAccentHex: String
+    let dayHighlightHex: String
+    let dayDividerHex: String
+
+    // MARK: - Day Mode UI
+
+    let dayTitle: String           // "Reading Sanctuary"
+
     // MARK: - Fonts
 
     let headlineFontName: String
@@ -77,6 +90,14 @@ struct Theme: Identifiable, Codable, Hashable {
 
     var accentUIColor: UIColor { UIColor(Color(hex: accentHex)) }
     var backgroundUIColor: UIColor { UIColor(Color(hex: backgroundHex)) }
+
+    // Day mode computed colors
+    var dayBackground: Color { Color(hex: dayBackgroundHex) }
+    var dayTextPrimary: Color { Color(hex: dayTextPrimaryHex) }
+    var dayTextSecondary: Color { Color(hex: dayTextSecondaryHex) }
+    var dayAccent: Color { Color(hex: dayAccentHex) }
+    var dayHighlight: Color { Color(hex: dayHighlightHex) }
+    var dayDivider: Color { Color(hex: dayDividerHex) }
 
     // MARK: - Backward compatibility
 
@@ -142,6 +163,13 @@ struct Theme: Identifiable, Codable, Hashable {
         surfaceHex: "#4D5B4D",
         surfaceLightHex: "#8B9D83",
         highlightOpacity: 0.25,
+        dayBackgroundHex: "#F5F0E8",
+        dayTextPrimaryHex: "#2C2C2C",
+        dayTextSecondaryHex: "#8A8A8A",
+        dayAccentHex: "#4D5B4D",
+        dayHighlightHex: "#CC704B",
+        dayDividerHex: "#D8D0C4",
+        dayTitle: "Reading Sanctuary",
         headlineFontName: "Onest",
         bodyFontName: "Noto Serif",
         bodyFontAltName: "Source Serif 4",
@@ -168,6 +196,13 @@ struct Theme: Identifiable, Codable, Hashable {
         surfaceHex: "#2A2520",
         surfaceLightHex: "#00DCFF",
         highlightOpacity: 0.2,
+        dayBackgroundHex: "#FAF6EE",
+        dayTextPrimaryHex: "#1A1A1A",
+        dayTextSecondaryHex: "#7A7A7A",
+        dayAccentHex: "#907335",
+        dayHighlightHex: "#FFBF00",
+        dayDividerHex: "#E0D8C8",
+        dayTitle: "The Reading Room",
         headlineFontName: "Noto Serif",
         bodyFontName: "Literata",
         bodyFontAltName: "Noto Serif",
@@ -194,6 +229,13 @@ struct Theme: Identifiable, Codable, Hashable {
         surfaceHex: "#2E3034",
         surfaceLightHex: "#97B0FF",
         highlightOpacity: 0.2,
+        dayBackgroundHex: "#F2F0ED",
+        dayTextPrimaryHex: "#1A1C1E",
+        dayTextSecondaryHex: "#8A8580",
+        dayAccentHex: "#877645",
+        dayHighlightHex: "#D4AF37",
+        dayDividerHex: "#DDD8D0",
+        dayTitle: "The Quiet Study",
         headlineFontName: "Manrope",
         bodyFontName: "PT Serif",
         bodyFontAltName: "Spectral",

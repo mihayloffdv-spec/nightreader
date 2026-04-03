@@ -201,6 +201,15 @@ struct ReaderToolbar: View {
                             .frame(width: 40, height: 40)
                     }
 
+                    // Day Mode toggle
+                    Button {
+                        withAnimation { viewModel.toggleDayMode() }
+                    } label: {
+                        Image(systemName: viewModel.isDayMode ? "moon.fill" : "sun.max")
+                            .foregroundStyle(viewModel.isDayMode ? theme.accent : theme.textPrimary.opacity(0.7))
+                            .frame(width: 40, height: 40)
+                    }
+
                     // Search
                     Button {
                         withAnimation { viewModel.showSearch = true }
