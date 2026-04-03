@@ -30,7 +30,7 @@
 		C0000021 /* ExportService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1000021 /* ExportService.swift */; };
 		C0000022 /* PDFContentExtractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1000022 /* PDFContentExtractor.swift */; };
 		C0000023 /* ReaderModeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1000023 /* ReaderModeView.swift */; };
-		C0000024 /* NightTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1000024 /* NightTheme.swift */; };
+
 		C0000025 /* SplashScreenView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1000025 /* SplashScreenView.swift */; };
 		C0000026 /* ReaderFont.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1000026 /* ReaderFont.swift */; };
 		C0000027 /* ContentTypes.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1000027 /* ContentTypes.swift */; };
@@ -67,6 +67,7 @@
 		D0000003 /* ChapterReviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1000003 /* ChapterReviewView.swift */; };
 		D0000004 /* NotebookView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1000004 /* NotebookView.swift */; };
 		D0000005 /* DayModeReadingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1000005 /* DayModeReadingView.swift */; };
+		D0000006 /* PageLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1000006 /* PageLoader.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -104,7 +105,7 @@
 		C1000021 /* ExportService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExportService.swift; sourceTree = "<group>"; };
 		C1000022 /* PDFContentExtractor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PDFContentExtractor.swift; sourceTree = "<group>"; };
 		C1000023 /* ReaderModeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReaderModeView.swift; sourceTree = "<group>"; };
-		C1000024 /* NightTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NightTheme.swift; sourceTree = "<group>"; };
+
 		C1000025 /* SplashScreenView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SplashScreenView.swift; sourceTree = "<group>"; };
 		C1000026 /* ReaderFont.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReaderFont.swift; sourceTree = "<group>"; };
 		C1000027 /* ContentTypes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentTypes.swift; sourceTree = "<group>"; };
@@ -142,6 +143,7 @@
 		D1000003 /* ChapterReviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChapterReviewView.swift; sourceTree = "<group>"; };
 		D1000004 /* NotebookView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotebookView.swift; sourceTree = "<group>"; };
 		D1000005 /* DayModeReadingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DayModeReadingView.swift; sourceTree = "<group>"; };
+		D1000006 /* PageLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PageLoader.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -243,7 +245,6 @@
 			isa = PBXGroup;
 			children = (
 				C1000008 /* LibraryView.swift */,
-				C1000024 /* NightTheme.swift */,
 				C1000025 /* SplashScreenView.swift */,
 			);
 			path = Library;
@@ -286,6 +287,7 @@
 				C1000032 /* ChapterDetector.swift */,
 				C1000033 /* KeychainManager.swift */,
 				C1000034 /* ClaudeAPIService.swift */,
+				D1000006 /* PageLoader.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -473,7 +475,7 @@
 				C0000021 /* ExportService.swift in Sources */,
 				C0000022 /* PDFContentExtractor.swift in Sources */,
 				C0000023 /* ReaderModeView.swift in Sources */,
-				C0000024 /* NightTheme.swift in Sources */,
+
 				C0000025 /* SplashScreenView.swift in Sources */,
 				C0000026 /* ReaderFont.swift in Sources */,
 				C0000027 /* ContentTypes.swift in Sources */,
@@ -494,6 +496,7 @@
 				D0000003 /* ChapterReviewView.swift in Sources */,
 				D0000004 /* NotebookView.swift in Sources */,
 				D0000005 /* DayModeReadingView.swift in Sources */,
+				D0000006 /* PageLoader.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -22,10 +22,9 @@ struct ReaderModeView: View {
     @State private var saveTask: Task<Void, Never>?
     @State private var joinedPairs: Set<Int> = []  // endPage values of already-joined pairs
 
-    // Очередь для потокобезопасного доступа к CGPDFPage (PDFDocument НЕ потокобезопасен).
-    // nonisolated(unsafe) потому что DispatchQueue сам по себе потокобезопасен,
-    // а SwiftUI View наследует @MainActor изоляцию, откуда мы обращаемся из Task.detached.
-    nonisolated(unsafe) static let extractionQueue = DispatchQueue(label: "com.nightreader.extraction", qos: .userInitiated)
+    // extractionQueue moved to shared PageLoader service.
+    // Keep this accessor for backward compatibility with ReaderViewModel.loadDocument().
+    nonisolated(unsafe) static var extractionQueue: DispatchQueue { PageLoader.extractionQueue }
 
     var body: some View {
         GeometryReader { geo in
@@ -208,87 +207,23 @@ struct ReaderModeView: View {
         return UIFont.systemFont(ofSize: size)
     }
 
-    // MARK: - Cross-page paragraph joining
-
-    /// When a paragraph spans two pages, merge the last text block of page N
-    /// with the first text block of page N+1.
-    private func joinCrossPageParagraphs(_ pageIndex: Int) {
-        // Try joining with previous page
-        if pageIndex > 0 {
-            tryJoin(endPage: pageIndex - 1, startPage: pageIndex)
-        }
-        // Try joining with next page
-        if let nextBlocks = blocksByPage[pageIndex + 1], !nextBlocks.isEmpty {
-            tryJoin(endPage: pageIndex, startPage: pageIndex + 1)
-        }
-    }
-
-    private func tryJoin(endPage: Int, startPage: Int) {
-        // Prevent double-joining the same page pair
-        guard !joinedPairs.contains(endPage) else { return }
-
-        guard var endBlocks = blocksByPage[endPage], !endBlocks.isEmpty,
-              var startBlocks = blocksByPage[startPage], !startBlocks.isEmpty else { return }
-
-        // Last block of endPage must be .text
-        guard case .text(let tail) = endBlocks.last else { return }
-        // First block of startPage must be .text
-        guard case .text(let head) = startBlocks.first else { return }
-
-        let trimmedTail = tail.trimmingCharacters(in: .whitespacesAndNewlines)
-        let trimmedHead = head.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmedTail.isEmpty, !trimmedHead.isEmpty else { return }
-
-        // Check: tail doesn't end with sentence-ending punctuation AND head starts lowercase
-        let sentenceEnders: Set<Character> = [".", "!", "?", "»", "\"", "'", "…"]
-        guard let lastChar = trimmedTail.last, !sentenceEnders.contains(lastChar) else { return }
-        guard let firstChar = trimmedHead.first, firstChar.isLowercase else { return }
-
-        // Merge: append head to tail, remove head from startPage
-        let joined = trimmedTail + " " + trimmedHead
-        endBlocks[endBlocks.count - 1] = .text(joined)
-        startBlocks.removeFirst()
-
-        blocksByPage[endPage] = endBlocks
-        blocksByPage[startPage] = startBlocks
-        joinedPairs.insert(endPage)
-
-        // Update cache so joined blocks survive page eviction/reload
-        BlockCache.shared.store(endBlocks, forPage: endPage, width: screenWidth)
-        BlockCache.shared.store(startBlocks, forPage: startPage, width: screenWidth)
-    }
-
-    // MARK: - Page extraction
+    // MARK: - Page extraction (delegates to shared PageLoader)
 
     private func extractPage(_ pageIndex: Int, contentWidth: CGFloat) {
-        guard let doc = document,
-              !loadingPages.contains(pageIndex),
-              blocksByPage[pageIndex] == nil else { return }
+        guard let doc = document else { return }
+        let needsAsync = PageLoader.extractPage(
+            pageIndex, from: doc, contentWidth: contentWidth,
+            loadingPages: &loadingPages, blocksByPage: &blocksByPage
+        )
+        guard needsAsync else { return }
 
-        // Check cache first
-        if let cached = BlockCache.shared.blocks(forPage: pageIndex, width: contentWidth) {
-            #if DEBUG
-            print("[ReaderMode] Page \(pageIndex): loaded from cache (\(cached.count) blocks)")
-            #endif
-            blocksByPage[pageIndex] = cached
-            return
-        }
-
-        loadingPages.insert(pageIndex)
-
-        // CGPDFPage is not thread-safe — serialize all PDF access on a single queue
-        Self.extractionQueue.async {
-            guard let page = doc.page(at: pageIndex) else {
-                DispatchQueue.main.async { loadingPages.remove(pageIndex) }
-                return
-            }
-            let blocks = PDFContentExtractor.extractBlocks(from: page, pageWidth: contentWidth)
-            BlockCache.shared.store(blocks, forPage: pageIndex, width: contentWidth)
-            DispatchQueue.main.async {
-                blocksByPage[pageIndex] = blocks
-                loadingPages.remove(pageIndex)
-                joinCrossPageParagraphs(pageIndex)
-            }
+        PageLoader.performExtraction(pageIndex: pageIndex, document: doc, contentWidth: contentWidth) { blocks in
+            blocksByPage[pageIndex] = blocks
+            loadingPages.remove(pageIndex)
+            PageLoader.joinCrossPageParagraphs(
+                pageIndex, blocksByPage: &blocksByPage,
+                joinedPairs: &joinedPairs, screenWidth: screenWidth
+            )
         }
     }
 }

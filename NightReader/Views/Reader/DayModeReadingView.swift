@@ -265,27 +265,20 @@ struct DayModeReadingView: View {
     }
 
     private func extractPage(_ pageIndex: Int, contentWidth: CGFloat) {
-        guard let doc = document,
-              !loadingPages.contains(pageIndex),
-              blocksByPage[pageIndex] == nil else { return }
+        guard let doc = document else { return }
+        let needsAsync = PageLoader.extractPage(
+            pageIndex, from: doc, contentWidth: contentWidth,
+            loadingPages: &loadingPages, blocksByPage: &blocksByPage
+        )
+        guard needsAsync else { return }
 
-        if let cached = BlockCache.shared.blocks(forPage: pageIndex, width: contentWidth) {
-            blocksByPage[pageIndex] = cached
-            return
-        }
-
-        loadingPages.insert(pageIndex)
-        ReaderModeView.extractionQueue.async {
-            guard let page = doc.page(at: pageIndex) else {
-                DispatchQueue.main.async { loadingPages.remove(pageIndex) }
-                return
-            }
-            let blocks = PDFContentExtractor.extractBlocks(from: page, pageWidth: contentWidth)
-            BlockCache.shared.store(blocks, forPage: pageIndex, width: contentWidth)
-            DispatchQueue.main.async {
-                blocksByPage[pageIndex] = blocks
-                loadingPages.remove(pageIndex)
-            }
+        PageLoader.performExtraction(pageIndex: pageIndex, document: doc, contentWidth: contentWidth) { blocks in
+            blocksByPage[pageIndex] = blocks
+            loadingPages.remove(pageIndex)
+            PageLoader.joinCrossPageParagraphs(
+                pageIndex, blocksByPage: &blocksByPage,
+                joinedPairs: &joinedPairs, screenWidth: contentWidth
+            )
         }
     }
 
