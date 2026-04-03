@@ -108,14 +108,8 @@ struct ReaderModeView: View {
                     }
             }
 
-            // Page divider — border-t border-outline-variant/10, minimal
-            if pageIndex < (document?.pageCount ?? 1) - 1 {
-                Rectangle()
-                    .fill(Color(hex: "#444843").opacity(0.1))
-                    .frame(height: 1)
-                    .padding(.vertical, 32)
-                    .padding(.horizontal, 24)
-            }
+            // No page divider — text flows as continuous stream
+            // Pages are invisible boundaries, reader sees one seamless document
         }
         .onAppear {
             // Prefetch next page
