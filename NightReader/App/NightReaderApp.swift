@@ -7,23 +7,32 @@ struct NightReaderApp: App {
 
     init() {
         let theme = AppSettings.shared.currentTheme
-        let appearance = UINavigationBarAppearance()
-        appearance.configureWithTransparentBackground()
-        appearance.largeTitleTextAttributes = [
+
+        // Navigation bar
+        let navAppearance = UINavigationBarAppearance()
+        navAppearance.configureWithTransparentBackground()
+        navAppearance.largeTitleTextAttributes = [
             .foregroundColor: theme.accentUIColor,
             .font: theme.headlineUIFont(size: 34)
         ]
-        appearance.titleTextAttributes = [
+        navAppearance.titleTextAttributes = [
             .foregroundColor: theme.accentUIColor
         ]
-        UINavigationBar.appearance().standardAppearance = appearance
-        UINavigationBar.appearance().scrollEdgeAppearance = appearance
+        UINavigationBar.appearance().standardAppearance = navAppearance
+        UINavigationBar.appearance().scrollEdgeAppearance = navAppearance
+
+        // Tab bar
+        let tabAppearance = UITabBarAppearance()
+        tabAppearance.configureWithTransparentBackground()
+        tabAppearance.backgroundColor = theme.backgroundUIColor.withAlphaComponent(0.95)
+        UITabBar.appearance().standardAppearance = tabAppearance
+        UITabBar.appearance().scrollEdgeAppearance = tabAppearance
     }
 
     var body: some Scene {
         WindowGroup {
             ZStack {
-                LibraryView()
+                MainTabView()
                     .preferredColorScheme(.dark)
 
                 if showSplash {
