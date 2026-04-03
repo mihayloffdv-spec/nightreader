@@ -142,6 +142,7 @@ struct ReaderModeView: View {
                 style: .body,
                 fontSize: fontSize,
                 fontDesign: fontFamily.design,
+                customFontName: theme.bodyFontName,
                 textColor: UIColor(theme.textColor),
                 lineSpacing: fontSize * 0.15,
                 onAIAction: onAIAction
@@ -156,6 +157,7 @@ struct ReaderModeView: View {
                 style: .heading,
                 fontSize: fontSize * 1.3,
                 fontDesign: fontFamily.design,
+                customFontName: theme.headlineFontName,
                 textColor: UIColor(theme.textColor),
                 lineSpacing: fontSize * 0.1,
                 onAIAction: onAIAction
@@ -355,6 +357,7 @@ private struct ReaderTextBlock: UIViewRepresentable {
     let style: ReaderTextStyle
     let fontSize: CGFloat
     let fontDesign: Font.Design
+    var customFontName: String? = nil
     let textColor: UIColor
     let lineSpacing: CGFloat
     let onAIAction: (AIActionType, String) -> Void
@@ -384,16 +387,25 @@ private struct ReaderTextBlock: UIViewRepresentable {
 
         switch style {
         case .body:
-            font = ReaderModeView.uiFont(size: fontSize, design: fontDesign)
+            if let name = customFontName, let customFont = UIFont(name: name, size: fontSize) {
+                font = customFont
+            } else {
+                font = ReaderModeView.uiFont(size: fontSize, design: fontDesign)
+            }
             paragraphStyle.alignment = .justified
             paragraphStyle.lineBreakMode = .byWordWrapping
             paragraphStyle.hyphenationFactor = 0.7
             attributes[.kern] = fontSize * 0.01
         case .heading:
-            let baseFont = ReaderModeView.uiFont(size: fontSize, design: fontDesign)
-            let boldDesc = baseFont.fontDescriptor.withSymbolicTraits(.traitBold)
-            font = boldDesc.map { UIFont(descriptor: $0, size: fontSize) }
-                ?? UIFont.boldSystemFont(ofSize: fontSize)
+            if let name = customFontName, let customFont = UIFont(name: name, size: fontSize) {
+                let boldDesc = customFont.fontDescriptor.withSymbolicTraits(.traitBold)
+                font = boldDesc.map { UIFont(descriptor: $0, size: fontSize) } ?? customFont
+            } else {
+                let baseFont = ReaderModeView.uiFont(size: fontSize, design: fontDesign)
+                let boldDesc = baseFont.fontDescriptor.withSymbolicTraits(.traitBold)
+                font = boldDesc.map { UIFont(descriptor: $0, size: fontSize) }
+                    ?? UIFont.boldSystemFont(ofSize: fontSize)
+            }
             paragraphStyle.alignment = .natural
         }
 

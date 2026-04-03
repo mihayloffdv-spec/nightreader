@@ -1,5 +1,19 @@
 import SwiftUI
 
+// MARK: - Reader Toolbar (Deep Forest design)
+//
+// Minimal toolbar: chapter name at top, thin progress bar + actions at bottom.
+// Uses theme tokens for colors and fonts.
+//
+// ┌─────────────────────────────────────────┐
+// │  ☰  Chapter 1: The Silent Sea      ⚑ ⋯ │  ← top bar
+// │                                         │
+// │           (reading content)              │
+// │                                         │
+// │  ═══════════════════════ 42%            │  ← progress
+// │  p.42  │  📖  🔍  Aa  📓              │  ← bottom bar
+// └─────────────────────────────────────────┘
+
 struct ReaderToolbar: View {
     @Bindable var viewModel: ReaderViewModel
     let onDismiss: () -> Void
@@ -9,21 +23,23 @@ struct ReaderToolbar: View {
     @State private var showThemeEditor = false
     @State private var editingTheme: Theme?
 
+    private var theme: Theme { viewModel.selectedTheme }
+
     var body: some View {
         VStack(spacing: 0) {
-            // ── Top bar: Back · Title · Bookmark · Menu ──
             topBar
+                .background(theme.background.opacity(0.9))
                 .background(.ultraThinMaterial)
                 .transition(.move(edge: .top).combined(with: .opacity))
 
             Spacer()
 
-            // ── Bottom bar: page slider + progress ──
             bottomBar
+                .background(theme.background.opacity(0.9))
                 .background(.ultraThinMaterial)
                 .transition(.move(edge: .bottom).combined(with: .opacity))
         }
-        .foregroundStyle(.white)
+        .foregroundStyle(theme.textPrimary)
         .sheet(isPresented: $showSettings) {
             ReaderSettingsSheet(viewModel: viewModel)
                 .presentationDetents([.medium])
@@ -31,19 +47,19 @@ struct ReaderToolbar: View {
                 .presentationBackground(.ultraThinMaterial)
         }
         .sheet(isPresented: $showThemeEditor) {
-            ThemeEditorView(editingTheme: editingTheme) { theme in
-                saveCustomTheme(theme)
-                viewModel.setTheme(theme)
+            ThemeEditorView(editingTheme: editingTheme) { newTheme in
+                saveCustomTheme(newTheme)
+                viewModel.setTheme(newTheme)
             }
             .presentationDetents([.medium, .large])
             .presentationDragIndicator(.visible)
         }
     }
 
-    private func saveCustomTheme(_ theme: Theme) {
+    private func saveCustomTheme(_ newTheme: Theme) {
         var customs = Theme.loadCustomThemes()
-        customs.removeAll { $0.id == theme.id }
-        customs.append(theme)
+        customs.removeAll { $0.id == newTheme.id }
+        customs.append(newTheme)
         Theme.saveCustomThemes(customs)
     }
 
@@ -65,36 +81,24 @@ struct ReaderToolbar: View {
                     .font(.body.weight(.medium))
                     .frame(width: 44, height: 44)
             }
-            .accessibilityLabel("Back")
 
-            // Title
-            Text(viewModel.book.title)
-                .font(.subheadline.weight(.medium))
-                .lineLimit(1)
-                .frame(maxWidth: .infinity)
+            Spacer()
 
-            // Font size quick buttons (Reader Mode only)
-            if viewModel.isReaderMode {
-                Button {
-                    let newSize = max(12, viewModel.readerFontSize - 1)
-                    viewModel.setReaderFontSize(newSize)
-                } label: {
-                    Text("A")
-                        .font(.system(size: 13, weight: .medium))
-                        .frame(width: 34, height: 44)
+            // Chapter name (center)
+            VStack(spacing: 2) {
+                if let chapter = viewModel.currentChapter {
+                    Text(chapter.title)
+                        .font(theme.labelFont(size: 14))
+                        .lineLimit(1)
+                } else {
+                    Text(viewModel.book.title)
+                        .font(theme.labelFont(size: 14))
+                        .lineLimit(1)
                 }
-                .accessibilityLabel("Decrease font size")
-
-                Button {
-                    let newSize = min(32, viewModel.readerFontSize + 1)
-                    viewModel.setReaderFontSize(newSize)
-                } label: {
-                    Text("A")
-                        .font(.system(size: 19, weight: .medium))
-                        .frame(width: 34, height: 44)
-                }
-                .accessibilityLabel("Increase font size")
             }
+            .foregroundStyle(theme.textPrimary.opacity(0.8))
+
+            Spacer()
 
             // Bookmark
             Button {
@@ -104,170 +108,12 @@ struct ReaderToolbar: View {
             } label: {
                 Image(systemName: viewModel.isCurrentPageBookmarked ? "bookmark.fill" : "bookmark")
                     .font(.body.weight(.regular))
-                    .frame(width: 44, height: 44)
-                    .scaleEffect(viewModel.isCurrentPageBookmarked ? 1.0 : 0.9)
-                    .animation(.spring(response: 0.3, dampingFraction: 0.5), value: viewModel.isCurrentPageBookmarked)
-            }
-            .accessibilityLabel("Bookmark")
-
-            // Menu (...)
-            Menu {
-                // Search
-                Button {
-                    withAnimation { viewModel.showSearch = true }
-                } label: {
-                    Label("Search", systemImage: "magnifyingglass")
-                }
-
-                // Table of Contents
-                Button {
-                    viewModel.showTOC = true
-                } label: {
-                    Label("Contents", systemImage: "list.bullet")
-                }
-
-                Divider()
-
-                // Reader Mode toggle
-                Button {
-                    withAnimation { viewModel.toggleReaderMode() }
-                } label: {
-                    Label(
-                        viewModel.isReaderMode ? "PDF View" : "Reader Mode",
-                        systemImage: viewModel.isReaderMode ? "doc.richtext" : "book"
-                    )
-                }
-
-                // Rendering mode (only in PDF mode)
-                if !viewModel.isReaderMode {
-                    Menu {
-                        ForEach(RenderingMode.allCases) { mode in
-                            Button {
-                                viewModel.setRenderingMode(mode)
-                            } label: {
-                                HStack {
-                                    Text(mode.displayName)
-                                    if viewModel.renderingMode == mode {
-                                        Image(systemName: "checkmark")
-                                    }
-                                }
-                            }
-                        }
-                    } label: {
-                        Label("Dark Mode", systemImage: "moon.circle")
-                    }
-                }
-
-                Divider()
-
-                // Highlights & Annotations
-                Button {
-                    viewModel.showAnnotationList = true
-                } label: {
-                    Label("Highlights", systemImage: "highlighter")
-                }
-
-                // Highlight color submenu
-                Menu {
-                    ForEach(HighlightColor.allCases) { color in
-                        Button {
-                            viewModel.highlightColor = color
-                        } label: {
-                            HStack {
-                                Text(color.id.capitalized)
-                                if viewModel.highlightColor == color {
-                                    Image(systemName: "checkmark")
-                                }
-                            }
-                        }
-                    }
-
-                    Divider()
-
-                    Button {
-                        viewModel.exportAnnotations()
-                    } label: {
-                        Label("Export Highlights", systemImage: "square.and.arrow.up")
-                    }
-                } label: {
-                    Label("Highlight Color", systemImage: "circle.fill")
-                }
-
-                Divider()
-
-                // Settings (opens sheet)
-                Button {
-                    showSettings = true
-                } label: {
-                    Label("Display Settings", systemImage: "textformat.size")
-                }
-
-                // Theme submenu
-                Menu {
-                    ForEach(Theme.allThemes) { theme in
-                        Button {
-                            viewModel.setTheme(theme)
-                        } label: {
-                            HStack {
-                                Text(theme.name)
-                                if viewModel.selectedTheme.id == theme.id {
-                                    Image(systemName: "checkmark")
-                                }
-                            }
-                        }
-                    }
-
-                    Divider()
-
-                    Button {
-                        editingTheme = nil
-                        showThemeEditor = true
-                    } label: {
-                        Label("New Theme", systemImage: "plus")
-                    }
-
-                    // Edit current custom theme
-                    if !viewModel.selectedTheme.isBuiltIn {
-                        Button {
-                            editingTheme = viewModel.selectedTheme
-                            showThemeEditor = true
-                        } label: {
-                            Label("Edit Theme", systemImage: "pencil")
-                        }
-
-                        Button(role: .destructive) {
-                            deleteCurrentCustomTheme()
-                        } label: {
-                            Label("Delete Theme", systemImage: "trash")
-                        }
-                    }
-                } label: {
-                    Label("Theme", systemImage: "paintpalette")
-                }
-
-                Divider()
-
-                // AI Settings
-                Button {
-                    viewModel.showAPIKeySettings = true
-                } label: {
-                    Label("AI Настройки", systemImage: "key")
-                }
-
-                #if DEBUG
-                Divider()
-                Button {
-                    viewModel.runDropCapDiagnostics()
-                } label: {
-                    Label("Diagnostics", systemImage: "stethoscope")
-                }
-                #endif
-            } label: {
-                Image(systemName: "ellipsis.circle")
-                    .font(.body.weight(.regular))
+                    .foregroundStyle(viewModel.isCurrentPageBookmarked ? theme.accent : theme.textPrimary)
                     .frame(width: 44, height: 44)
             }
-            .accessibilityLabel("Menu")
+
+            // Menu
+            toolbarMenu
         }
         .padding(.horizontal, 4)
     }
@@ -278,35 +124,32 @@ struct ReaderToolbar: View {
 
     private var bottomBar: some View {
         VStack(spacing: 8) {
-            // Page scrubber — interactive
+            // Progress bar (thin, accent colored)
             HStack(spacing: 12) {
                 Text(viewModel.progressText)
-                    .font(.caption.monospacedDigit())
-                    .foregroundStyle(.white.opacity(0.6))
+                    .font(theme.captionFont(size: 12).monospacedDigit())
+                    .foregroundStyle(theme.textSecondary)
                     .contentTransition(.numericText())
 
                 GeometryReader { geo in
                     ZStack(alignment: .leading) {
-                        // Track
                         Capsule()
-                            .fill(.white.opacity(0.15))
-                            .frame(height: isDraggingScrubber ? 6 : 3)
+                            .fill(theme.surface.opacity(0.3))
+                            .frame(height: isDraggingScrubber ? 5 : 2)
 
-                        // Fill
                         Capsule()
-                            .fill(.white.opacity(isDraggingScrubber ? 0.7 : 0.5))
+                            .fill(theme.accent)
                             .frame(
-                                width: max(3, geo.size.width * viewModel.progressFraction),
-                                height: isDraggingScrubber ? 6 : 3
+                                width: max(2, geo.size.width * viewModel.progressFraction),
+                                height: isDraggingScrubber ? 5 : 2
                             )
 
-                        // Thumb (visible on drag)
                         if isDraggingScrubber {
                             Circle()
-                                .fill(.white)
-                                .frame(width: 14, height: 14)
+                                .fill(theme.accent)
+                                .frame(width: 12, height: 12)
                                 .shadow(color: .black.opacity(0.3), radius: 2, y: 1)
-                                .offset(x: max(0, min(geo.size.width - 14, geo.size.width * viewModel.progressFraction - 7)))
+                                .offset(x: max(0, min(geo.size.width - 12, geo.size.width * viewModel.progressFraction - 6)))
                                 .transition(.scale.combined(with: .opacity))
                         }
                     }
@@ -315,60 +158,196 @@ struct ReaderToolbar: View {
                     .gesture(
                         DragGesture(minimumDistance: 0)
                             .onChanged { value in
-                                withAnimation(.easeOut(duration: 0.1)) {
-                                    isDraggingScrubber = true
-                                }
+                                withAnimation(.easeOut(duration: 0.1)) { isDraggingScrubber = true }
                                 let fraction = max(0, min(1, value.location.x / geo.size.width))
                                 let page = Int(fraction * Double(max(1, viewModel.book.totalPages - 1)))
                                 viewModel.goToPage(page)
                             }
                             .onEnded { _ in
-                                withAnimation(.easeOut(duration: 0.2)) {
-                                    isDraggingScrubber = false
-                                }
+                                withAnimation(.easeOut(duration: 0.2)) { isDraggingScrubber = false }
                                 viewModel.scheduleHideToolbar()
                             }
                     )
                 }
-                .frame(height: 24)
+                .frame(height: 20)
                 .animation(.easeInOut(duration: 0.15), value: isDraggingScrubber)
 
                 Text("\(Int(viewModel.progressFraction * 100))%")
-                    .font(.caption.monospacedDigit())
-                    .foregroundStyle(.white.opacity(0.6))
+                    .font(theme.captionFont(size: 12).monospacedDigit())
+                    .foregroundStyle(theme.textSecondary)
                     .contentTransition(.numericText())
             }
             .animation(.easeInOut(duration: 0.2), value: viewModel.progressFraction)
 
-            // Chapter name + progress
-            if let chapter = viewModel.currentChapter {
-                HStack(spacing: 8) {
-                    Text(chapter.title)
-                        .font(.caption2)
+            // Chapter info + action buttons
+            HStack(spacing: 0) {
+                // Chapter progress
+                if let chapter = viewModel.currentChapter {
+                    Text("\(chapter.title) — \(Int(viewModel.chapterProgress * 100))%")
+                        .font(theme.captionFont(size: 11))
+                        .foregroundStyle(theme.textSecondary)
                         .lineLimit(1)
-                        .foregroundStyle(.white.opacity(0.5))
+                }
 
-                    Text("— \(Int(viewModel.chapterProgress * 100))%")
-                        .font(.caption2.monospacedDigit())
-                        .foregroundStyle(.white.opacity(0.4))
-                        .contentTransition(.numericText())
+                Spacer()
+
+                // Action buttons row
+                HStack(spacing: 4) {
+                    // Reader Mode toggle
+                    Button {
+                        withAnimation { viewModel.toggleReaderMode() }
+                    } label: {
+                        Image(systemName: viewModel.isReaderMode ? "doc.richtext" : "book")
+                            .frame(width: 40, height: 40)
+                    }
+
+                    // Search
+                    Button {
+                        withAnimation { viewModel.showSearch = true }
+                    } label: {
+                        Image(systemName: "magnifyingglass")
+                            .frame(width: 40, height: 40)
+                    }
+
+                    // Font size (Reader Mode)
+                    if viewModel.isReaderMode {
+                        Button {
+                            showSettings = true
+                        } label: {
+                            Image(systemName: "textformat.size")
+                                .frame(width: 40, height: 40)
+                        }
+                    }
+
+                    // Highlights
+                    Button {
+                        viewModel.showAnnotationList = true
+                    } label: {
+                        Image(systemName: "highlighter")
+                            .frame(width: 40, height: 40)
+                    }
+                }
+                .font(.system(size: 15))
+                .foregroundStyle(theme.textPrimary.opacity(0.7))
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 8)
+    }
+
+    // MARK: - Menu
+
+    private var toolbarMenu: some View {
+        Menu {
+            // Table of Contents
+            Button {
+                viewModel.showTOC = true
+            } label: {
+                Label("Contents", systemImage: "list.bullet")
+            }
+
+            // Rendering mode (PDF mode only)
+            if !viewModel.isReaderMode {
+                Menu {
+                    ForEach(RenderingMode.allCases) { mode in
+                        Button {
+                            viewModel.setRenderingMode(mode)
+                        } label: {
+                            HStack {
+                                Text(mode.displayName)
+                                if viewModel.renderingMode == mode {
+                                    Image(systemName: "checkmark")
+                                }
+                            }
+                        }
+                    }
+                } label: {
+                    Label("Dark Mode", systemImage: "moon.circle")
                 }
             }
 
-            // Reading time (Reader Mode only)
-            if viewModel.isReaderMode && viewModel.totalWordCount > 0 {
-                Text("\(viewModel.estimatedReadingMinutes) min read")
-                    .font(.caption2)
-                    .foregroundStyle(.white.opacity(0.4))
+            Divider()
+
+            // Theme submenu
+            Menu {
+                ForEach(Theme.allThemes) { t in
+                    Button {
+                        viewModel.setTheme(t)
+                    } label: {
+                        HStack {
+                            Text(t.name)
+                            if viewModel.selectedTheme.id == t.id {
+                                Image(systemName: "checkmark")
+                            }
+                        }
+                    }
+                }
+
+                Divider()
+
+                Button {
+                    editingTheme = nil
+                    showThemeEditor = true
+                } label: {
+                    Label("New Theme", systemImage: "plus")
+                }
+
+                if !viewModel.selectedTheme.isBuiltIn {
+                    Button {
+                        editingTheme = viewModel.selectedTheme
+                        showThemeEditor = true
+                    } label: {
+                        Label("Edit Theme", systemImage: "pencil")
+                    }
+
+                    Button(role: .destructive) {
+                        deleteCurrentCustomTheme()
+                    } label: {
+                        Label("Delete Theme", systemImage: "trash")
+                    }
+                }
+            } label: {
+                Label("Theme", systemImage: "paintpalette")
             }
+
+            // Export
+            Button {
+                viewModel.exportAnnotations()
+            } label: {
+                Label("Export Highlights", systemImage: "square.and.arrow.up")
+            }
+
+            Divider()
+
+            // Display settings
+            Button {
+                showSettings = true
+            } label: {
+                Label("Display Settings", systemImage: "textformat.size")
+            }
+
+            // AI Settings
+            Button {
+                viewModel.showAPIKeySettings = true
+            } label: {
+                Label("AI Settings", systemImage: "key")
+            }
+
+            #if DEBUG
+            Divider()
+            Button {
+                viewModel.runDropCapDiagnostics()
+            } label: {
+                Label("Diagnostics", systemImage: "stethoscope")
+            }
+            #endif
+        } label: {
+            Image(systemName: "ellipsis.circle")
+                .font(.body.weight(.regular))
+                .frame(width: 44, height: 44)
         }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 12)
     }
 }
-
-// MARK: - Settings Sheet
-
 struct ReaderSettingsSheet: View {
     @Bindable var viewModel: ReaderViewModel
     @State private var brightness: Double = Double(UIScreen.main.brightness)
