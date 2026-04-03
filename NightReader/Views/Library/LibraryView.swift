@@ -27,6 +27,20 @@ struct LibraryView: View {
             }
             .navigationTitle(theme.libraryTitle)
             .navigationBarTitleDisplayMode(.large)
+            .onAppear {
+                // Update nav bar fonts for current theme
+                let appearance = UINavigationBarAppearance()
+                appearance.configureWithTransparentBackground()
+                appearance.largeTitleTextAttributes = [
+                    .foregroundColor: theme.accentUIColor,
+                    .font: theme.headlineUIFont(size: 34)
+                ]
+                appearance.titleTextAttributes = [
+                    .foregroundColor: theme.accentUIColor
+                ]
+                UINavigationBar.appearance().standardAppearance = appearance
+                UINavigationBar.appearance().scrollEdgeAppearance = appearance
+            }
             .toolbarColorScheme(.dark, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
@@ -109,14 +123,14 @@ struct LibraryView: View {
                 .foregroundStyle(theme.surface)
 
             Text("Your library is empty")
-                .font(.title3.weight(.regular))
+                .font(theme.headlineFont(size: 20))
                 .foregroundStyle(theme.textSecondary)
 
             Button {
                 viewModel.showImporter = true
             } label: {
                 Label("Add PDF", systemImage: "plus")
-                    .font(.body.weight(.medium))
+                    .font(theme.labelFont(size: 17))
                     .foregroundStyle(theme.accent)
                     .padding(.horizontal, 24)
                     .padding(.vertical, 12)
@@ -182,14 +196,14 @@ struct BookCard: View {
                 // Title + author + reading time
                 VStack(alignment: .leading, spacing: 3) {
                     Text(book.title)
-                        .font(.footnote.weight(.medium))
+                        .font(theme.labelFont(size: 13))
                         .foregroundStyle(theme.textPrimary)
                         .lineLimit(2)
                         .multilineTextAlignment(.leading)
 
                     if let author = book.author, !author.isEmpty {
                         Text(author)
-                            .font(.caption2)
+                            .font(theme.captionFont(size: 11))
                             .foregroundStyle(theme.textSecondary)
                             .lineLimit(1)
                     }
@@ -198,8 +212,8 @@ struct BookCard: View {
                         // Progress
                         if book.readProgress > 0 {
                             Text("\(Int(book.readProgress * 100))%")
-                                .font(.caption2.monospacedDigit())
-                                .foregroundStyle(theme.surface)
+                                .font(theme.captionFont(size: 11).monospacedDigit())
+                                .foregroundStyle(theme.accent)
                         }
 
                         // Reading time
@@ -208,9 +222,9 @@ struct BookCard: View {
                                 Image(systemName: "clock")
                                     .font(.system(size: 9))
                                 Text(readingTime)
-                                    .font(.caption2)
+                                    .font(theme.captionFont(size: 11))
                             }
-                            .foregroundStyle(theme.surface)
+                            .foregroundStyle(theme.textSecondary)
                         }
                     }
                 }

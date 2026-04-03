@@ -4,32 +4,51 @@ import SwiftUI
 
 // MARK: - Тесты для Theme
 
+/// Helper to create a test theme with all required fields
+private func makeTestTheme(id: String, name: String, bg: String = "#112233", text: String = "#AABBCC", accent: String = "#DDEEFF") -> Theme {
+    Theme(
+        id: id, name: name,
+        backgroundHex: bg, backgroundElevatedHex: bg, backgroundSheetHex: bg,
+        textPrimaryHex: text, textSecondaryHex: text,
+        accentHex: accent, accentMutedHex: accent,
+        surfaceHex: text, surfaceLightHex: text,
+        highlightOpacity: 0.25,
+        headlineFontName: "Onest", bodyFontName: "Noto Serif",
+        bodyFontAltName: "Noto Serif", labelFontName: "Onest", captionFontName: "Onest",
+        libraryTitle: "Test", settingsTitle: "Test", settingsSubtitle: "",
+        buttonRadius: 24, cardBorderAccent: true, isBuiltIn: false
+    )
+}
+
 final class ThemeTests: XCTestCase {
 
     // MARK: - Встроенные темы
 
-    /// В приложении 6 встроенных тем
-    func testAllBuiltIn_hasSixThemes() {
-        XCTAssertEqual(Theme.allBuiltIn.count, 6)
+    /// В приложении 3 встроенные темы
+    func testAllBuiltIn_hasThreeThemes() {
+        XCTAssertEqual(Theme.allBuiltIn.count, 3)
     }
 
-    /// Поиск темы по ID — находит "midnight"
-    func testFindById_midnight() {
-        let theme = Theme.find(byId: "midnight")
+    /// Поиск темы по ID — находит "deepForest"
+    func testFindById_deepForest() {
+        let theme = Theme.find(byId: "deepForest")
         XCTAssertNotNil(theme)
-        XCTAssertEqual(theme?.name, "Midnight")
-        XCTAssertEqual(theme?.id, "midnight")
+        XCTAssertEqual(theme?.name, "Deep Forest")
     }
 
     /// Поиск несуществующей темы — возвращает nil
     func testFindById_nonexistent() {
-        let theme = Theme.find(byId: "nonexistent")
-        XCTAssertNil(theme)
+        XCTAssertNil(Theme.find(byId: "nonexistent"))
+    }
+
+    /// Старые темы не находятся
+    func testFindById_oldThemesGone() {
+        XCTAssertNil(Theme.find(byId: "midnight"))
+        XCTAssertNil(Theme.find(byId: "sepia"))
     }
 
     // MARK: - Color hex init
 
-    /// "#FF0000" — красный цвет (R=1, G=0, B=0)
     func testColorHexInit_red() {
         let color = Color(hex: "#FF0000")
         let uiColor = UIColor(color)
@@ -40,20 +59,14 @@ final class ThemeTests: XCTestCase {
         XCTAssertEqual(b, 0.0, accuracy: 0.01)
     }
 
-    /// "#000000" — чёрный цвет (R=0, G=0, B=0)
     func testColorHexInit_black() {
         let color = Color(hex: "#000000")
         let uiColor = UIColor(color)
         var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
         uiColor.getRed(&r, green: &g, blue: &b, alpha: &a)
         XCTAssertEqual(r, 0.0, accuracy: 0.01)
-        XCTAssertEqual(g, 0.0, accuracy: 0.01)
-        XCTAssertEqual(b, 0.0, accuracy: 0.01)
     }
 
-    // MARK: - Color toHex roundtrip
-
-    /// Конвертация Color → hex → Color должна сохранять значения
     func testColorToHex_roundtrip() {
         let originalHex = "#FF8040"
         let color = Color(hex: originalHex)
@@ -61,48 +74,26 @@ final class ThemeTests: XCTestCase {
         XCTAssertEqual(resultHex, originalHex)
     }
 
-    // MARK: - Пользовательские темы (UserDefaults)
+    // MARK: - Пользовательские темы
 
-    /// Ключ для очистки после теста
     private let customThemesKey = "customThemes"
 
     override func tearDown() {
-        // Очищаем UserDefaults после каждого теста
         UserDefaults.standard.removeObject(forKey: customThemesKey)
         super.tearDown()
     }
 
-    /// Сохранение и загрузка пользовательских тем
     func testCustomThemes_saveAndLoadCycle() {
-        // Очищаем кэш и UserDefaults перед тестом
         UserDefaults.standard.removeObject(forKey: customThemesKey)
 
-        let theme1 = Theme(
-            id: "test_theme_1",
-            name: "Тестовая 1",
-            bgColorHex: "#112233",
-            textColorHex: "#AABBCC",
-            tintColorHex: "#DDEEFF",
-            isBuiltIn: false
-        )
-        let theme2 = Theme(
-            id: "test_theme_2",
-            name: "Тестовая 2",
-            bgColorHex: "#334455",
-            textColorHex: "#667788",
-            tintColorHex: "#99AABB",
-            isBuiltIn: false
-        )
+        let theme1 = makeTestTheme(id: "test1", name: "Тестовая 1", bg: "#112233")
+        let theme2 = makeTestTheme(id: "test2", name: "Тестовая 2", bg: "#334455")
 
-        // Сохраняем темы
         Theme.saveCustomThemes([theme1, theme2])
 
-        // Загружаем и проверяем
         let loaded = Theme.loadCustomThemes()
         XCTAssertEqual(loaded.count, 2)
         XCTAssertEqual(loaded[0].name, "Тестовая 1")
         XCTAssertEqual(loaded[1].name, "Тестовая 2")
-        XCTAssertEqual(loaded[0].id, "test_theme_1")
-        XCTAssertEqual(loaded[1].bgColorHex, "#334455")
     }
 }

@@ -91,7 +91,7 @@ struct Theme: Identifiable, Codable, Hashable {
     // MARK: - Font Helpers
 
     func headlineFont(size: CGFloat) -> Font {
-        .custom(headlineFontName, size: size)
+        .custom(headlineFontName, size: size).bold()
     }
 
     func bodyFont(size: CGFloat) -> Font {
@@ -103,7 +103,7 @@ struct Theme: Identifiable, Codable, Hashable {
     }
 
     func labelFont(size: CGFloat) -> Font {
-        .custom(labelFontName, size: size)
+        .custom(labelFontName, size: size).weight(.medium)
     }
 
     func captionFont(size: CGFloat) -> Font {
@@ -111,7 +111,12 @@ struct Theme: Identifiable, Codable, Hashable {
     }
 
     func headlineUIFont(size: CGFloat) -> UIFont {
-        UIFont(name: headlineFontName, size: size) ?? .systemFont(ofSize: size, weight: .bold)
+        // Variable fonts: use family name + traits
+        if let font = UIFont(name: headlineFontName, size: size) {
+            let desc = font.fontDescriptor.withSymbolicTraits(.traitBold)
+            return desc.map { UIFont(descriptor: $0, size: size) } ?? font
+        }
+        return .systemFont(ofSize: size, weight: .bold)
     }
 
     func bodyUIFont(size: CGFloat) -> UIFont {
@@ -137,11 +142,11 @@ struct Theme: Identifiable, Codable, Hashable {
         surfaceHex: "#4D5B4D",
         surfaceLightHex: "#8B9D83",
         highlightOpacity: 0.25,
-        headlineFontName: "Onest-Bold",
-        bodyFontName: "NotoSerif",
-        bodyFontAltName: "SourceSerif4",
-        labelFontName: "Onest-Medium",
-        captionFontName: "Onest-Regular",
+        headlineFontName: "Onest",
+        bodyFontName: "Noto Serif",
+        bodyFontAltName: "Source Serif 4",
+        labelFontName: "Onest",
+        captionFontName: "Onest",
         libraryTitle: "Private Collection",
         settingsTitle: "Reading Interface",
         settingsSubtitle: "Fine-tune your nocturnal sanctuary for the perfect focus.",
@@ -163,9 +168,9 @@ struct Theme: Identifiable, Codable, Hashable {
         surfaceHex: "#2A2520",
         surfaceLightHex: "#00DCFF",
         highlightOpacity: 0.2,
-        headlineFontName: "NotoSerif-Bold",
+        headlineFontName: "Noto Serif",
         bodyFontName: "Literata",
-        bodyFontAltName: "NotoSerif",
+        bodyFontAltName: "Noto Serif",
         labelFontName: "Inter",
         captionFontName: "Inter",
         libraryTitle: "The Midnight Library",
@@ -189,11 +194,11 @@ struct Theme: Identifiable, Codable, Hashable {
         surfaceHex: "#2E3034",
         surfaceLightHex: "#97B0FF",
         highlightOpacity: 0.2,
-        headlineFontName: "Manrope-Bold",
-        bodyFontName: "PTSerif-Regular",
-        bodyFontAltName: "Spectral-Regular",
-        labelFontName: "Manrope-Medium",
-        captionFontName: "Manrope-Regular",
+        headlineFontName: "Manrope",
+        bodyFontName: "PT Serif",
+        bodyFontAltName: "Spectral",
+        labelFontName: "Manrope",
+        captionFontName: "Manrope",
         libraryTitle: "Your Library",
         settingsTitle: "Reading Preferences",
         settingsSubtitle: "Calibrate the quiet.",
