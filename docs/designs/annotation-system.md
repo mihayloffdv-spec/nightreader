@@ -127,3 +127,72 @@ ExportService (extended for Obsidian .md)
 - Direct Obsidian vault write
 - Cross-book connections
 - Spaced repetition
+
+## Eng Review Decisions (2026-04-03)
+
+### Architecture decisions from eng review + Codex outside voice:
+1. **JSON as sole source of truth** — no PDF annotations written to file. Highlights rendered as in-memory PDFAnnotation overlay.
+2. **Store bounds (CGRect) in JSON** — text + page alone can't re-anchor highlights. Each BookHighlight stores array of line rects.
+3. **Add summary fields to Book model** — `highlightCount` and `actionCount` in SwiftData for library badges (avoid JSON I/O per card).
+4. **Both PDF + Reader Mode annotations in MVP** — BookHighlight has two anchor types: PDF bounds for PDF mode, character offsets for Reader Mode.
+5. **Extend existing PDFKitView menu** — don't rebuild. PDFKitView already has "Highlight" menu item.
+6. **One-time migration** — import existing PDF annotations into JSON on first load.
+7. **Cleanup on delete** — delete JSON file when book is deleted.
+8. **"Continue from last thought"** — defined as last created highlight (by createdAt). Save immediately.
+
+## Design Review Decisions (2026-04-03)
+
+### Interaction states (added)
+| Feature | Loading | Empty | Error | Success |
+|---|---|---|---|---|
+| Highlight creation | — | — | "Не удалось сохранить" | Yellow fade-in 0.3s + haptic |
+| Annotation sheet | — | Both fields empty (valid) | — | Sheet dismisses with spring |
+| NotebookView | — | "Нет заметок. Выделите текст..." | — | Card list with filters |
+| Export | "Подготовка..." spinner | Button disabled (0 highlights) | "Не удалось экспортировать" | Share Sheet |
+| Chapter Review (v2) | Shimmer placeholders | "Нет вопросов для этой главы" | "AI недоступен" | Questions one at a time |
+| Session recap | — | "Приятного чтения" (< 1 min) | — | "Сегодня: N хайлайтов, N ⚡" |
+
+### Design decisions
+1. **Tap on highlight → opens annotation sheet** — no separate "Annotate" button (subtraction)
+2. **Color picker with 5 colors** — existing HighlightColor enum (yellow, green, blue, pink, orange)
+3. **Soft fade-in animation** (0.3s) + haptic on highlight creation
+4. **Chapter Review**: skip button + swipe back between questions
+5. **Post-Reading trigger**: auto-detect at last 5% of pages + manual button
+
+### Typography spec
+| Element | Font | Size | Weight |
+|---|---|---|---|
+| Sheet: highlight preview | System | .callout | .regular, italic |
+| Sheet: section labels | System | .caption | .medium |
+| Sheet: text fields | System | .body | .regular |
+| Notebook: highlight text | System | .subheadline | .regular |
+| Notebook: metadata | System | .caption | .regular |
+| Chapter Review: question | System | .title3 | .regular |
+| Recap card: stats | System | .headline | .semibold |
+
+### Color spec (using Theme system)
+| Element | Source | Midnight value |
+|---|---|---|
+| Highlight overlay | Custom | Color.yellow.opacity(0.3) |
+| Sheet background | Theme bg lighter | #1A1A1A |
+| Sheet text fields | Even lighter | #222222 |
+| "Готово" button | Theme tint | #FFF0D4 |
+| Notebook card left border | Highlight color | per-color |
+| AI feedback text | Theme tint muted | #FFF0D4 opacity 0.8 |
+
+### Accessibility
+- Dynamic Type: automatic via SwiftUI .font() modifiers
+- VoiceOver: .accessibilityLabel on all buttons, filter chips, emoji labels
+- Reduced Motion: respect UIAccessibility.isReduceMotionEnabled for animations
+- Touch targets: 44pt minimum (SwiftUI default)
+
+## GSTACK REVIEW REPORT
+
+| Review | Trigger | Why | Runs | Status | Findings |
+|--------|---------|-----|------|--------|----------|
+| CEO Review | `/plan-ceo-review` | Scope & strategy | 1 | CLEAR | 7 proposals, 5 accepted, 2 deferred |
+| Outside Voice | `/codex review` | Independent 2nd opinion | 1 | issues_found | 3 tensions resolved (bounds, summary fields, Reader Mode) |
+| Eng Review | `/plan-eng-review` | Architecture & tests (required) | 2 | CLEAR | 1 issue, 1 critical gap (zoom alignment) |
+| Design Review | `/plan-design-review` | UI/UX gaps | 1 | CLEAR | score: 4/10 → 8/10, 6 decisions |
+
+**VERDICT:** CEO + ENG + DESIGN CLEARED — ready to implement.
