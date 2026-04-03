@@ -9,27 +9,33 @@ struct MainTabView: View {
         TabView(selection: $selectedTab) {
             LibraryView()
                 .tabItem {
-                    Image(systemName: "books.vertical")
+                    Image(systemName: "book.fill")
                     Text("Library")
                 }
                 .tag(0)
 
-            // Notebook placeholder — will be replaced with full NotebookView
             NotebookPlaceholderView()
                 .tabItem {
-                    Image(systemName: "bookmark.fill")
-                    Text("Notebook")
+                    Image(systemName: "magnifyingglass")
+                    Text("Explore")
                 }
                 .tag(1)
 
-            SettingsView()
+            NotebookPlaceholderView()
                 .tabItem {
-                    Image(systemName: "gearshape")
-                    Text("Settings")
+                    Image(systemName: "square.and.pencil")
+                    Text("Journal")
                 }
                 .tag(2)
+
+            SettingsView()
+                .tabItem {
+                    Image(systemName: "person")
+                    Text("Profile")
+                }
+                .tag(3)
         }
-        .tint(theme.accent)
+        .tint(Color(hex: "#CC704B"))
         .onAppear {
             let tabAppearance = UITabBarAppearance()
             tabAppearance.configureWithTransparentBackground()
