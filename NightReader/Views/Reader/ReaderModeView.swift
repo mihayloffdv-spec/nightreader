@@ -183,6 +183,19 @@ struct ReaderModeView: View {
             .padding(.bottom, 24) // mb-6
             .padding(.horizontal, 24)
 
+        case .richText(let attrString):
+            // Rich text block — preserves bold/italic from PDF
+            RichTextBlock(
+                attributedText: attrString,
+                fontSize: fontSize,
+                customFontName: resolvedBodyFont,
+                textColor: onSurface,
+                onAIAction: onAIAction
+            )
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.bottom, 32)
+            .padding(.horizontal, 24)
+
         case .image(let image):
             // aspect-[16/9] rounded-xl shadow-2xl, -mx-4
             Image(uiImage: image)
@@ -373,6 +386,93 @@ private struct ReaderTextBlock: UIViewRepresentable {
         let newText = NSAttributedString(string: text, attributes: attributes)
         if tv.attributedText != newText {
             tv.attributedText = newText
+        }
+        tv.onAIAction = onAIAction
+    }
+
+    func sizeThatFits(_ proposal: ProposedViewSize, uiView: ReaderTextView, context: Context) -> CGSize? {
+        guard let width = proposal.width, width > 0 else { return nil }
+        let size = uiView.sizeThatFits(CGSize(width: width, height: CGFloat.greatestFiniteMagnitude))
+        return CGSize(width: width, height: size.height)
+    }
+}
+
+// MARK: - Rich Text Block (preserves bold/italic from PDF)
+
+private struct RichTextBlock: UIViewRepresentable {
+    let attributedText: NSAttributedString
+    let fontSize: CGFloat
+    var customFontName: String? = nil
+    let textColor: UIColor
+    let onAIAction: (AIActionType, String) -> Void
+
+    func makeUIView(context: Context) -> ReaderTextView {
+        let tv = ReaderTextView()
+        tv.isEditable = false
+        tv.isSelectable = true
+        tv.isScrollEnabled = false
+        tv.textContainerInset = .zero
+        tv.textContainer.lineFragmentPadding = 0
+        tv.backgroundColor = .clear
+        tv.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        tv.tintColor = UIColor.systemBlue.withAlphaComponent(0.6)
+        tv.onAIAction = onAIAction
+        return tv
+    }
+
+    func updateUIView(_ tv: ReaderTextView, context: Context) {
+        // Re-apply fonts at the user's chosen size with the chosen custom font
+        let mutable = NSMutableAttributedString(attributedString: attributedText)
+        let fullRange = NSRange(location: 0, length: mutable.length)
+
+        mutable.enumerateAttribute(.font, in: fullRange) { value, range, _ in
+            guard let originalFont = value as? UIFont else { return }
+            let traits = originalFont.fontDescriptor.symbolicTraits
+            let isBold = traits.contains(.traitBold)
+            let isItalic = traits.contains(.traitItalic)
+
+            // Determine target size (headings stay proportionally larger)
+            let originalSize = originalFont.pointSize
+            let isHeading = originalSize > fontSize * 1.2
+            let targetSize = isHeading ? fontSize * 1.5 : fontSize
+
+            // Build font with user's choice
+            var font: UIFont
+            if let name = customFontName, let customFont = UIFont(name: name, size: targetSize) {
+                font = customFont
+            } else {
+                font = UIFont.systemFont(ofSize: targetSize)
+            }
+
+            if isBold {
+                if let d = font.fontDescriptor.withSymbolicTraits(.traitBold) {
+                    font = UIFont(descriptor: d, size: targetSize)
+                }
+            }
+            if isItalic {
+                if let d = font.fontDescriptor.withSymbolicTraits(.traitItalic) {
+                    font = UIFont(descriptor: d, size: targetSize)
+                }
+            }
+            if isBold && isItalic {
+                if let d = font.fontDescriptor.withSymbolicTraits([.traitBold, .traitItalic]) {
+                    font = UIFont(descriptor: d, size: targetSize)
+                }
+            }
+
+            mutable.addAttribute(.font, value: font, range: range)
+        }
+
+        // Apply text color and paragraph style
+        let paragraphStyle = NSMutableParagraphStyle()
+        paragraphStyle.lineSpacing = fontSize * 0.8
+        paragraphStyle.alignment = .natural
+
+        mutable.addAttribute(.foregroundColor, value: textColor, range: fullRange)
+        mutable.addAttribute(.paragraphStyle, value: paragraphStyle, range: fullRange)
+
+        if tv.attributedText != mutable {
+            tv.attributedText = mutable
         }
         tv.onAIAction = onAIAction
     }

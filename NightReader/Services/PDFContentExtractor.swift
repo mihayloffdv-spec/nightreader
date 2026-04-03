@@ -64,7 +64,48 @@ enum PDFContentExtractor {
             return []
         }
 
-        // 5. Get page text, recover drop caps
+        // 5. Try rich text extraction first (preserves bold/italic/drop caps)
+        let richRuns = RichTextExtractor.extractRichText(from: page)
+        if richRuns.count > 3 { // at least a few text runs found
+            let attrString = RichTextExtractor.buildAttributedString(
+                from: richRuns,
+                baseFontSize: 18, // will be overridden by ReaderModeView
+                bodyFontName: "Noto Serif",
+                headlineFontName: "Onest",
+                textColor: .white // placeholder, overridden by view
+            )
+            if attrString.length > 10 {
+                // Split attributed string into blocks by double-newline
+                let fullString = attrString.string
+                let paragraphs = fullString.components(separatedBy: "\n\n")
+                var blocks: [ContentBlock] = []
+                var location = 0
+                for para in paragraphs {
+                    let trimmed = para.trimmingCharacters(in: .whitespacesAndNewlines)
+                    guard !trimmed.isEmpty else {
+                        location += para.count + 2
+                        continue
+                    }
+                    let range = NSRange(location: location, length: para.count)
+                    if range.location + range.length <= attrString.length {
+                        let sub = attrString.attributedSubstring(from: range)
+                        blocks.append(.richText(sub))
+                    } else {
+                        blocks.append(.text(trimmed))
+                    }
+                    location += para.count + 2
+                }
+                if !blocks.isEmpty {
+                    #if DEBUG
+                    let pageIndex = page.document?.index(for: page) ?? -1
+                    print("[PDFExtractor] Page \(pageIndex): rich text extraction → \(blocks.count) blocks (\(richRuns.count) runs)")
+                    #endif
+                    return blocks
+                }
+            }
+        }
+
+        // 5b. Fallback: plain text extraction (lose formatting but more reliable)
         guard let pageString = page.string,
               !pageString.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             if let image = PageRenderer.renderFullPage(page, fitWidth: pageWidth) {
@@ -139,6 +180,7 @@ enum PDFContentExtractor {
             switch b {
             case .text(let t): return "text(\(t.prefix(30)))"
             case .heading(let t): return "heading(\(t.prefix(30)))"
+            case .richText(let a): return "richText(\(a.string.prefix(30)))"
             case .image: return "image"
             case .snapshot: return "snapshot"
             }

@@ -231,6 +231,15 @@ struct DayModeReadingView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.bottom, fontSize * 0.6)
 
+        case .richText(let attrString):
+            // Rich text in day mode — re-apply day colors
+            let _ = 0 // SwiftUI ViewBuilder workaround
+            RichDayTextView(attributedText: attrString, fontSize: fontSize,
+                           bodyFontName: theme.bodyFontName,
+                           textColor: UIColor(theme.dayTextPrimary))
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.bottom, fontSize * 0.6)
+
         case .heading(let content):
             Text(content)
                 .font(theme.headlineFont(size: fontSize * 1.3))
@@ -302,5 +311,42 @@ struct DayModeReadingView: View {
             }
         }
         return result
+    }
+}
+
+// MARK: - Rich text view for Day Mode
+
+private struct RichDayTextView: UIViewRepresentable {
+    let attributedText: NSAttributedString
+    let fontSize: CGFloat
+    let bodyFontName: String
+    let textColor: UIColor
+
+    func makeUIView(context: Context) -> UITextView {
+        let tv = UITextView()
+        tv.isEditable = false
+        tv.isSelectable = true
+        tv.isScrollEnabled = false
+        tv.textContainerInset = .zero
+        tv.textContainer.lineFragmentPadding = 0
+        tv.backgroundColor = .clear
+        return tv
+    }
+
+    func updateUIView(_ tv: UITextView, context: Context) {
+        let mutable = NSMutableAttributedString(attributedString: attributedText)
+        let range = NSRange(location: 0, length: mutable.length)
+        mutable.addAttribute(.foregroundColor, value: textColor, range: range)
+
+        let style = NSMutableParagraphStyle()
+        style.lineSpacing = fontSize * 0.4
+        mutable.addAttribute(.paragraphStyle, value: style, range: range)
+
+        tv.attributedText = mutable
+    }
+
+    func sizeThatFits(_ proposal: ProposedViewSize, uiView: UITextView, context: Context) -> CGSize? {
+        guard let width = proposal.width, width > 0 else { return nil }
+        return uiView.sizeThatFits(CGSize(width: width, height: .greatestFiniteMagnitude))
     }
 }

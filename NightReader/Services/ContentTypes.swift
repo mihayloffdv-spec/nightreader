@@ -6,6 +6,7 @@ import UIKit
 enum ContentBlock {
     case text(String)
     case heading(String)   // Detected heading (larger font size in PDF)
+    case richText(NSAttributedString) // Formatted text with bold/italic preserved
     case image(UIImage)    // Extracted raster image from PDF
     case snapshot(UIImage)  // Rendered region snapshot (tables, diagrams, etc.)
 }
@@ -49,7 +50,7 @@ final class BlockCache {
         let key = "\(pageIndex)_\(Int(width.rounded()))" as NSString
         let cost = blocks.reduce(0) { sum, block in
             switch block {
-            case .text, .heading: return sum + 256
+            case .text, .heading, .richText: return sum + 256
             case .image(let img), .snapshot(let img):
                 let bytes = Int(img.size.width * img.scale * img.size.height * img.scale * 4)
                 return sum + bytes

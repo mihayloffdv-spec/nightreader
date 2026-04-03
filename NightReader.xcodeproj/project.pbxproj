@@ -68,6 +68,7 @@
 		D0000004 /* NotebookView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1000004 /* NotebookView.swift */; };
 		D0000005 /* DayModeReadingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1000005 /* DayModeReadingView.swift */; };
 		D0000006 /* PageLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1000006 /* PageLoader.swift */; };
+		D0000007 /* RichTextExtractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1000007 /* RichTextExtractor.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -144,6 +145,7 @@
 		D1000004 /* NotebookView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotebookView.swift; sourceTree = "<group>"; };
 		D1000005 /* DayModeReadingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DayModeReadingView.swift; sourceTree = "<group>"; };
 		D1000006 /* PageLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PageLoader.swift; sourceTree = "<group>"; };
+		D1000007 /* RichTextExtractor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RichTextExtractor.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -288,6 +290,7 @@
 				C1000033 /* KeychainManager.swift */,
 				C1000034 /* ClaudeAPIService.swift */,
 				D1000006 /* PageLoader.swift */,
+				D1000007 /* RichTextExtractor.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -497,6 +500,7 @@
 				D0000004 /* NotebookView.swift in Sources */,
 				D0000005 /* DayModeReadingView.swift in Sources */,
 				D0000006 /* PageLoader.swift in Sources */,
+				D0000007 /* RichTextExtractor.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
