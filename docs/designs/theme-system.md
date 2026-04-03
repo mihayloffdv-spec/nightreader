@@ -29,11 +29,11 @@ Screens: `/tmp/stitch-screens/` (local reference)
 ### Шрифты
 | Token | Шрифт | Использование |
 |-------|-------|---------------|
-| `headlineFont` | Plus Jakarta Sans Bold | Названия книг, заголовки экранов |
+| `headlineFont` | Onest Bold | Названия книг, заголовки экранов (замена Plus Jakarta Sans, нет кириллицы) |
 | `bodyFont` | Noto Serif Regular | Текст чтения |
-| `bodyFontAlt` | Source Serif Regular | Альтернативный шрифт чтения (в настройках) |
-| `labelFont` | Plus Jakarta Sans Medium | Кнопки, лейблы, навигация |
-| `captionFont` | Plus Jakarta Sans Regular | Метаданные, подписи |
+| `bodyFontAlt` | Source Serif 4 Regular | Альтернативный шрифт чтения (в настройках) |
+| `labelFont` | Onest Medium | Кнопки, лейблы, навигация |
+| `captionFont` | Onest Regular | Метаданные, подписи |
 
 ### Язык UI
 | Элемент | Текст |
@@ -140,7 +140,7 @@ Screens: `/tmp/stitch-screens/` (local reference)
 | Token | Шрифт | Использование |
 |-------|-------|---------------|
 | `headlineFont` | Manrope Bold | Геометрический sans-serif, современный |
-| `bodyFont` | Charter Regular | Текст чтения (разборчивый, humanist serif) |
+| `bodyFont` | PT Serif Regular | Текст чтения (замена Charter, идеальная кириллица, Paratype) |
 | `bodyFontAlt` | Spectral / EB Garamond | Альтернативные шрифты чтения |
 | `labelFont` | Manrope Medium | Кнопки, лейблы |
 | `captionFont` | Manrope Regular | Метаданные |
@@ -286,17 +286,25 @@ struct Theme {
 - `UserDefaults` ключ `defaultThemeId` остаётся, значения меняются
 
 ### Шрифты — Бандл
-Все кастомные шрифты нужно добавить в Xcode bundle:
-- **Plus Jakarta Sans** (Bold, Medium, Regular)
-- **Noto Serif** (Bold, Regular, Italic)
-- **Source Serif 4** (Regular, Italic)
-- **Literata** (Regular, Italic)
-- **Manrope** (Bold, Medium, Regular)
-- **Charter** (Regular, Italic)
-- **Spectral** (Regular, Italic)
-- **EB Garamond** (Regular, Italic)
-- **Inter** (Medium, Regular)
+Все кастомные шрифты нужно добавить в Xcode bundle.
+Все шрифты проверены на поддержку кириллицы.
 
-Итого: 9 семейств, ~20 файлов .ttf/.otf
+| Семейство | Начертания | Тема | Кириллица |
+|-----------|-----------|------|-----------|
+| **Onest** | Bold, Medium, Regular | Deep Forest (заголовки, лейблы) | ✅ Российский дизайн |
+| **Noto Serif** | Bold, Regular, Italic | Deep Forest (чтение), Classic Midnight (alt) | ✅ Google Noto |
+| **Source Serif 4** | Regular, Italic | Deep Forest (alt чтение) | ✅ Adobe |
+| **Literata** | Regular, Italic | Classic Midnight (чтение) | ✅ Google Play Books |
+| **Manrope** | Bold, Medium, Regular | Minimalist Slate (заголовки, лейблы) | ✅ |
+| **PT Serif** | Bold, Regular, Italic | Minimalist Slate (чтение) | ✅ Paratype, эталон |
+| **Spectral** | Regular, Italic | Minimalist Slate (alt чтение) | ✅ |
+| **EB Garamond** | Regular, Italic | Minimalist Slate (alt чтение) | ✅ |
+| **Inter** | Medium, Regular | Classic Midnight (лейблы) | ✅ |
+
+Итого: 9 семейств, ~22 файла .ttf/.otf
+
+Заменены шрифты без кириллицы:
+- ~~Plus Jakarta Sans~~ → **Onest** (Deep Forest)
+- ~~Charter~~ → **PT Serif** (Minimalist Slate)
 
 Info.plist → `UIAppFonts` массив с именами файлов.
