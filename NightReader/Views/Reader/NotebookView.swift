@@ -1,29 +1,10 @@
 import SwiftUI
 import PDFKit
 
-// MARK: - Notebook View (Deep Forest design)
+// MARK: - Notebook View (pixel-perfect from HTML mockup)
 //
-// Full-screen view of all highlights for a book.
-// Pill filters, highlight cards with reactions/actions, bottom quote.
-//
-// ┌─────────────────────────────────────────┐
-// │  NightReader                        ↗   │
-// │  CURRENT READING                        │
-// │  The Hidden Life of Trees               │
-// │  Peter Wohlleben · 42%                  │
-// │                                         │
-// │  [ALL] [REACTIONS] [ACTIONS]            │
-// │                                         │
-// │  "A tree can be only as strong as..."   │
-// │  🎭 This resonates deeply...            │
-// │  ⚡ Research urban forestry...           │
-// │                                         │
-// │  "They are very slow. Their heartbeat   │
-// │   is measured in years."                │
-// │  🎭 Beautiful metaphor                  │
-// │                                         │
-// │  "Reading is a conversation..."         │
-// └─────────────────────────────────────────┘
+// Journal-style highlight cards with iOS bottom-sheet aesthetic.
+// Each card: drag indicator, page ref, blockquote, reaction box.
 
 struct NotebookView: View {
     let document: PDFDocument?
@@ -35,35 +16,62 @@ struct NotebookView: View {
     @Environment(\.dismiss) private var dismiss
 
     @State private var annotations: [AnnotationInfo] = []
-    @State private var selectedFilter: NotebookFilter = .all
+    @State private var selectedFilter: Int = 0
 
-    enum NotebookFilter: String, CaseIterable {
-        case all = "All"
-        case reactions = "Reactions"
-        case actions = "Actions"
-    }
+    // Exact colors from HTML
+    private let surface = Color(hex: "#0e150e")
+    private let surfaceLowest = Color(hex: "#091009")
+    private let surfaceContainerLow = Color(hex: "#161d16")
+    private let surfaceContainerHigh = Color(hex: "#242c24")
+    private let surfaceContainerHighest = Color(hex: "#2f372e")
+    private let onSurface = Color(hex: "#dde5d8")
+    private let onSurfaceVariant = Color(hex: "#c5c7c1")
+    private let primary = Color(hex: "#ffb599")
+    private let onPrimary = Color(hex: "#5a1c00")
+    private let accent = Color(hex: "#CC704B")
+    private let accentDark = Color(hex: "#bd6440")
+    private let outline = Color(hex: "#8e928b")
+    private let outlineVariant = Color(hex: "#444843")
+    private let stone400 = Color(hex: "#a8a29e")
+
+    private let filters = ["All", "Reactions", "Actions"]
 
     var body: some View {
         ZStack {
-            theme.background.ignoresSafeArea()
+            // journal-backdrop: gradient surface → surface-lowest
+            LinearGradient(colors: [surface, surfaceLowest], startPoint: .top, endPoint: .bottom)
+                .ignoresSafeArea()
 
-            VStack(alignment: .leading, spacing: 0) {
-                // Header
-                header
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    // Editorial header
+                    journalHeader
+                        .padding(.horizontal, 24)
+                        .padding(.bottom, 40) // mb-10
+
+                    // Filter tabs
+                    filterTabs
+                        .padding(.horizontal, 24)
+                        .padding(.bottom, 48) // mb-12
+
+                    // Cards stack — space-y-8 = 32px
+                    LazyVStack(spacing: 32) {
+                        if filteredAnnotations.isEmpty {
+                            emptyState
+                        } else {
+                            ForEach(filteredAnnotations) { info in
+                                journalCard(info)
+                                    .onTapGesture {
+                                        dismiss()
+                                        onSelectAnnotation(info.pageIndex)
+                                    }
+                            }
+                        }
+                    }
                     .padding(.horizontal, 24)
-                    .padding(.top, 16)
-
-                // Filters
-                filterPills
-                    .padding(.horizontal, 24)
-                    .padding(.top, 16)
-
-                // Content
-                if filteredAnnotations.isEmpty {
-                    emptyState
-                } else {
-                    highlightList
+                    .padding(.bottom, 40)
                 }
+                .padding(.top, 16)
             }
         }
         .onAppear { loadAnnotations() }
@@ -71,184 +79,212 @@ struct NotebookView: View {
 
     // MARK: - Header
 
-    private var header: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack {
-                Text("NightReader")
-                    .font(theme.labelFont(size: 14))
-                    .foregroundStyle(theme.textSecondary)
+    private var journalHeader: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            // Top row: "CURRENT READING" + "24 Highlights"
+            HStack(alignment: .bottom) {
+                Text("Current Reading")
+                    .font(.custom("Onest", size: 12).bold())
+                    .textCase(.uppercase)
+                    .tracking(2.4) // 0.2em
+                    .foregroundStyle(primary)
 
                 Spacer()
 
-                Button {
-                    dismiss()
-                } label: {
-                    Image(systemName: "square.and.arrow.up")
-                        .font(.body)
-                        .foregroundStyle(theme.textSecondary)
-                }
+                Text("\(annotations.count) Highlights")
+                    .font(.custom("Onest", size: 10))
+                    .foregroundStyle(outline)
             }
+            .padding(.bottom, 8) // mb-2
 
-            Text("CURRENT READING")
-                .font(theme.captionFont(size: 10))
-                .foregroundStyle(theme.textSecondary)
-                .kerning(2)
-
+            // Title — 4xl extrabold tracking-tight leading-none
             Text(bookTitle)
-                .font(theme.headlineFont(size: 26))
-                .foregroundStyle(theme.textPrimary)
+                .font(.custom("Onest", size: 36).weight(.heavy))
+                .tracking(-0.4)
+                .foregroundStyle(onSurface)
+                .lineLimit(3)
+                .padding(.bottom, 16) // mb-4
 
-            HStack(spacing: 8) {
-                if let author = bookAuthor, !author.isEmpty {
-                    Text(author)
-                        .font(theme.bodyFont(size: 14))
-                        .italic()
-                        .foregroundStyle(theme.textSecondary)
-                }
-
-                if readProgress > 0 {
-                    Text("· \(Int(readProgress * 100))%")
-                        .font(theme.captionFont(size: 14))
-                        .foregroundStyle(theme.accent)
-                }
+            // Author — italic opacity-80
+            if let author = bookAuthor, !author.isEmpty {
+                Text(author)
+                    .font(.custom("Noto Serif", size: 16))
+                    .italic()
+                    .foregroundStyle(onSurfaceVariant.opacity(0.8))
             }
         }
     }
 
-    // MARK: - Filters
+    // MARK: - Filter Tabs
 
-    private var filterPills: some View {
-        HStack(spacing: 10) {
-            ForEach(NotebookFilter.allCases, id: \.self) { filter in
+    private var filterTabs: some View {
+        HStack(spacing: 8) { // gap-2
+            ForEach(Array(filters.enumerated()), id: \.offset) { index, title in
                 Button {
-                    withAnimation(.easeInOut(duration: 0.2)) {
-                        selectedFilter = filter
-                    }
+                    withAnimation(.easeInOut(duration: 0.2)) { selectedFilter = index }
                 } label: {
-                    Text(filter.rawValue.uppercased())
-                        .font(theme.captionFont(size: 11))
-                        .kerning(1)
-                        .foregroundStyle(selectedFilter == filter ? theme.background : theme.textSecondary)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 8)
+                    Text(title)
+                        .font(.custom("Onest", size: 12).bold())
+                        .textCase(.uppercase)
+                        .tracking(4) // tracking-widest
+                        .foregroundStyle(selectedFilter == index ? onPrimary : stone400)
+                        .padding(.horizontal, 24) // px-6
+                        .padding(.vertical, 8) // py-2
                         .background(
-                            Capsule()
-                                .fill(selectedFilter == filter ? theme.accent : Color.clear)
+                            Capsule().fill(selectedFilter == index ? primary : surfaceContainerHigh)
                         )
-                        .overlay(
-                            Capsule()
-                                .stroke(selectedFilter == filter ? Color.clear : theme.surface.opacity(0.3), lineWidth: 1)
-                        )
+                        .shadow(color: selectedFilter == index ? primary.opacity(0.1) : .clear, radius: 12)
                 }
             }
             Spacer()
         }
     }
 
-    // MARK: - Highlight List
+    // MARK: - Journal Card
 
-    private var highlightList: some View {
-        ScrollView {
-            LazyVStack(alignment: .leading, spacing: 16) {
-                ForEach(filteredAnnotations) { info in
-                    highlightCard(info)
-                        .onTapGesture {
-                            dismiss()
-                            onSelectAnnotation(info.pageIndex)
-                        }
-                }
-
-                // Bottom quote
-                Text("\u{201C}They are very slow. Their heartbeat is measured in years.\u{201D}")
-                    .font(theme.bodyFont(size: 14))
-                    .italic()
-                    .foregroundStyle(theme.textSecondary.opacity(0.5))
-                    .multilineTextAlignment(.center)
-                    .frame(maxWidth: .infinity)
-                    .padding(.top, 24)
-                    .padding(.bottom, 40)
+    private func journalCard(_ info: AnnotationInfo) -> some View {
+        // bg-surface-container-low rounded-t-[2.5rem] rounded-b-xl p-8 pt-10
+        // shadow-2xl shadow-black/20, border-t outline-variant/10
+        VStack(alignment: .leading, spacing: 0) {
+            // Drag indicator — w-12 h-1 bg-outline-variant/30 centered
+            HStack {
+                Spacer()
+                RoundedRectangle(cornerRadius: 9999)
+                    .fill(outlineVariant.opacity(0.3))
+                    .frame(width: 48, height: 4)
+                Spacer()
             }
-            .padding(.horizontal, 24)
-            .padding(.top, 16)
+            .padding(.bottom, 24) // space to content
+
+            // Page ref + quote icon
+            HStack {
+                // "PAGE 42 • CH. 2" — 10px primary/60 bold tracking-tighter
+                Text("PAGE \(info.pageIndex + 1)")
+                    .font(.custom("Onest", size: 10).bold())
+                    .tracking(-0.4)
+                    .foregroundStyle(primary.opacity(0.6))
+
+                Spacer()
+
+                // Quote icon — filled, primary
+                Image(systemName: "quote.opening")
+                    .font(.system(size: 20))
+                    .foregroundStyle(accent)
+            }
+            .padding(.bottom, 24) // mb-6
+
+            // Blockquote — text-2xl italic leading-relaxed
+            Text("\u{201C}\(info.text)\u{201D}")
+                .font(.custom("Noto Serif", size: 24))
+                .italic()
+                .foregroundStyle(onSurface)
+                .lineSpacing(6) // leading-relaxed
+                .padding(.bottom, 32) // mb-8
+
+            // Reaction box (if note exists)
+            if let note = info.note, !note.isEmpty {
+                reactionBox(note: note)
+            }
         }
+        .padding(32) // p-8
+        .padding(.top, 8) // pt-10 total (32+8=40)
+        .background(
+            UnevenRoundedRectangle(
+                topLeadingRadius: 40, // rounded-t-[2.5rem]
+                bottomLeadingRadius: 12, // rounded-b-xl
+                bottomTrailingRadius: 12,
+                topTrailingRadius: 40
+            )
+            .fill(surfaceContainerLow)
+            .overlay(alignment: .top) {
+                // border-t outline-variant/10
+                Rectangle()
+                    .fill(outlineVariant.opacity(0.1))
+                    .frame(height: 1)
+            }
+        )
+        .shadow(color: .black.opacity(0.2), radius: 20, y: 4) // shadow-2xl
     }
 
-    // MARK: - Highlight Card
+    // MARK: - Reaction Box
 
-    private func highlightCard(_ info: AnnotationInfo) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            // Quoted text
-            HStack(alignment: .top, spacing: 12) {
-                // Accent dot
+    private func reactionBox(note: String) -> some View {
+        // p-5 rounded-2xl bg-surface-container-highest/50 backdrop-blur-sm border outline-variant/5
+        HStack(alignment: .top, spacing: 16) { // gap-4
+            // Gradient dot — w-8 h-8 terracotta-glow
+            ZStack {
                 Circle()
-                    .fill(theme.accent)
-                    .frame(width: 8, height: 8)
-                    .padding(.top, 6)
+                    .fill(
+                        RadialGradient(
+                            colors: [primary, accentDark],
+                            center: .topLeading,
+                            startRadius: 0,
+                            endRadius: 20
+                        )
+                    )
+                    .frame(width: 32, height: 32)
 
-                Text("\u{201C}\(info.text)\u{201D}")
-                    .font(theme.bodyFont(size: 15))
-                    .italic()
-                    .foregroundStyle(theme.textPrimary)
-                    .lineLimit(4)
+                Text("💭")
+                    .font(.system(size: 12))
             }
 
-            // Note/reaction if exists
-            if let note = info.note, !note.isEmpty {
+            VStack(alignment: .leading, spacing: 4) {
+                // "OBSERVATION" — 10px extrabold uppercase tracking-widest primary
+                Text("Observation")
+                    .font(.custom("Onest", size: 10).weight(.heavy))
+                    .textCase(.uppercase)
+                    .tracking(4)
+                    .foregroundStyle(primary)
+
+                // Note text — body sm on-surface-variant leading-relaxed
                 Text(note)
-                    .font(theme.captionFont(size: 13))
-                    .foregroundStyle(theme.textSecondary)
-                    .padding(.leading, 20)
+                    .font(.custom("Noto Serif", size: 14))
+                    .foregroundStyle(onSurfaceVariant)
+                    .lineSpacing(4)
             }
-
-            // Page reference
-            Text("p. \(info.pageIndex + 1)")
-                .font(theme.captionFont(size: 11))
-                .foregroundStyle(theme.textSecondary.opacity(0.6))
-                .padding(.leading, 20)
         }
-        .padding(16)
+        .padding(20) // p-5
         .background(
-            RoundedRectangle(cornerRadius: 12)
-                .fill(theme.backgroundElevated)
+            RoundedRectangle(cornerRadius: 16) // rounded-2xl
+                .fill(surfaceContainerHighest.opacity(0.5))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16)
+                        .stroke(outlineVariant.opacity(0.05), lineWidth: 1)
+                )
         )
     }
 
     // MARK: - Empty State
 
     private var emptyState: some View {
-        VStack(spacing: 16) {
-            Spacer()
+        VStack(spacing: 20) {
+            Spacer().frame(height: 40)
 
-            Image(systemName: "bookmark")
-                .font(.system(size: 40, weight: .thin))
-                .foregroundStyle(theme.surface)
+            Image(systemName: "quote.opening")
+                .font(.system(size: 40))
+                .foregroundStyle(outlineVariant)
 
             Text("No highlights yet")
-                .font(theme.headlineFont(size: 18))
-                .foregroundStyle(theme.textPrimary)
+                .font(.custom("Onest", size: 20).bold())
+                .foregroundStyle(onSurface)
 
             Text("Select text in the reader and tap Highlight")
-                .font(theme.captionFont(size: 14))
-                .foregroundStyle(theme.textSecondary)
+                .font(.custom("Noto Serif", size: 14))
+                .foregroundStyle(onSurfaceVariant)
                 .multilineTextAlignment(.center)
 
-            Spacer()
+            Spacer().frame(height: 40)
         }
         .frame(maxWidth: .infinity)
-        .padding(40)
     }
 
     // MARK: - Data
 
     private var filteredAnnotations: [AnnotationInfo] {
         switch selectedFilter {
-        case .all:
-            return annotations
-        case .reactions:
-            return annotations.filter { $0.note != nil && !($0.note?.isEmpty ?? true) }
-        case .actions:
-            // For now, no separate action field — filter by note containing ⚡
-            return annotations.filter { $0.note?.contains("⚡") ?? false }
+        case 1: return annotations.filter { $0.note != nil && !($0.note?.isEmpty ?? true) }
+        case 2: return annotations.filter { $0.note?.contains("⚡") ?? false }
+        default: return annotations
         }
     }
 
