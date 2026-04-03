@@ -37,9 +37,42 @@ All phases from the Reader Mode Evolution plan have been implemented.
 - AI Summary per chapter — "Перескажи главу" button, sends chapter text to Claude. Partially covered by Q&A. Depends on Phase 7A. Effort: S (CC: ~15 min). Priority: P3.
 - Smart Vocabulary / Glossary — AI analyzes chapter, extracts key terms with definitions. Extension of Q&A. Depends on Phase 7A + 7B. Effort: M (CC: ~1 hour). Priority: P3.
 
+## Annotation System (from CEO Review 2026-04-03)
+
+### MVP (v1): Highlights + Notebook + Export
+- Highlight text via custom context menu item
+- Bottom sheet annotation (reaction 🎭 / action ⚡)
+- Notebook view (all highlights, filters, edit/delete)
+- Export to Obsidian-compatible .md via Share Sheet
+- Storage: JSON files in Application Support (annotations/{bookId}.json)
+- **Expansion**: Continue from last thought (show last highlight on book open)
+- **Expansion**: Highlight heatmap (dots in page slider)
+- **Expansion**: Reading session recap (card on session close)
+- **Expansion**: Action reminders in library (badges on book cards)
+
+### v2: AI-Powered Deep Reading
+- Chapter Review: AI generates 3-5 questions after each chapter (Claude Haiku)
+- AI feedback on user answers + chapter summary
+- Smart Highlights: AI-подсветка ключевых предложений (thesis / definition / contrarian)
+- Author formatting detection (reduce AI highlight density)
+- Post-Reading Review: guided flow (core idea / why read / main shift)
+- Action review: committed vs ideas filter
+- **Expansion**: AI "Best of" curation (top-5 starred highlights in export)
+- Updated .md export with all new sections
+
+### v3: Obsidian Integration + Intelligence
+- Direct write to Obsidian vault folder (folder picker + iCloud)
+- Cross-book connections (similar highlights)
+- AI summarization of all book annotations
+- Spaced repetition: periodic push reminders with questions
+- Obsidian URI scheme integration
+
+### Deferred Expansions
+- Quick-annotate gestures — double-tap highlight for fast annotation without bottom sheet. Needs PDFKit gesture conflict research. Effort: M (CC: ~30 min). Priority: P2. Depends on: MVP annotations.
+- Argument map — AI builds chapter argument structure (thesis → evidence → conclusion). Complex UI + AI experiment. Effort: L (CC: ~2-3 hours). Priority: P3. Depends on: v2 (chapter review, smart highlights).
+
 ## Future Ideas
 - iPad rotation / split-screen support
 - Horizontal page-turn mode
 - PDF annotation sync with Reader Mode highlights
 - Custom user-created themes
-- Export highlights as Markdown with chapter headings
