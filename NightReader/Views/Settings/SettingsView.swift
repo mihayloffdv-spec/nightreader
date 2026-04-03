@@ -1,267 +1,368 @@
 import SwiftUI
 
-// MARK: - Settings View (Deep Forest design)
+// MARK: - Settings View (pixel-perfect from HTML mockup)
 //
-// Full-screen settings with live preview, font pills, sliders.
-// Matches the "Reading Interface" mockup.
+// Translated 1:1 from Stitch HTML/CSS source.
 
 struct SettingsView: View {
-    private var theme: Theme { AppSettings.shared.currentTheme }
+    // Exact colors from HTML tailwind config
+    private let bg = Color(hex: "#0B120B")
+    private let surface = Color(hex: "#0e150e")
+    private let surfaceContainerLow = Color(hex: "#161d16")
+    private let surfaceContainer = Color(hex: "#1a211a")
+    private let surfaceContainerHigh = Color(hex: "#242c24")
+    private let surfaceContainerHighest = Color(hex: "#2f372e")
+    private let onSurface = Color(hex: "#dde5d8")
+    private let onSurfaceVariant = Color(hex: "#c5c7c1")
+    private let primary = Color(hex: "#ffb599")
+    private let onPrimary = Color(hex: "#5a1c00")
+    private let accent = Color(hex: "#CC704B")
+    private let outlineVariant = Color(hex: "#444843")
 
-    @State private var selectedThemeId: String = AppSettings.shared.defaultThemeId
     @State private var fontSize: Double = AppSettings.shared.readerFontSize
     @State private var fontFamily: String = AppSettings.shared.readerFontFamily
     @State private var atmosphericGlow: Double = AppSettings.shared.defaultDimmerOpacity
+    @State private var selectedThemeId: String = AppSettings.shared.defaultThemeId
+
+    private var theme: Theme { AppSettings.shared.currentTheme }
 
     var body: some View {
         ZStack {
-            theme.background.ignoresSafeArea()
+            Color(hex: "#0e150e").ignoresSafeArea()
+
+            // Ambient background blurs
+            Circle().fill(primary.opacity(0.05)).frame(width: 400, height: 400)
+                .blur(radius: 120).offset(x: 100, y: -200)
+            Circle().fill(Color(hex: "#b9ccb0").opacity(0.05)).frame(width: 300, height: 300)
+                .blur(radius: 100).offset(x: -100, y: 200)
 
             ScrollView {
-                VStack(alignment: .leading, spacing: 32) {
-                    // Header
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("PREFERENCES")
-                            .font(theme.captionFont(size: 11))
-                            .foregroundStyle(theme.textSecondary)
-                            .kerning(2)
+                VStack(alignment: .leading, spacing: 48) { // space-y-12
+                    // Header section
+                    headerSection
 
-                        Text(theme.settingsTitle)
-                            .font(theme.headlineFont(size: 28))
-                            .foregroundStyle(theme.textPrimary)
+                    // Preview card
+                    previewCard
 
-                        if !theme.settingsSubtitle.isEmpty {
-                            Text(theme.settingsSubtitle)
-                                .font(theme.captionFont(size: 14))
-                                .foregroundStyle(theme.textSecondary)
-                        }
+                    // Settings grid (space-y via gap-10 = 40px)
+                    VStack(alignment: .leading, spacing: 40) {
+                        typefaceSection
+                        fontScaleSection
+                        atmosphericGlowSection
+                        windDownSection
                     }
-                    .padding(.top, 16)
-
-                    // Live Preview
-                    livePreview
-
-                    // Typeface
-                    typefaceSection
-
-                    // Font Scale
-                    fontScaleSection
-
-                    // Atmospheric Glow
-                    atmosphericGlowSection
-
-                    // Wind-down Mode
-                    windDownSection
-
-                    // Theme picker
-                    themePickerSection
-
-                    Spacer(minLength: 100)
                 }
-                .padding(.horizontal, 24)
+                .padding(.top, 16) // pt-24 minus header
+                .padding(.bottom, 128) // pb-32
+                .padding(.horizontal, 24) // px-6
             }
         }
         .onChange(of: selectedThemeId) { _, _ in
-            // Reset local @State snapshots when theme changes
-            // so font pills and sliders reflect the new theme's defaults
             fontFamily = AppSettings.shared.readerFontFamily
             fontSize = AppSettings.shared.readerFontSize
             atmosphericGlow = AppSettings.shared.defaultDimmerOpacity
         }
     }
 
-    // MARK: - Live Preview
+    // MARK: - Header (space-y-2)
 
-    private var livePreview: some View {
+    private var headerSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("LIVE PREVIEW")
-                .font(theme.captionFont(size: 11))
-                .foregroundStyle(theme.textSecondary)
-                .kerning(2)
+            // "PREFERENCES" — xs uppercase tracking-[0.15em] primary/70 bold
+            Text("Preferences")
+                .font(.custom("Onest", size: 12).bold())
+                .textCase(.uppercase)
+                .tracking(1.8) // 0.15em * 12
+                .foregroundStyle(primary.opacity(0.7))
 
-            RoundedRectangle(cornerRadius: 16)
-                .fill(theme.backgroundElevated)
-                .overlay(
-                    Text("\u{201C}The forest breathes in the deep of the night, a silent witness to the stories carved in shadows.\u{201D}")
-                        .font(.custom(previewFontName, size: fontSize))
-                        .italic()
-                        .foregroundStyle(theme.textPrimary)
-                        .multilineTextAlignment(.center)
-                        .padding(24)
-                )
-                .frame(height: 160)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 16)
-                        .stroke(theme.surface.opacity(0.3), lineWidth: 1)
-                )
+            // "Reading Interface" — 4xl extrabold tracking-tight
+            Text("Reading Interface")
+                .font(.custom("Onest", size: 36).weight(.heavy))
+                .tracking(-0.4)
+                .foregroundStyle(onSurface)
+
+            // Subtitle — text-lg leading-relaxed on-surface-variant
+            Text("Fine-tune your nocturnal sanctuary for the perfect focus.")
+                .font(.custom("Noto Serif", size: 18))
+                .foregroundStyle(onSurfaceVariant)
+                .lineSpacing(4)
+                .fixedSize(horizontal: false, vertical: true)
         }
     }
 
-    // MARK: - Typeface
+    // MARK: - Preview Card
+
+    private var previewCard: some View {
+        ZStack(alignment: .topTrailing) {
+            // Ghost icon top-right: auto_stories 8xl opacity-20
+            Image(systemName: "book.fill")
+                .font(.system(size: 80))
+                .foregroundStyle(onSurface.opacity(0.05))
+                .padding(16)
+
+            VStack(alignment: .leading, spacing: 16) {
+                // "LIVE PREVIEW" — sm bold primary/80 uppercase tracking-widest
+                Text("Live Preview")
+                    .font(.custom("Onest", size: 14).bold())
+                    .textCase(.uppercase)
+                    .tracking(4)
+                    .foregroundStyle(primary.opacity(0.8))
+
+                // Border-left content
+                VStack(alignment: .leading, spacing: 16) {
+                    // Quote — 2xl leading-relaxed italic medium
+                    Text("\u{201C}The forest breathes in the deep of the night, a silent witness to the stories carved in shadows.\u{201D}")
+                        .font(.custom(previewFontName, size: 24).weight(.medium))
+                        .italic()
+                        .foregroundStyle(onSurface)
+                        .lineSpacing(6)
+
+                    // Explanation — on-surface-variant leading-relaxed
+                    Text("Adjust the settings below to see how the typography and atmosphere shift to match your current environment.")
+                        .font(.custom("Noto Serif", size: 16))
+                        .foregroundStyle(onSurfaceVariant)
+                        .lineSpacing(4)
+                }
+                .padding(.leading, 24)
+                .overlay(alignment: .leading) {
+                    Rectangle()
+                        .fill(primary.opacity(0.2))
+                        .frame(width: 2)
+                }
+                .padding(.vertical, 8)
+            }
+            .padding(32) // p-8
+        }
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(surfaceContainerLow)
+        )
+        .shadow(color: .black.opacity(0.3), radius: 20)
+    }
+
+    // MARK: - Typeface Section
 
     private var typefaceSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Label("Typeface", systemImage: "textformat")
-                .font(theme.labelFont(size: 15))
-                .foregroundStyle(theme.textPrimary)
-
-            // Primary font choice
+        VStack(alignment: .leading, spacing: 24) { // space-y-6
+            // Header: icon + title
             HStack(spacing: 12) {
-                fontPill(name: theme.headlineFontName, displayName: displayFontName(theme.headlineFontName), isSelected: fontFamily == theme.headlineFontName)
-                fontPill(name: theme.bodyFontName, displayName: displayFontName(theme.bodyFontName), isSelected: fontFamily == theme.bodyFontName)
+                Image(systemName: "textformat")
+                    .foregroundStyle(primary)
+                Text("Typeface")
+                    .font(.custom("Onest", size: 18).bold())
+                    .foregroundStyle(onSurface)
             }
 
-            // Secondary font choices
-            HStack(spacing: 12) {
-                fontPill(name: theme.bodyFontAltName, displayName: displayFontName(theme.bodyFontAltName), isSelected: fontFamily == theme.bodyFontAltName)
+            // Font cards
+            VStack(spacing: 16) { // gap-4
+                // Jakarta Sans (selected)
+                fontCard(
+                    fontName: theme.headlineFontName,
+                    displayName: "Jakarta Sans",
+                    subtitle: "Modern & Precise",
+                    fontForDisplay: "Onest",
+                    isSelected: fontFamily == theme.headlineFontName
+                )
+
+                // Source Serif
+                fontCard(
+                    fontName: theme.bodyFontName,
+                    displayName: "Source Serif",
+                    subtitle: "Warm & Humanist",
+                    fontForDisplay: "Noto Serif",
+                    isSelected: fontFamily == theme.bodyFontName
+                )
             }
         }
     }
 
-    private func fontPill(name: String, displayName: String, isSelected: Bool) -> some View {
+    private func fontCard(fontName: String, displayName: String, subtitle: String,
+                          fontForDisplay: String, isSelected: Bool) -> some View {
         Button {
-            fontFamily = name
-            AppSettings.shared.readerFontFamily = name
+            fontFamily = fontName
+            AppSettings.shared.readerFontFamily = fontName
         } label: {
-            Text(displayName)
-                .font(.custom(name, size: 15))
-                .foregroundStyle(isSelected ? theme.background : theme.textPrimary)
-                .padding(.horizontal, 20)
-                .padding(.vertical, 10)
-                .background(
-                    Capsule()
-                        .fill(isSelected ? theme.accent : theme.backgroundElevated)
-                )
-                .overlay(
-                    Capsule()
-                        .stroke(isSelected ? Color.clear : theme.surface.opacity(0.3), lineWidth: 1)
-                )
+            VStack(alignment: .leading, spacing: 4) {
+                Text(displayName)
+                    .font(.custom(fontForDisplay, size: 20).bold())
+                    .foregroundStyle(onSurface)
+
+                Text(subtitle)
+                    .font(.custom("Onest", size: 12))
+                    .textCase(.uppercase)
+                    .tracking(-0.4) // tracking-tighter
+                    .foregroundStyle(onSurfaceVariant)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(20) // p-5
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(isSelected ? surfaceContainerHigh : surfaceContainerLow)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(isSelected ? primary : outlineVariant.opacity(0.2), lineWidth: isSelected ? 2 : 1)
+                    )
+            )
         }
     }
 
     // MARK: - Font Scale
 
     private var fontScaleSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Label("Font Scale", systemImage: "textformat.size")
-                .font(theme.labelFont(size: 15))
-                .foregroundStyle(theme.textPrimary)
+        VStack(alignment: .leading, spacing: 24) {
+            // Header with current value
+            HStack {
+                HStack(spacing: 12) {
+                    Image(systemName: "textformat.size")
+                        .foregroundStyle(primary)
+                    Text("Font Scale")
+                        .font(.custom("Onest", size: 18).bold())
+                        .foregroundStyle(onSurface)
+                }
+                Spacer()
+                Text("\(Int(fontSize))px")
+                    .font(.custom("Onest", size: 14).bold())
+                    .foregroundStyle(primary)
+            }
 
-            HStack(spacing: 16) {
-                Text("Tt")
-                    .font(.system(size: 12))
-                    .foregroundStyle(theme.textSecondary)
-
-                Slider(value: $fontSize, in: 14...28, step: 1)
-                    .tint(theme.accent)
-                    .onChange(of: fontSize) { _, newValue in
-                        AppSettings.shared.readerFontSize = newValue
+            // Slider card
+            VStack(spacing: 16) {
+                Slider(value: $fontSize, in: 12...32, step: 1)
+                    .tint(primary)
+                    .onChange(of: fontSize) { _, val in
+                        AppSettings.shared.readerFontSize = val
                     }
 
-                Text("Tt")
-                    .font(.system(size: 20, weight: .bold))
-                    .foregroundStyle(theme.textSecondary)
+                // A labels
+                HStack {
+                    Text("A")
+                        .font(.custom("Onest", size: 10).bold())
+                        .textCase(.uppercase)
+                        .foregroundStyle(onSurfaceVariant)
+                    Spacer()
+                    Text("A")
+                        .font(.custom("Onest", size: 18).bold())
+                        .textCase(.uppercase)
+                        .foregroundStyle(onSurfaceVariant)
+                }
             }
+            .padding(24) // p-6
+            .background(RoundedRectangle(cornerRadius: 12).fill(surfaceContainerLow))
         }
     }
 
     // MARK: - Atmospheric Glow
 
     private var atmosphericGlowSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Label("Atmospheric Glow", systemImage: "sun.max")
-                .font(theme.labelFont(size: 15))
-                .foregroundStyle(theme.textPrimary)
+        VStack(alignment: .leading, spacing: 24) {
+            HStack(spacing: 12) {
+                Image(systemName: "paintpalette")
+                    .foregroundStyle(primary)
+                Text("Atmospheric Glow")
+                    .font(.custom("Onest", size: 18).bold())
+                    .foregroundStyle(onSurface)
+            }
 
-            Slider(value: $atmosphericGlow, in: 0...0.8)
-                .tint(theme.accent)
-                .onChange(of: atmosphericGlow) { _, newValue in
-                    AppSettings.shared.defaultDimmerOpacity = newValue
+            VStack(spacing: 32) { // space-y-8
+                // Gradient preview bar: from-[#0B120B] via-[#1a211a] to-[#241c1a]
+                ZStack {
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(
+                            LinearGradient(
+                                colors: [Color(hex: "#0B120B"), surfaceContainer, Color(hex: "#241c1a")],
+                                startPoint: .leading, endPoint: .trailing
+                            )
+                        )
+                        .frame(height: 48) // h-12
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8)
+                                .stroke(outlineVariant.opacity(0.1), lineWidth: 1)
+                        )
+
+                    // Indicator line (center)
+                    Rectangle()
+                        .fill(primary)
+                        .frame(width: 4, height: 64) // w-1 h-16
+                        .clipShape(RoundedRectangle(cornerRadius: 9999))
+                        .shadow(color: primary.opacity(0.5), radius: 7)
+                        .offset(x: CGFloat(atmosphericGlow * 100 - 50)) // rough position
                 }
 
-            HStack {
-                Text("DEEP MOSS")
-                    .font(theme.captionFont(size: 10))
-                    .foregroundStyle(theme.textSecondary)
-                    .kerning(1)
-                Spacer()
-                Text("WARM EMBER")
-                    .font(theme.captionFont(size: 10))
-                    .foregroundStyle(theme.textSecondary)
-                    .kerning(1)
+                Slider(value: $atmosphericGlow, in: 0...0.8)
+                    .tint(primary)
+                    .onChange(of: atmosphericGlow) { _, val in
+                        AppSettings.shared.defaultDimmerOpacity = val
+                    }
+
+                // Labels: xs headline bold uppercase tracking-widest
+                HStack {
+                    Text("Deep Moss")
+                        .font(.custom("Onest", size: 12).bold())
+                        .textCase(.uppercase)
+                        .tracking(4)
+                        .foregroundStyle(onSurfaceVariant)
+                    Spacer()
+                    Text("Warm Charcoal")
+                        .font(.custom("Onest", size: 12).bold())
+                        .textCase(.uppercase)
+                        .tracking(4)
+                        .foregroundStyle(onSurfaceVariant)
+                }
             }
+            .padding(24)
+            .background(RoundedRectangle(cornerRadius: 12).fill(surfaceContainerLow))
         }
     }
 
     // MARK: - Wind-down Mode
-    // TODO: Wire windDownMode to a timer that gradually increases dimmer over 30 min.
-    // Needs: AppSettings persistence, ReaderViewModel timer, gradual opacity animation.
+    // TODO: Wire to actual dimming timer. For now visual placeholder matching mockup.
 
     private var windDownSection: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 4) {
-                Label("Wind-down Mode", systemImage: "moon.fill")
-                    .font(theme.labelFont(size: 15))
-                    .foregroundStyle(theme.textSecondary)
+        // p-6 rounded-xl bg-surface-container-highest, border-l-4 border-primary
+        HStack(spacing: 16) {
+            // Icon circle: w-12 h-12 bg-primary/10
+            ZStack {
+                Circle()
+                    .fill(primary.opacity(0.1))
+                    .frame(width: 48, height: 48)
+                Image(systemName: "moon.fill")
+                    .foregroundStyle(primary)
+            }
 
-                Text("Coming soon")
-                    .font(theme.captionFont(size: 12))
-                    .foregroundStyle(theme.textSecondary.opacity(0.5))
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Wind-down Mode")
+                    .font(.custom("Onest", size: 16).bold())
+                    .foregroundStyle(onSurface)
+                Text("Gradually dim warmth as night progresses.")
+                    .font(.custom("Onest", size: 12))
+                    .foregroundStyle(onSurfaceVariant)
             }
 
             Spacer()
 
-            Toggle("", isOn: .constant(false))
-                .tint(theme.accent)
+            // Toggle: w-14 h-8 bg-primary rounded-full
+            Toggle("", isOn: .constant(true))
+                .tint(primary)
                 .labelsHidden()
-                .disabled(true)
         }
-        .opacity(0.5)
-    }
-
-    // MARK: - Theme Picker
-
-    private var themePickerSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Label("Theme", systemImage: "paintpalette")
-                .font(theme.labelFont(size: 15))
-                .foregroundStyle(theme.textPrimary)
-
-            HStack(spacing: 16) {
-                ForEach(Theme.allBuiltIn) { t in
-                    Button {
-                        selectedThemeId = t.id
-                        AppSettings.shared.defaultThemeId = t.id
-                    } label: {
-                        VStack(spacing: 6) {
-                            Circle()
-                                .fill(Color(hex: t.accentHex))
-                                .frame(width: 40, height: 40)
-                                .overlay(
-                                    Circle()
-                                        .stroke(selectedThemeId == t.id ? theme.textPrimary : Color.clear, lineWidth: 2)
-                                        .padding(-3)
-                                )
-
-                            Text(t.name)
-                                .font(theme.captionFont(size: 10))
-                                .foregroundStyle(selectedThemeId == t.id ? theme.textPrimary : theme.textSecondary)
-                                .lineLimit(1)
-                        }
-                    }
-                }
-            }
+        .padding(24)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(surfaceContainerHighest)
+        )
+        .overlay(alignment: .leading) {
+            Rectangle()
+                .fill(primary)
+                .frame(width: 4)
+                .clipShape(RoundedRectangle(cornerRadius: 2))
         }
+        .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 
     // MARK: - Helpers
 
     private var previewFontName: String {
-        fontFamily.isEmpty ? theme.bodyFontName : fontFamily
-    }
-
-    private func displayFontName(_ name: String) -> String {
-        // Clean up family name for display
-        name.replacingOccurrences(of: " 4", with: "")
+        if UIFont(name: fontFamily, size: 17) != nil { return fontFamily }
+        return "Noto Serif"
     }
 }
