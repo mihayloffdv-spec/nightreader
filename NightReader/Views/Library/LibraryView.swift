@@ -9,10 +9,12 @@ struct LibraryView: View {
     @State private var selectedBook: Book?
     @State private var bookToDelete: Book?
 
+    private var theme: Theme { AppSettings.shared.currentTheme }
+
     var body: some View {
         NavigationStack {
             ZStack {
-                NightTheme.background
+                theme.background
                     .ignoresSafeArea()
 
                 Group {
@@ -23,7 +25,7 @@ struct LibraryView: View {
                     }
                 }
             }
-            .navigationTitle("Library")
+            .navigationTitle(theme.libraryTitle)
             .navigationBarTitleDisplayMode(.large)
             .toolbarColorScheme(.dark, for: .navigationBar)
             .toolbar {
@@ -34,7 +36,7 @@ struct LibraryView: View {
                         Image(systemName: "plus.circle.fill")
                             .font(.title3)
                             .symbolRenderingMode(.hierarchical)
-                            .foregroundStyle(NightTheme.accent)
+                            .foregroundStyle(theme.accent)
                     }
                 }
             }
@@ -104,23 +106,23 @@ struct LibraryView: View {
 
             Image(systemName: "books.vertical")
                 .font(.system(size: 48, weight: .thin))
-                .foregroundStyle(NightTheme.tertiaryText)
+                .foregroundStyle(theme.surface)
 
             Text("Your library is empty")
                 .font(.title3.weight(.regular))
-                .foregroundStyle(NightTheme.secondaryText)
+                .foregroundStyle(theme.textSecondary)
 
             Button {
                 viewModel.showImporter = true
             } label: {
                 Label("Add PDF", systemImage: "plus")
                     .font(.body.weight(.medium))
-                    .foregroundStyle(NightTheme.accent)
+                    .foregroundStyle(theme.accent)
                     .padding(.horizontal, 24)
                     .padding(.vertical, 12)
                     .background(
                         Capsule()
-                            .stroke(NightTheme.accent.opacity(0.4), lineWidth: 1)
+                            .stroke(theme.accent.opacity(0.4), lineWidth: 1)
                     )
             }
 
@@ -140,7 +142,7 @@ struct LibraryView: View {
                 spacing: 24
             ) {
                 ForEach(books) { book in
-                    BookCard(book: book) {
+                    BookCard(book: book, theme: theme) {
                         if FileManager.default.fileExists(atPath: book.fileURL.path) {
                             selectedBook = book
                         } else {
@@ -163,6 +165,7 @@ struct LibraryView: View {
 
 struct BookCard: View {
     let book: Book
+    let theme: Theme
     var onTap: () -> Void
     var onDelete: () -> Void
 
@@ -170,7 +173,7 @@ struct BookCard: View {
         Button(action: onTap) {
             VStack(alignment: .leading, spacing: 10) {
                 // Cover
-                BookThumbnail(book: book)
+                BookThumbnail(book: book, theme: theme)
                     .frame(height: 240)
                     .frame(maxWidth: .infinity)
                     .clipShape(RoundedRectangle(cornerRadius: 6))
@@ -180,14 +183,14 @@ struct BookCard: View {
                 VStack(alignment: .leading, spacing: 3) {
                     Text(book.title)
                         .font(.footnote.weight(.medium))
-                        .foregroundStyle(NightTheme.primaryText)
+                        .foregroundStyle(theme.textPrimary)
                         .lineLimit(2)
                         .multilineTextAlignment(.leading)
 
                     if let author = book.author, !author.isEmpty {
                         Text(author)
                             .font(.caption2)
-                            .foregroundStyle(NightTheme.secondaryText)
+                            .foregroundStyle(theme.textSecondary)
                             .lineLimit(1)
                     }
 
@@ -196,7 +199,7 @@ struct BookCard: View {
                         if book.readProgress > 0 {
                             Text("\(Int(book.readProgress * 100))%")
                                 .font(.caption2.monospacedDigit())
-                                .foregroundStyle(NightTheme.tertiaryText)
+                                .foregroundStyle(theme.surface)
                         }
 
                         // Reading time
@@ -207,7 +210,7 @@ struct BookCard: View {
                                 Text(readingTime)
                                     .font(.caption2)
                             }
-                            .foregroundStyle(NightTheme.tertiaryText)
+                            .foregroundStyle(theme.surface)
                         }
                     }
                 }
@@ -227,6 +230,7 @@ struct BookCard: View {
 
 struct BookThumbnail: View {
     let book: Book
+    let theme: Theme
     @State private var image: UIImage?
 
     private static let cache = NSCache<NSString, UIImage>()
@@ -239,11 +243,11 @@ struct BookThumbnail: View {
                     .aspectRatio(contentMode: .fill)
             } else {
                 Rectangle()
-                    .fill(NightTheme.cardBackground)
+                    .fill(theme.backgroundElevated)
                     .overlay {
                         Image(systemName: "doc.text")
                             .font(.title2)
-                            .foregroundStyle(NightTheme.tertiaryText)
+                            .foregroundStyle(theme.surface)
                     }
             }
         }

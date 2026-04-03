@@ -6,14 +6,15 @@ struct NightReaderApp: App {
     @State private var showSplash = true
 
     init() {
+        let theme = AppSettings.shared.currentTheme
         let appearance = UINavigationBarAppearance()
         appearance.configureWithTransparentBackground()
         appearance.largeTitleTextAttributes = [
-            .foregroundColor: UIColor(NightTheme.accent),
-            .font: UIFont(name: "Georgia-Bold", size: 34) ?? UIFont.systemFont(ofSize: 34, weight: .bold)
+            .foregroundColor: theme.accentUIColor,
+            .font: theme.headlineUIFont(size: 34)
         ]
         appearance.titleTextAttributes = [
-            .foregroundColor: UIColor(NightTheme.accent)
+            .foregroundColor: theme.accentUIColor
         ]
         UINavigationBar.appearance().standardAppearance = appearance
         UINavigationBar.appearance().scrollEdgeAppearance = appearance

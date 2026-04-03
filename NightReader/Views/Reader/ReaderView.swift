@@ -128,7 +128,7 @@ struct ReaderView: View {
                 }
             }
         }
-        .background(Color.black)
+        .background(viewModel.selectedTheme.background)
         .animation(.easeInOut(duration: 0.3), value: viewModel.selectedTheme.id)
         .navigationBarHidden(true)
         .statusBarHidden(!viewModel.toolbarVisible)

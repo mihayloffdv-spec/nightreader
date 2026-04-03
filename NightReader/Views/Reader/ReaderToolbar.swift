@@ -52,7 +52,7 @@ struct ReaderToolbar: View {
         var customs = Theme.loadCustomThemes()
         customs.removeAll { $0.id == themeId }
         Theme.saveCustomThemes(customs)
-        viewModel.setTheme(.midnight)
+        viewModel.setTheme(.deepForest)
     }
 
     // MARK: - Top Bar

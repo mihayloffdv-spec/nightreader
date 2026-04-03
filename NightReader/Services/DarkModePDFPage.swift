@@ -32,7 +32,7 @@ class DarkModePDFPage: PDFPage {
         imageCache.removeAllObjects()
     }
 
-    init(wrapping page: PDFPage, theme: Theme = .midnight) {
+    init(wrapping page: PDFPage, theme: Theme = .deepForest) {
         self.originalPage = page
         self.theme = theme
         super.init()

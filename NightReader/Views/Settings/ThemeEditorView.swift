@@ -7,9 +7,9 @@ struct ThemeEditorView: View {
     var onSave: (Theme) -> Void
 
     @State private var name: String = ""
-    @State private var bgColor: Color = Color(hex: "#0D0D0D")
-    @State private var textColor: Color = Color(hex: "#D4D4C8")
-    @State private var tintColor: Color = Color(hex: "#FFF0D4")
+    @State private var bgColor: Color = Color(hex: "#0B120B")
+    @State private var textColor: Color = Color(hex: "#E8E0D4")
+    @State private var accentColor: Color = Color(hex: "#CC704B")
 
     var body: some View {
         NavigationStack {
@@ -46,7 +46,7 @@ struct ThemeEditorView: View {
                 Section("Colors") {
                     ColorPicker("Background", selection: $bgColor, supportsOpacity: false)
                     ColorPicker("Text", selection: $textColor, supportsOpacity: false)
-                    ColorPicker("Tint", selection: $tintColor, supportsOpacity: false)
+                    ColorPicker("Accent", selection: $accentColor, supportsOpacity: false)
                 }
             }
             .navigationTitle(editingTheme == nil ? "New Theme" : "Edit Theme")
@@ -57,12 +57,33 @@ struct ThemeEditorView: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save") {
+                        let bgHex = bgColor.toHex()
+                        let textHex = textColor.toHex()
+                        let accentHex = accentColor.toHex()
+                        // Derive elevated/sheet from bg (slightly lighter)
                         let theme = Theme(
                             id: editingTheme?.id ?? UUID().uuidString,
                             name: name.isEmpty ? "Custom" : name,
-                            bgColorHex: bgColor.toHex(),
-                            textColorHex: textColor.toHex(),
-                            tintColorHex: tintColor.toHex(),
+                            backgroundHex: bgHex,
+                            backgroundElevatedHex: bgHex,
+                            backgroundSheetHex: bgHex,
+                            textPrimaryHex: textHex,
+                            textSecondaryHex: textHex,
+                            accentHex: accentHex,
+                            accentMutedHex: accentHex,
+                            surfaceHex: textHex,
+                            surfaceLightHex: textHex,
+                            highlightOpacity: 0.25,
+                            headlineFontName: "Onest-Bold",
+                            bodyFontName: "NotoSerif",
+                            bodyFontAltName: "NotoSerif",
+                            labelFontName: "Onest-Medium",
+                            captionFontName: "Onest-Regular",
+                            libraryTitle: "Library",
+                            settingsTitle: "Settings",
+                            settingsSubtitle: "",
+                            buttonRadius: 24,
+                            cardBorderAccent: true,
                             isBuiltIn: false
                         )
                         onSave(theme)
@@ -74,9 +95,9 @@ struct ThemeEditorView: View {
             .onAppear {
                 if let theme = editingTheme {
                     name = theme.name
-                    bgColor = theme.bgColor
-                    textColor = theme.textColor
-                    tintColor = theme.tintColor
+                    bgColor = theme.background
+                    textColor = theme.textPrimary
+                    accentColor = theme.accent
                 }
             }
         }
