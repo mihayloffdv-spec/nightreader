@@ -206,8 +206,12 @@ enum TextExtractor {
                 nextStartsUpper = false
             }
 
+            // Break paragraph when:
+            // - Short line ending with punctuation (typical paragraph end)
+            // - Sentence ending + next line starts uppercase (even mid-line)
+            // - Current paragraph already has 2+ lines and sentence ends with capital next
             let shouldBreak = (isShortLine && endsWithSentence) ||
-                              (endsWithSentence && nextStartsUpper && currentLines.count >= 3)
+                              (endsWithSentence && nextStartsUpper)
 
             if shouldBreak {
                 paragraphs.append(joinLines(currentLines))

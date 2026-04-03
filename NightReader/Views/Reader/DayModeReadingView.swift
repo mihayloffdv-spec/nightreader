@@ -227,9 +227,9 @@ struct DayModeReadingView: View {
             Text(content)
                 .font(.custom(theme.bodyFontName, size: fontSize))
                 .foregroundStyle(theme.dayTextPrimary)
-                .lineSpacing(fontSize * 0.45)
+                .lineSpacing(fontSize * 0.4)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.bottom, fontSize * 0.3)
+                .padding(.bottom, fontSize * 0.6)
 
         case .heading(let content):
             Text(content)

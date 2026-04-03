@@ -147,7 +147,7 @@ struct ReaderModeView: View {
                 onAIAction: onAIAction
             )
             .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.bottom, fontSize * 0.15)
+            .padding(.bottom, fontSize * 0.6)
             .padding(.horizontal, 24)
 
         case .heading(let content):
@@ -327,10 +327,10 @@ private struct ReaderTextBlock: UIViewRepresentable {
             } else {
                 font = ReaderModeView.uiFont(size: fontSize, design: fontDesign)
             }
-            paragraphStyle.alignment = .justified
+            paragraphStyle.alignment = .natural
             paragraphStyle.lineBreakMode = .byWordWrapping
-            paragraphStyle.hyphenationFactor = 0.7
-            attributes[.kern] = fontSize * 0.01
+            paragraphStyle.hyphenationFactor = 1.0
+            paragraphStyle.firstLineHeadIndent = fontSize * 1.2
         case .heading:
             if let name = customFontName, let customFont = UIFont(name: name, size: fontSize) {
                 let boldDesc = customFont.fontDescriptor.withSymbolicTraits(.traitBold)
