@@ -186,7 +186,7 @@ struct DayModeReadingView: View {
                         .font(theme.labelFont(size: 15))
                         .foregroundStyle(theme.dayTextPrimary)
 
-                    Text("\(estimatedReadTime) min read · Sanctuary Archives")
+                    Text("\(estimatedReadTime) min read · \(theme.dayTitle)")
                         .font(theme.captionFont(size: 13))
                         .foregroundStyle(theme.dayTextSecondary)
                 }

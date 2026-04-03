@@ -27,7 +27,10 @@ final class AppSettings {
     }
 
     var currentTheme: Theme {
-        Theme.find(byId: defaultThemeId) ?? .deepForest
+        if let t = Theme.find(byId: defaultThemeId) { return t }
+        // Clear stale ID from old app version (midnight, sepia, etc.)
+        defaultThemeId = Theme.deepForest.id
+        return .deepForest
     }
 
     var readerFontSize: Double {
