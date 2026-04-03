@@ -30,7 +30,6 @@
 		C0000021 /* ExportService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1000021 /* ExportService.swift */; };
 		C0000022 /* PDFContentExtractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1000022 /* PDFContentExtractor.swift */; };
 		C0000023 /* ReaderModeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1000023 /* ReaderModeView.swift */; };
-
 		C0000025 /* SplashScreenView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1000025 /* SplashScreenView.swift */; };
 		C0000026 /* ReaderFont.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1000026 /* ReaderFont.swift */; };
 		C0000027 /* ContentTypes.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1000027 /* ContentTypes.swift */; };
@@ -107,7 +106,6 @@
 		C1000021 /* ExportService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExportService.swift; sourceTree = "<group>"; };
 		C1000022 /* PDFContentExtractor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PDFContentExtractor.swift; sourceTree = "<group>"; };
 		C1000023 /* ReaderModeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReaderModeView.swift; sourceTree = "<group>"; };
-
 		C1000025 /* SplashScreenView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SplashScreenView.swift; sourceTree = "<group>"; };
 		C1000026 /* ReaderFont.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReaderFont.swift; sourceTree = "<group>"; };
 		C1000027 /* ContentTypes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentTypes.swift; sourceTree = "<group>"; };
@@ -481,7 +479,6 @@
 				C0000021 /* ExportService.swift in Sources */,
 				C0000022 /* PDFContentExtractor.swift in Sources */,
 				C0000023 /* ReaderModeView.swift in Sources */,
-
 				C0000025 /* SplashScreenView.swift in Sources */,
 				C0000026 /* ReaderFont.swift in Sources */,
 				C0000027 /* ContentTypes.swift in Sources */,
