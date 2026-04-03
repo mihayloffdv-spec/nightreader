@@ -83,7 +83,7 @@ struct ReaderModeView: View {
                 }
             }
         }
-        .background(theme.bgColor)
+        .background(Color(hex: "#0e150e"))
         .contentShape(Rectangle())
         .onTapGesture { onTap() }
     }
@@ -100,7 +100,7 @@ struct ReaderModeView: View {
                 }
             } else {
                 ProgressView()
-                    .tint(theme.textColor)
+                    .tint(Color(hex: "#ffb599"))
                     .frame(maxWidth: .infinity, minHeight: 100)
                     .padding(.horizontal, 24)
                     .onAppear {
@@ -108,18 +108,13 @@ struct ReaderModeView: View {
                     }
             }
 
-            // Page divider
+            // Page divider — border-t border-outline-variant/10, minimal
             if pageIndex < (document?.pageCount ?? 1) - 1 {
-                HStack {
-                    Rectangle().frame(height: 0.5).opacity(0.2)
-                    Text("Page \(pageIndex + 2)")
-                        .font(.caption2)
-                        .opacity(0.4)
-                    Rectangle().frame(height: 0.5).opacity(0.2)
-                }
-                .foregroundStyle(theme.textColor)
-                .padding(.vertical, 16)
-                .padding(.horizontal, 24)
+                Rectangle()
+                    .fill(Color(hex: "#444843").opacity(0.1))
+                    .frame(height: 1)
+                    .padding(.vertical, 32)
+                    .padding(.horizontal, 24)
             }
         }
         .onAppear {
@@ -149,55 +144,71 @@ struct ReaderModeView: View {
     }
 
     // MARK: - Block rendering
+    //
+    // CSS values from HTML mockup:
+    // Body:   Noto Serif 18px, leading-[1.8]=32.4px, color #dde5d8, space-y-8=32px
+    // Heading: Plus Jakarta Sans extrabold, tracking-tight, text-4xl=36px
+    // Image:  aspect-[16/9], rounded-xl, shadow-2xl
+
+    private let onSurface = UIColor(Color(hex: "#dde5d8"))
+    private let primaryColor = Color(hex: "#ffb599")
 
     @ViewBuilder
     private func blockView(_ block: ContentBlock, contentWidth: CGFloat) -> some View {
         switch block {
         case .text(let content):
+            // text-lg=18px, leading-[1.8], space-y-8=32px, color on-surface
             ReaderTextBlock(
                 text: content,
                 style: .body,
                 fontSize: fontSize,
                 fontDesign: fontFamily.design,
                 customFontName: resolvedBodyFont,
-                textColor: UIColor(theme.textColor),
-                lineSpacing: fontSize * 0.15,
+                textColor: onSurface,
+                lineSpacing: fontSize * 0.8, // leading 1.8 → extra 0.8em
                 onAIAction: onAIAction
             )
             .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.bottom, fontSize * 0.6)
-            .padding(.horizontal, 24)
+            .padding(.bottom, 32) // space-y-8
+            .padding(.horizontal, 24) // px-6
 
         case .heading(let content):
+            // font-headline extrabold text-4xl tracking-tight, mb-6=24px
             ReaderTextBlock(
                 text: content,
                 style: .heading,
-                fontSize: fontSize * 1.3,
+                fontSize: max(fontSize * 1.6, 30), // text-4xl minimum
                 fontDesign: fontFamily.design,
                 customFontName: resolvedHeadlineFont,
-                textColor: UIColor(theme.textColor),
-                lineSpacing: fontSize * 0.1,
+                textColor: onSurface,
+                lineSpacing: fontSize * 0.1, // leading-[1.1]
                 onAIAction: onAIAction
             )
             .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.top, 8)
+            .padding(.top, 16)
+            .padding(.bottom, 24) // mb-6
             .padding(.horizontal, 24)
 
         case .image(let image):
+            // aspect-[16/9] rounded-xl shadow-2xl, -mx-4
             Image(uiImage: image)
                 .resizable()
                 .aspectRatio(contentMode: .fit)
                 .frame(width: contentWidth)
-                .clipShape(RoundedRectangle(cornerRadius: 4))
+                .clipShape(RoundedRectangle(cornerRadius: 12)) // rounded-xl
+                .shadow(color: .black.opacity(0.3), radius: 20, y: 8) // shadow-2xl
+                .padding(.vertical, 16)
 
         case .snapshot(let image):
             Image(uiImage: image)
                 .resizable()
                 .aspectRatio(contentMode: .fit)
                 .frame(width: contentWidth)
-                .clipShape(RoundedRectangle(cornerRadius: 4))
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .shadow(color: .black.opacity(0.3), radius: 20, y: 8)
                 .colorInvert()
-                .colorMultiply(theme.tintColor)
+                .colorMultiply(primaryColor)
+                .padding(.vertical, 16)
         }
     }
 
@@ -340,6 +351,7 @@ private struct ReaderTextBlock: UIViewRepresentable {
 
         switch style {
         case .body:
+            // HTML: font-body text-lg leading-[1.8] — Noto Serif, natural alignment
             if let name = customFontName, let customFont = UIFont(name: name, size: fontSize) {
                 font = customFont
             } else {
@@ -348,7 +360,7 @@ private struct ReaderTextBlock: UIViewRepresentable {
             paragraphStyle.alignment = .natural
             paragraphStyle.lineBreakMode = .byWordWrapping
             paragraphStyle.hyphenationFactor = 1.0
-            paragraphStyle.firstLineHeadIndent = fontSize * 1.2
+            // No firstLineHeadIndent — mockup uses space between paragraphs, not indent
         case .heading:
             if let name = customFontName, let customFont = UIFont(name: name, size: fontSize) {
                 let boldDesc = customFont.fontDescriptor.withSymbolicTraits(.traitBold)
