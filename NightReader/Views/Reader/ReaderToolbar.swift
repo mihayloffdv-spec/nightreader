@@ -248,6 +248,30 @@ struct ReaderToolbar: View {
 
     private var toolbarMenu: some View {
         Menu {
+            // Reader Mode toggle
+            Button {
+                withAnimation { viewModel.toggleReaderMode() }
+            } label: {
+                Label(
+                    viewModel.isReaderMode ? "PDF View" : "Reader Mode",
+                    systemImage: viewModel.isReaderMode ? "doc.richtext" : "book"
+                )
+            }
+
+            // Day Mode toggle (only in Reader Mode)
+            if viewModel.isReaderMode {
+                Button {
+                    withAnimation { viewModel.toggleDayMode() }
+                } label: {
+                    Label(
+                        viewModel.isDayMode ? "Night Mode" : "Day Mode",
+                        systemImage: viewModel.isDayMode ? "moon.fill" : "sun.max"
+                    )
+                }
+            }
+
+            Divider()
+
             // Table of Contents
             Button {
                 viewModel.showTOC = true
