@@ -26,6 +26,10 @@ final class ReaderViewModel {
     var isDayMode = false
     var readerFontSize: Double = AppSettings.shared.readerFontSize
     var readerFontFamily: ReaderFont = AppSettings.shared.currentReaderFont
+    /// Raw font name from settings — always reads latest value
+    var readerCustomFontName: String {
+        AppSettings.shared.readerFontFamily
+    }
     var cropMargin: Double = 0
     var totalWordCount: Int = 0
     var chapters: [Chapter] = []
@@ -254,6 +258,7 @@ final class ReaderViewModel {
         readerFontFamily = font
         AppSettings.shared.readerFontFamily = font.rawValue
     }
+
 
     func setCropMargin(_ margin: Double) {
         cropMargin = margin

@@ -6,6 +6,7 @@ struct ReaderModeView: View {
     let theme: Theme
     let fontSize: Double
     let fontFamily: ReaderFont
+    var customFontOverride: String? = nil
     let currentPageIndex: Int
     let savedBlockID: Int
     @Binding var goToPageIndex: Int?
@@ -41,7 +42,7 @@ struct ReaderModeView: View {
                 }
                 .scrollPosition(id: $scrolledBlockID, anchor: .top)
                 // Force full rebuild when font size or family changes
-                .id("\(fontSize)_\(fontFamily.rawValue)")
+                .id("\(fontSize)_\(fontFamily.rawValue)_\(customFontOverride ?? "")")
                 .onAppear {
                     screenWidth = geo.size.width
                     loadPages()
@@ -130,6 +131,23 @@ struct ReaderModeView: View {
         }
     }
 
+    // MARK: - Font resolution
+    // User's font choice takes priority over theme default.
+    // If user picked a custom font name (from Settings pills), use it.
+    // If they picked a standard ReaderFont (serif/sans/rounded), use nil to fall back to system.
+
+    private var resolvedBodyFont: String? {
+        if let override = customFontOverride,
+           UIFont(name: override, size: 17) != nil {
+            return override
+        }
+        return theme.bodyFontName
+    }
+
+    private var resolvedHeadlineFont: String? {
+        theme.headlineFontName
+    }
+
     // MARK: - Block rendering
 
     @ViewBuilder
@@ -141,7 +159,7 @@ struct ReaderModeView: View {
                 style: .body,
                 fontSize: fontSize,
                 fontDesign: fontFamily.design,
-                customFontName: theme.bodyFontName,
+                customFontName: resolvedBodyFont,
                 textColor: UIColor(theme.textColor),
                 lineSpacing: fontSize * 0.15,
                 onAIAction: onAIAction
@@ -156,7 +174,7 @@ struct ReaderModeView: View {
                 style: .heading,
                 fontSize: fontSize * 1.3,
                 fontDesign: fontFamily.design,
-                customFontName: theme.headlineFontName,
+                customFontName: resolvedHeadlineFont,
                 textColor: UIColor(theme.textColor),
                 lineSpacing: fontSize * 0.1,
                 onAIAction: onAIAction

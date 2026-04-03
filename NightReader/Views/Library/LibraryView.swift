@@ -260,7 +260,14 @@ struct LibraryView: View {
                         .padding(.horizontal, 24)
                         .padding(.vertical, 14)
                         .background(
-                            Capsule().fill(theme.accent)
+                            Capsule().fill(
+                                LinearGradient(
+                                    colors: [theme.accent, theme.accentMuted],
+                                    startPoint: .top,
+                                    endPoint: .bottom
+                                )
+                            )
+                            .shadow(color: theme.accent.opacity(0.3), radius: 8, y: 4)
                         )
                     }
 

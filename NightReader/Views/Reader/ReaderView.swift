@@ -67,6 +67,7 @@ struct ReaderView: View {
                             theme: viewModel.selectedTheme,
                             fontSize: viewModel.readerFontSize,
                             fontFamily: viewModel.readerFontFamily,
+                            customFontOverride: viewModel.readerCustomFontName,
                             currentPageIndex: viewModel.currentPage,
                             savedBlockID: Int(viewModel.book.scrollOffsetY),
                             goToPageIndex: $viewModel.goToPageIndex,
