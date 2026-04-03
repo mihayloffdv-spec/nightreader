@@ -32,7 +32,7 @@ struct SplashScreenView: View {
 
                 // App name
                 Text("NightReader")
-                    .font(theme.headlineFont(size: 28))
+                    .font(theme.labelFont(size: 26))
                     .foregroundStyle(theme.accent)
                     .opacity(textOpacity)
                     .padding(.bottom, 8)

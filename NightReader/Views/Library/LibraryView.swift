@@ -2,10 +2,32 @@ import SwiftUI
 import SwiftData
 import PDFKit
 
-// MARK: - Library View (Deep Forest design)
+// MARK: - Library View (Deep Forest — exact mockup replica)
 //
-// Hero card with current book at top, grid of collection below, quote at bottom.
-// Matches the "Private Collection" mockup.
+// ┌─────────────────────────────────────┐
+// │  ≡  NightReader                  ⚙  │
+// │                                     │
+// │  Currently Reading     WINTER 2024  │
+// │                                     │
+// │  ┌─────────────────────────────┐   │
+// │  │      [book cover]           │   │
+// │  └─────────────────────────────┘   │
+// │                                     │
+// │  Book Title                         │
+// │  by Author Name                     │
+// │                                     │
+// │  124 OF 310 PAGES   40% COMPLETE    │
+// │  ══════════════                     │
+// │                                     │
+// │  [ ▶ Resume Journey ] [ Notes ]     │
+// │                                     │
+// │  Private Collection                 │
+// │  ┌────┐ ┌────┐                     │
+// │  │    │ │    │                     │
+// │  └────┘ └────┘                     │
+// │                                     │
+// │  "Reading is a conversation..."     │
+// └─────────────────────────────────────┘
 
 struct LibraryView: View {
     @Environment(\.modelContext) private var modelContext
@@ -16,46 +38,42 @@ struct LibraryView: View {
 
     private var theme: Theme { AppSettings.shared.currentTheme }
     private var currentBook: Book? { books.first }
+    private var otherBooks: [Book] { books.count > 1 ? Array(books.dropFirst()) : [] }
 
     var body: some View {
         NavigationStack {
             ZStack {
                 theme.background.ignoresSafeArea()
 
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 24) {
-                        if books.isEmpty {
-                            emptyState
-                        } else {
-                            // Hero: current book
+                if books.isEmpty {
+                    emptyState
+                } else {
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: 0) {
+                            // Top bar: hamburger + NightReader + gear
+                            topBar
+                                .padding(.horizontal, 24)
+                                .padding(.top, 8)
+
+                            // Currently Reading section
                             if let book = currentBook {
-                                heroCard(book: book)
+                                currentlyReadingSection(book: book)
                             }
 
-                            // Collection grid
-                            collectionSection
+                            // Private Collection grid (other books)
+                            if !otherBooks.isEmpty {
+                                collectionSection
+                            }
 
                             // Bottom quote
                             quoteView
+                                .padding(.top, 24)
+                                .padding(.bottom, 40)
                         }
                     }
-                    .padding(.bottom, 32)
                 }
             }
-            .toolbar {
-                ToolbarItem(placement: .primaryAction) {
-                    Button {
-                        viewModel.showImporter = true
-                    } label: {
-                        Image(systemName: "plus.circle.fill")
-                            .font(.title3)
-                            .symbolRenderingMode(.hierarchical)
-                            .foregroundStyle(theme.accent)
-                    }
-                }
-            }
-            .toolbarColorScheme(.dark, for: .navigationBar)
-            .navigationBarTitleDisplayMode(.inline)
+            .toolbar(.hidden, for: .navigationBar)
             .fileImporter(
                 isPresented: $viewModel.showImporter,
                 allowedContentTypes: [.pdf],
@@ -101,80 +119,180 @@ struct LibraryView: View {
             }
             .onAppear {
                 PDFImportService.scanForUntrackedPDFs(context: modelContext)
-                updateNavBarAppearance()
             }
         }
     }
 
-    // MARK: - Hero Card
+    // MARK: - Top Bar
 
-    private func heroCard(book: Book) -> some View {
-        Button {
-            openBook(book)
-        } label: {
-            VStack(alignment: .leading, spacing: 0) {
-                // Cover image — full width
-                BookThumbnail(book: book, theme: theme)
-                    .frame(height: 280)
-                    .frame(maxWidth: .infinity)
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
-                    .overlay(
-                        // Gradient overlay at bottom for text readability
-                        LinearGradient(
-                            colors: [.clear, theme.background.opacity(0.9)],
-                            startPoint: .center,
-                            endPoint: .bottom
-                        )
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                    )
-                    .overlay(alignment: .bottomLeading) {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(book.title)
-                                .font(theme.headlineFont(size: 24))
-                                .foregroundStyle(theme.textPrimary)
-                                .lineLimit(2)
+    private var topBar: some View {
+        HStack {
+            Image(systemName: "line.3.horizontal")
+                .font(.title3)
+                .foregroundStyle(theme.textSecondary)
 
-                            if let author = book.author, !author.isEmpty {
-                                Text(author)
-                                    .font(theme.bodyFont(size: 14))
-                                    .italic()
-                                    .foregroundStyle(theme.textSecondary)
-                            }
-                        }
-                        .padding(16)
-                    }
+            Text("NightReader")
+                .font(theme.headlineFont(size: 20))
+                .foregroundStyle(theme.accent)
 
-                // Progress bar
-                if book.readProgress > 0 {
-                    GeometryReader { geo in
-                        ZStack(alignment: .leading) {
-                            Rectangle()
-                                .fill(theme.surface.opacity(0.3))
-                                .frame(height: 3)
+            Spacer()
 
-                            Rectangle()
-                                .fill(theme.accent)
-                                .frame(width: geo.size.width * book.readProgress, height: 3)
-                        }
-                    }
-                    .frame(height: 3)
-                    .clipShape(RoundedRectangle(cornerRadius: 1.5))
-                    .padding(.top, 8)
+            Button {
+                viewModel.showImporter = true
+            } label: {
+                Image(systemName: "plus")
+                    .font(.body)
+                    .foregroundStyle(theme.textSecondary)
+            }
+        }
+    }
+
+    // MARK: - Currently Reading
+
+    private func currentlyReadingSection(book: Book) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            // Section header
+            HStack(alignment: .top) {
+                Text("Currently\nReading")
+                    .font(theme.headlineFont(size: 26))
+                    .foregroundStyle(theme.textPrimary)
+
+                Spacer()
+
+                VStack(alignment: .trailing) {
+                    let dateFormatter: DateFormatter = {
+                        let f = DateFormatter()
+                        f.dateFormat = "MMMM\nyyyy"
+                        return f
+                    }()
+                    Text(dateFormatter.string(from: Date()).uppercased())
+                        .font(theme.captionFont(size: 12))
+                        .foregroundStyle(theme.textSecondary)
+                        .kerning(1)
+                        .multilineTextAlignment(.trailing)
                 }
             }
-            .padding(.horizontal, 20)
-            .padding(.top, 8)
+            .padding(.horizontal, 24)
+            .padding(.top, 24)
+            .padding(.bottom, 20)
+
+            // Book card with cover
+            Button { openBook(book) } label: {
+                VStack(spacing: 0) {
+                    // Cover in bordered card
+                    BookThumbnail(book: book, theme: theme)
+                        .frame(height: 300)
+                        .frame(maxWidth: 240)
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                        .shadow(color: .black.opacity(0.4), radius: 12, y: 6)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 20)
+                        .padding(.horizontal, 40)
+                        .background(
+                            RoundedRectangle(cornerRadius: 16)
+                                .stroke(theme.surface.opacity(0.2), lineWidth: 1)
+                        )
+                }
+            }
+            .padding(.horizontal, 24)
+
+            // Book info below card
+            VStack(alignment: .leading, spacing: 6) {
+                // Title
+                Text(book.title)
+                    .font(theme.headlineFont(size: 28))
+                    .foregroundStyle(theme.textPrimary)
+                    .lineLimit(3)
+
+                // Author
+                if let author = book.author, !author.isEmpty {
+                    Text("by \(author)")
+                        .font(theme.bodyFont(size: 15))
+                        .italic()
+                        .foregroundStyle(theme.textSecondary)
+                }
+
+                // Page count + progress
+                HStack(spacing: 16) {
+                    let currentPage = book.lastPageIndex + 1
+                    let totalPages = max(book.totalPages, 1)
+                    let percent = Int(book.readProgress * 100)
+
+                    Text("\(currentPage) OF \(totalPages) PAGES")
+                        .font(theme.captionFont(size: 11))
+                        .foregroundStyle(theme.textSecondary)
+                        .kerning(1.5)
+
+                    Text("\(percent)% COMPLETE")
+                        .font(theme.captionFont(size: 11))
+                        .foregroundStyle(theme.textSecondary)
+                        .kerning(1.5)
+                }
+                .padding(.top, 4)
+
+                // Progress bar
+                GeometryReader { geo in
+                    ZStack(alignment: .leading) {
+                        RoundedRectangle(cornerRadius: 2)
+                            .fill(theme.surface.opacity(0.3))
+                            .frame(height: 4)
+
+                        RoundedRectangle(cornerRadius: 2)
+                            .fill(theme.accent)
+                            .frame(width: geo.size.width * max(book.readProgress, 0.02), height: 4)
+                    }
+                }
+                .frame(height: 4)
+                .padding(.top, 8)
+
+                // Action buttons
+                HStack(spacing: 12) {
+                    // Resume Journey
+                    Button { openBook(book) } label: {
+                        HStack(spacing: 8) {
+                            Image(systemName: "play.fill")
+                                .font(.system(size: 12))
+                            Text("Resume\nJourney")
+                                .font(theme.labelFont(size: 14))
+                                .multilineTextAlignment(.leading)
+                        }
+                        .foregroundStyle(theme.background)
+                        .padding(.horizontal, 24)
+                        .padding(.vertical, 14)
+                        .background(
+                            Capsule().fill(theme.accent)
+                        )
+                    }
+
+                    // Notes button
+                    Button { } label: {
+                        Text("Notes")
+                            .font(theme.labelFont(size: 14))
+                            .foregroundStyle(theme.textPrimary)
+                            .padding(.horizontal, 24)
+                            .padding(.vertical, 14)
+                            .background(
+                                Capsule()
+                                    .stroke(theme.surface.opacity(0.4), lineWidth: 1)
+                            )
+                    }
+                }
+                .padding(.top, 16)
+            }
+            .padding(.horizontal, 24)
+            .padding(.top, 16)
         }
     }
 
-    // MARK: - Collection Grid
+    // MARK: - Private Collection
 
     private var collectionSection: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text(theme.libraryTitle)
                 .font(theme.headlineFont(size: 20))
                 .foregroundStyle(theme.textPrimary)
-                .padding(.horizontal, 20)
+                .padding(.horizontal, 24)
+                .padding(.top, 32)
 
             LazyVGrid(
                 columns: [
@@ -183,8 +301,7 @@ struct LibraryView: View {
                 ],
                 spacing: 20
             ) {
-                // Skip the first book (shown as hero) if more than 1
-                ForEach(books.count > 1 ? Array(books.dropFirst()) : books) { book in
+                ForEach(otherBooks) { book in
                     BookCard(book: book, theme: theme) {
                         openBook(book)
                     } onDelete: {
@@ -192,7 +309,7 @@ struct LibraryView: View {
                     }
                 }
             }
-            .padding(.horizontal, 20)
+            .padding(.horizontal, 24)
         }
     }
 
@@ -202,10 +319,9 @@ struct LibraryView: View {
         Text("\u{201C}Reading is a conversation. All books talk. But a good book listens as well.\u{201D}")
             .font(theme.bodyFont(size: 13))
             .italic()
-            .foregroundStyle(theme.textSecondary.opacity(0.6))
+            .foregroundStyle(theme.textSecondary.opacity(0.5))
             .multilineTextAlignment(.center)
             .padding(.horizontal, 40)
-            .padding(.top, 16)
             .frame(maxWidth: .infinity)
     }
 
@@ -213,7 +329,12 @@ struct LibraryView: View {
 
     private var emptyState: some View {
         VStack(spacing: 24) {
-            Spacer().frame(height: 80)
+            // Top bar even in empty state
+            topBar
+                .padding(.horizontal, 24)
+                .padding(.top, 8)
+
+            Spacer()
 
             Image(systemName: "books.vertical")
                 .font(.system(size: 56, weight: .thin))
@@ -232,19 +353,21 @@ struct LibraryView: View {
             Button {
                 viewModel.showImporter = true
             } label: {
-                Label("Add PDF", systemImage: "plus")
-                    .font(theme.labelFont(size: 16))
-                    .foregroundStyle(theme.background)
-                    .padding(.horizontal, 32)
-                    .padding(.vertical, 14)
-                    .background(
-                        Capsule().fill(theme.accent)
-                    )
+                HStack(spacing: 8) {
+                    Image(systemName: "plus")
+                    Text("Add PDF")
+                }
+                .font(theme.labelFont(size: 16))
+                .foregroundStyle(theme.background)
+                .padding(.horizontal, 32)
+                .padding(.vertical, 14)
+                .background(
+                    Capsule().fill(theme.accent)
+                )
             }
 
             Spacer()
         }
-        .frame(maxWidth: .infinity)
     }
 
     // MARK: - Helpers
@@ -256,23 +379,9 @@ struct LibraryView: View {
             viewModel.errorMessage = "PDF file not found. It may have been deleted."
         }
     }
-
-    private func updateNavBarAppearance() {
-        let appearance = UINavigationBarAppearance()
-        appearance.configureWithTransparentBackground()
-        appearance.largeTitleTextAttributes = [
-            .foregroundColor: theme.accentUIColor,
-            .font: theme.headlineUIFont(size: 34)
-        ]
-        appearance.titleTextAttributes = [
-            .foregroundColor: theme.accentUIColor
-        ]
-        UINavigationBar.appearance().standardAppearance = appearance
-        UINavigationBar.appearance().scrollEdgeAppearance = appearance
-    }
 }
 
-// MARK: - Book Card
+// MARK: - Book Card (grid item)
 
 struct BookCard: View {
     let book: Book
