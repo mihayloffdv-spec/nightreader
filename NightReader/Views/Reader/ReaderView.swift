@@ -55,7 +55,7 @@ struct ReaderView: View {
                                 }
                             },
                             onOpenSettings: {
-                                // Could open settings sheet
+                                viewModel.toolbarVisible = true
                             }
                         )
                         .ignoresSafeArea()

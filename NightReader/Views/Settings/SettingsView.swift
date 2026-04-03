@@ -12,7 +12,6 @@ struct SettingsView: View {
     @State private var fontSize: Double = AppSettings.shared.readerFontSize
     @State private var fontFamily: String = AppSettings.shared.readerFontFamily
     @State private var atmosphericGlow: Double = AppSettings.shared.defaultDimmerOpacity
-    @State private var windDownMode: Bool = false
 
     var body: some View {
         ZStack {
@@ -61,6 +60,13 @@ struct SettingsView: View {
                 }
                 .padding(.horizontal, 24)
             }
+        }
+        .onChange(of: selectedThemeId) { _, _ in
+            // Reset local @State snapshots when theme changes
+            // so font pills and sliders reflect the new theme's defaults
+            fontFamily = AppSettings.shared.readerFontFamily
+            fontSize = AppSettings.shared.readerFontSize
+            atmosphericGlow = AppSettings.shared.defaultDimmerOpacity
         }
     }
 
@@ -188,25 +194,29 @@ struct SettingsView: View {
     }
 
     // MARK: - Wind-down Mode
+    // TODO: Wire windDownMode to a timer that gradually increases dimmer over 30 min.
+    // Needs: AppSettings persistence, ReaderViewModel timer, gradual opacity animation.
 
     private var windDownSection: some View {
         HStack {
             VStack(alignment: .leading, spacing: 4) {
                 Label("Wind-down Mode", systemImage: "moon.fill")
                     .font(theme.labelFont(size: 15))
-                    .foregroundStyle(theme.textPrimary)
-
-                Text("Gradual dimming over 30 minutes")
-                    .font(theme.captionFont(size: 12))
                     .foregroundStyle(theme.textSecondary)
+
+                Text("Coming soon")
+                    .font(theme.captionFont(size: 12))
+                    .foregroundStyle(theme.textSecondary.opacity(0.5))
             }
 
             Spacer()
 
-            Toggle("", isOn: $windDownMode)
+            Toggle("", isOn: .constant(false))
                 .tint(theme.accent)
                 .labelsHidden()
+                .disabled(true)
         }
+        .opacity(0.5)
     }
 
     // MARK: - Theme Picker
