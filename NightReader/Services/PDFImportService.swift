@@ -11,7 +11,7 @@ struct PDFImportService {
             if accessing { sourceURL.stopAccessingSecurityScopedResource() }
         }
 
-        let documentsDir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
+        let documentsDir = Book.documentsDirectory
         let fileName = uniqueFileName(for: sourceURL.lastPathComponent, in: documentsDir)
         let destURL = documentsDir.appendingPathComponent(fileName)
 
@@ -42,7 +42,7 @@ struct PDFImportService {
 
     /// Scans Documents for PDFs not yet tracked in SwiftData (useful for testing)
     static func scanForUntrackedPDFs(context: ModelContext) {
-        let documentsDir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
+        let documentsDir = Book.documentsDirectory
         let existingBooks = (try? context.fetch(FetchDescriptor<Book>())) ?? []
         let trackedFiles = Set(existingBooks.map(\.fileName))
 

@@ -56,17 +56,21 @@ struct Theme: Identifiable, Codable, Hashable {
 
     static let allBuiltIn: [Theme] = [.midnight, .sepia, .forest, .ocean, .sunset, .paper]
 
-    // MARK: - Custom themes (UserDefaults)
+    // MARK: - Custom themes (UserDefaults + кэш)
 
     private static let customThemesKey = "customThemes"
+    private static var _customThemesCache: [Theme]?
 
     static func loadCustomThemes() -> [Theme] {
+        if let cached = _customThemesCache { return cached }
         guard let data = UserDefaults.standard.data(forKey: customThemesKey),
               let themes = try? JSONDecoder().decode([Theme].self, from: data) else { return [] }
+        _customThemesCache = themes
         return themes
     }
 
     static func saveCustomThemes(_ themes: [Theme]) {
+        _customThemesCache = themes
         if let data = try? JSONEncoder().encode(themes) {
             UserDefaults.standard.set(data, forKey: customThemesKey)
         }

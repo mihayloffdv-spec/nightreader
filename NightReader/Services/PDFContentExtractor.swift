@@ -74,7 +74,7 @@ enum PDFContentExtractor {
         }
         let pageIndex = page.document?.index(for: page)
         let strippedPageString = TextExtractor.stripLeadingPageNumber(from: pageString, pageIndex: pageIndex)
-        let fullText = TextExtractor.recoverDropCaps(
+        let fullText = DropCapRecovery.recoverDropCaps(
             pageString: strippedPageString,
             textLines: textLines,
             page: page,

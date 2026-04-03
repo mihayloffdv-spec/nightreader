@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 56;
+	objectVersion = 70;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -45,9 +45,21 @@
 		C0000036 /* AIActionSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1000036 /* AIActionSheet.swift */; };
 		C0000037 /* APIKeySettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1000037 /* APIKeySettingsView.swift */; };
 		C0000038 /* ThemeEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1000038 /* ThemeEditorView.swift */; };
+		C0000050 /* DropCapRecovery.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1000050 /* DropCapRecovery.swift */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXContainerItemProxy section */
+		A439C22D2F7EA13900ED0DA2 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = C5000002 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = C5000001;
+			remoteInfo = NightReader;
+		};
+/* End PBXContainerItemProxy section */
+
 /* Begin PBXFileReference section */
+		A439C2292F7EA13900ED0DA2 /* NightReaderTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = NightReaderTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		C1000001 /* NightReaderApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NightReaderApp.swift; sourceTree = "<group>"; };
 		C1000002 /* Book.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Book.swift; sourceTree = "<group>"; };
 		C1000003 /* RenderingMode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RenderingMode.swift; sourceTree = "<group>"; };
@@ -86,10 +98,22 @@
 		C1000036 /* AIActionSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIActionSheet.swift; sourceTree = "<group>"; };
 		C1000037 /* APIKeySettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIKeySettingsView.swift; sourceTree = "<group>"; };
 		C1000038 /* ThemeEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThemeEditorView.swift; sourceTree = "<group>"; };
+		C1000050 /* DropCapRecovery.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DropCapRecovery.swift; sourceTree = "<group>"; };
 		C2000001 /* NightReader.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = NightReader.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		A439C22A2F7EA13900ED0DA2 /* NightReaderTests */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = NightReaderTests; sourceTree = "<group>"; };
+/* End PBXFileSystemSynchronizedRootGroup section */
+
 /* Begin PBXFrameworksBuildPhase section */
+		A439C2262F7EA13900ED0DA2 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		C3000001 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -104,6 +128,7 @@
 			isa = PBXGroup;
 			children = (
 				C4000002 /* NightReader */,
+				A439C22A2F7EA13900ED0DA2 /* NightReaderTests */,
 				C4000003 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -125,6 +150,7 @@
 			isa = PBXGroup;
 			children = (
 				C2000001 /* NightReader.app */,
+				A439C2292F7EA13900ED0DA2 /* NightReaderTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -206,6 +232,7 @@
 				C1000022 /* PDFContentExtractor.swift */,
 				C1000027 /* ContentTypes.swift */,
 				C1000028 /* TextExtractor.swift */,
+				C1000050 /* DropCapRecovery.swift */,
 				C1000029 /* ImageExtractor.swift */,
 				C1000030 /* LayoutAnalyzer.swift */,
 				C1000031 /* PageRenderer.swift */,
@@ -228,6 +255,29 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		A439C2282F7EA13900ED0DA2 /* NightReaderTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A439C2312F7EA13900ED0DA2 /* Build configuration list for PBXNativeTarget "NightReaderTests" */;
+			buildPhases = (
+				A439C2252F7EA13900ED0DA2 /* Sources */,
+				A439C2262F7EA13900ED0DA2 /* Frameworks */,
+				A439C2272F7EA13900ED0DA2 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				A439C22E2F7EA13900ED0DA2 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				A439C22A2F7EA13900ED0DA2 /* NightReaderTests */,
+			);
+			name = NightReaderTests;
+			packageProductDependencies = (
+			);
+			productName = NightReaderTests;
+			productReference = A439C2292F7EA13900ED0DA2 /* NightReaderTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 		C5000001 /* NightReader */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = C7000002 /* Build configuration list for PBXNativeTarget "NightReader" */;
@@ -252,9 +302,13 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
-				LastSwiftUpdateCheck = 1500;
+				LastSwiftUpdateCheck = 2640;
 				LastUpgradeCheck = 2630;
 				TargetAttributes = {
+					A439C2282F7EA13900ED0DA2 = {
+						CreatedOnToolsVersion = 26.4;
+						TestTargetID = C5000001;
+					};
 					C5000001 = {
 						CreatedOnToolsVersion = 15.0;
 					};
@@ -274,11 +328,19 @@
 			projectRoot = "";
 			targets = (
 				C5000001 /* NightReader */,
+				A439C2282F7EA13900ED0DA2 /* NightReaderTests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		A439C2272F7EA13900ED0DA2 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		C6000002 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -290,6 +352,13 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		A439C2252F7EA13900ED0DA2 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		C6000001 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -321,6 +390,7 @@
 				C0000026 /* ReaderFont.swift in Sources */,
 				C0000027 /* ContentTypes.swift in Sources */,
 				C0000028 /* TextExtractor.swift in Sources */,
+				C0000050 /* DropCapRecovery.swift in Sources */,
 				C0000029 /* ImageExtractor.swift in Sources */,
 				C0000030 /* LayoutAnalyzer.swift in Sources */,
 				C0000031 /* PageRenderer.swift in Sources */,
@@ -336,7 +406,65 @@
 		};
 /* End PBXSourcesBuildPhase section */
 
+/* Begin PBXTargetDependency section */
+		A439C22E2F7EA13900ED0DA2 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = C5000001 /* NightReader */;
+			targetProxy = A439C22D2F7EA13900ED0DA2 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
 /* Begin XCBuildConfiguration section */
+		A439C22F2F7EA13900ED0DA2 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 7N37858XB8;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.4;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.nightreader.NightReaderTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/NightReader.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/NightReader";
+			};
+			name = Debug;
+		};
+		A439C2302F7EA13900ED0DA2 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 7N37858XB8;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.4;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.nightreader.NightReaderTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/NightReader.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/NightReader";
+			};
+			name = Release;
+		};
 		C8000001 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -519,6 +647,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		A439C2312F7EA13900ED0DA2 /* Build configuration list for PBXNativeTarget "NightReaderTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A439C22F2F7EA13900ED0DA2 /* Debug */,
+				A439C2302F7EA13900ED0DA2 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		C7000001 /* Build configuration list for PBXProject "NightReader" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (

@@ -491,14 +491,14 @@ struct ReaderSettingsSheet: View {
                         get: { AppSettings.shared.autoSwitchMode },
                         set: { AppSettings.shared.autoSwitchMode = $0 }
                     )) {
-                        Text("Manual").tag("manual")
-                        Text("Schedule").tag("schedule")
-                        Text("Match Device").tag("device")
+                        Text("Manual").tag(AutoSwitchMode.manual)
+                        Text("Schedule").tag(AutoSwitchMode.schedule)
+                        Text("Match Device").tag(AutoSwitchMode.device)
                     }
                     .pickerStyle(.segmented)
                     .listRowBackground(Color.clear)
 
-                    if AppSettings.shared.autoSwitchMode == "schedule" {
+                    if AppSettings.shared.autoSwitchMode == .schedule {
                         HStack {
                             Text("Dark hours")
                                 .foregroundStyle(.secondary)

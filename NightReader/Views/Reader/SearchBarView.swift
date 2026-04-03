@@ -1,5 +1,5 @@
 import SwiftUI
-import PDFKit
+@preconcurrency import PDFKit
 
 struct SearchBarView: View {
     @Binding var isPresented: Bool
@@ -104,20 +104,27 @@ struct SearchBarView: View {
         isSearching = true
         let query = searchText
         let doc = document
+        // Сериализуем доступ к PDFDocument через extractionQueue,
+        // чтобы не было гонки с Reader Mode extraction
         Task.detached {
-            let selections = doc.findString(query, withOptions: .caseInsensitive)
-            let found = selections.compactMap { selection -> SearchResult? in
-                guard let page = selection.pages.first else { return nil }
-                let pageIndex = doc.index(for: page)
-                let context = selection.string ?? query
-                return SearchResult(selection: selection, pageIndex: pageIndex, contextText: context)
-            }
-            await MainActor.run {
-                results = found
-                currentResultIndex = 0
-                isSearching = false
-                if let first = found.first {
-                    onGoToSelection(first.selection)
+            await withCheckedContinuation { (cont: CheckedContinuation<Void, Never>) in
+                ReaderModeView.extractionQueue.async {
+                    let selections = doc.findString(query, withOptions: .caseInsensitive)
+                    let found = selections.compactMap { selection -> SearchResult? in
+                        guard let page = selection.pages.first else { return nil }
+                        let pageIndex = doc.index(for: page)
+                        let context = selection.string ?? query
+                        return SearchResult(selection: selection, pageIndex: pageIndex, contextText: context)
+                    }
+                    DispatchQueue.main.async {
+                        results = found
+                        currentResultIndex = 0
+                        isSearching = false
+                        if let first = found.first {
+                            onGoToSelection(first.selection)
+                        }
+                        cont.resume()
+                    }
                 }
             }
         }

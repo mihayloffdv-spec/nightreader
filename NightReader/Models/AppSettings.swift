@@ -1,5 +1,12 @@
 import Foundation
 
+/// Режим автоматического переключения темы.
+enum AutoSwitchMode: String {
+    case manual
+    case schedule
+    case device
+}
+
 @Observable
 final class AppSettings {
     static let shared = AppSettings()
@@ -46,10 +53,12 @@ final class AppSettings {
 
     // MARK: - Auto Theme Switching
 
-    /// "manual", "schedule", "device"
-    var autoSwitchMode: String {
-        get { UserDefaults.standard.string(forKey: "autoSwitchMode") ?? "manual" }
-        set { UserDefaults.standard.set(newValue, forKey: "autoSwitchMode") }
+    var autoSwitchMode: AutoSwitchMode {
+        get {
+            let raw = UserDefaults.standard.string(forKey: "autoSwitchMode") ?? "manual"
+            return AutoSwitchMode(rawValue: raw) ?? .manual
+        }
+        set { UserDefaults.standard.set(newValue.rawValue, forKey: "autoSwitchMode") }
     }
 
     var darkStartHour: Int {
@@ -89,21 +98,20 @@ final class AppSettings {
     /// Returns the appropriate theme based on auto-switch mode.
     func resolvedTheme(isDarkAppearance: Bool) -> Theme {
         switch autoSwitchMode {
-        case "schedule":
+        case .schedule:
             let hour = Calendar.current.component(.hour, from: Date())
             let isDarkTime: Bool
             if darkStartHour > darkEndHour {
-                // e.g. 22–7: dark from 22..23 and 0..6
                 isDarkTime = hour >= darkStartHour || hour < darkEndHour
             } else {
                 isDarkTime = hour >= darkStartHour && hour < darkEndHour
             }
             let themeId = isDarkTime ? darkThemeId : lightThemeId
             return Theme.find(byId: themeId) ?? .midnight
-        case "device":
+        case .device:
             let themeId = isDarkAppearance ? darkThemeId : lightThemeId
             return Theme.find(byId: themeId) ?? .midnight
-        default:
+        case .manual:
             return currentTheme
         }
     }

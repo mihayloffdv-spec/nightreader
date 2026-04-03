@@ -14,8 +14,8 @@ final class Book {
     var totalPages: Int
     var readProgress: Double
     var renderingModeRaw: String
-    var totalReadingTime: Double
-    var cropMargin: Double
+    var totalReadingTime: Double = 0
+    var cropMargin: Double = 0
     var bookmarksData: Data?
     @Transient private var _bookmarksCache: Set<Int>?
 
@@ -59,9 +59,14 @@ final class Book {
         self.renderingModeRaw = RenderingMode.simple.rawValue
     }
 
+    /// Директория Documents приложения.
+    static var documentsDirectory: URL {
+        FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first
+            ?? URL(fileURLWithPath: NSHomeDirectory()).appendingPathComponent("Documents")
+    }
+
     var fileURL: URL {
-        let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
-        return docs.appendingPathComponent(fileName)
+        Self.documentsDirectory.appendingPathComponent(fileName)
     }
 
     /// Formatted reading time string (e.g. "2h 15m", "45m", "< 1m").

@@ -2,11 +2,35 @@ import UIKit
 import PDFKit
 import CoreImage
 
+/// Обёртка для CGImage, чтобы хранить в NSCache.
+private class CGImageWrapper: NSObject {
+    let image: CGImage
+    init(_ image: CGImage) { self.image = image }
+}
+
 class DarkModePDFPage: PDFPage {
 
     private let originalPage: PDFPage
     private let theme: Theme
     private static let ciContext = CIContext(options: [.useSoftwareRenderer: false])
+
+    /// Кэш обработанных изображений страниц. Ключ = "pagePtr_themeId".
+    /// Сбрасывается при memory warning.
+    private static let imageCache: NSCache<NSString, CGImageWrapper> = {
+        let cache = NSCache<NSString, CGImageWrapper>()
+        cache.countLimit = 20
+        cache.totalCostLimit = 100 * 1024 * 1024 // ~100MB
+        NotificationCenter.default.addObserver(
+            forName: UIApplication.didReceiveMemoryWarningNotification,
+            object: nil, queue: nil
+        ) { _ in cache.removeAllObjects() }
+        return cache
+    }()
+
+    /// Сбросить кэш (вызывается при смене темы).
+    static func invalidateCache() {
+        imageCache.removeAllObjects()
+    }
 
     init(wrapping page: PDFPage, theme: Theme = .midnight) {
         self.originalPage = page
@@ -40,8 +64,18 @@ class DarkModePDFPage: PDFPage {
 
     override func draw(with box: PDFDisplayBox, to context: CGContext) {
         let bounds = self.bounds(for: box)
-        let scale: CGFloat = 2.0
 
+        // Проверяем кэш: если страница уже обработана для этой темы — рисуем из кэша
+        let cacheKey = "\(Unmanaged.passUnretained(originalPage).toOpaque())_\(theme.id)" as NSString
+        if let cached = Self.imageCache.object(forKey: cacheKey) {
+            context.saveGState()
+            context.translateBy(x: bounds.origin.x, y: bounds.origin.y)
+            context.draw(cached.image, in: CGRect(origin: .zero, size: bounds.size))
+            context.restoreGState()
+            return
+        }
+
+        let scale: CGFloat = 2.0
         let width = Int(bounds.width * scale)
         let height = Int(bounds.height * scale)
 
@@ -50,7 +84,7 @@ class DarkModePDFPage: PDFPage {
             return
         }
 
-        // 1. Render original page to offscreen bitmap
+        // 1. Рендерим оригинальную страницу в оффскрин-буфер
         guard let offscreenContext = CGContext(
             data: nil,
             width: width,
@@ -74,7 +108,7 @@ class DarkModePDFPage: PDFPage {
             return
         }
 
-        // 2. Apply CIFilter chain
+        // 2. Применяем цепочку CIFilter
         let ciImage = CIImage(cgImage: originalImage)
         guard let processed = applyFilterChain(to: ciImage),
               let outputCGImage = Self.ciContext.createCGImage(processed, from: processed.extent) else {
@@ -82,7 +116,11 @@ class DarkModePDFPage: PDFPage {
             return
         }
 
-        // 3. Draw processed result (account for non-zero page origin)
+        // 3. Сохраняем в кэш
+        let cost = width * height * 4
+        Self.imageCache.setObject(CGImageWrapper(outputCGImage), forKey: cacheKey, cost: cost)
+
+        // 4. Рисуем результат
         context.saveGState()
         context.translateBy(x: bounds.origin.x, y: bounds.origin.y)
         context.draw(outputCGImage, in: CGRect(origin: .zero, size: bounds.size))

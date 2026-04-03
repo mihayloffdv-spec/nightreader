@@ -44,7 +44,15 @@
       "Bash(xcodebuild -project NightReader.xcodeproj -scheme NightReader -destination 'platform=iOS Simulator,name=iPhone 16' -quiet build)",
       "Bash(xcodebuild -project /Users/dmitriymikhailov/NightReader/NightReader.xcodeproj -scheme NightReader -destination 'platform=iOS Simulator,name=iPhone 16,OS=18.4' -quiet build)",
       "Bash(xcodebuild -project /Users/dmitriymikhailov/NightReader/NightReader.xcodeproj -scheme NightReader -destination 'platform=iOS Simulator,name=iPhone 17 Pro' -quiet build)",
-      "mcp__claude_ai_Canva__export-design"
+      "mcp__claude_ai_Canva__export-design",
+      "Bash(xcodebuild -project NightReader.xcodeproj -scheme NightReader -destination 'platform=iOS Simulator,name=iPhone 16 Pro' build)",
+      "Bash(xcodebuild -scheme NightReader -destination 'platform=iOS Simulator,name=iPhone 16' -quiet build)",
+      "Bash(xcodebuild -project /Users/dmitriymikhailov/NightReader/NightReader.xcodeproj -scheme NightReader -destination 'platform=iOS Simulator,name=iPhone 16' build)",
+      "Bash(xcodebuild -project /Users/dmitriymikhailov/NightReader/NightReader.xcodeproj -scheme NightReader -destination 'platform=iOS Simulator,name=iPhone 17 Pro' build)",
+      "Bash(xcodebuild -project /Users/dmitriymikhailov/NightReader/NightReader.xcodeproj -scheme NightReader -destination 'platform=iOS Simulator,name=iPhone 16,OS=18.4' build)",
+      "Bash(xcodebuild -project /Users/dmitriymikhailov/NightReader/NightReader.xcodeproj -scheme NightReader -destination 'platform=iOS Simulator,name=iPhone 16 Pro' build)",
+      "Bash(xcodebuild -project /Users/dmitriymikhailov/NightReader/NightReader.xcodeproj -scheme NightReader -destination 'generic/platform=iOS Simulator' build)",
+      "Bash(xcodebuild -project NightReader.xcodeproj -scheme NightReader -destination 'generic/platform=iOS Simulator' build)"
     ],
     "additionalDirectories": [
       "/private/tmp/SpikeTestResults.xcresult",
@@ -52,7 +60,8 @@
       "/private/tmp",
       "/Users/dmitriymikhailov/Library/Developer/Xcode/DerivedData/NightReader-gpxsbonzaszdougrhcsnnjgenuni/Build/Intermediates.noindex/XCBuildData",
       "/Users/dmitriymikhailov/Library/Developer/Xcode/DerivedData/NightReader-gpxsbonzaszdougrhcsnnjgenuni",
-      "/Users/dmitriymikhailov/Downloads"
+      "/Users/dmitriymikhailov/Downloads",
+      "/Users/dmitriymikhailov/.claude"
     ]
   }
 }

@@ -40,7 +40,12 @@ struct AnnotationInfo: Identifiable {
     let annotation: PDFAnnotation
 }
 
-struct AnnotationService {
+enum AnnotationService {
+
+    /// Выделенная очередь для последовательной записи PDF (без гонки данных).
+    private static let saveQueue = DispatchQueue(label: "com.nightreader.annotation-save", qos: .utility)
+    /// Текущий отложенный таск сохранения (debounce 1 сек).
+    private static var pendingSave: DispatchWorkItem?
 
     static func addHighlight(
         to selection: PDFSelection,
@@ -107,24 +112,30 @@ struct AnnotationService {
         return results
     }
 
+    /// Сохранить аннотации в PDF-файл. Запись идёт через serial queue с debounce 1 сек,
+    /// чтобы быстрые повторные вызовы (например, несколько хайлайтов подряд) не создавали гонку.
     static func saveAnnotations(in document: PDFDocument) {
         guard let url = document.documentURL else { return }
         let doc = document
-        DispatchQueue.global(qos: .utility).async {
+
+        pendingSave?.cancel()
+        let workItem = DispatchWorkItem {
             let tempURL = url.deletingLastPathComponent()
                 .appendingPathComponent(UUID().uuidString + ".pdf")
             if doc.write(to: tempURL) {
                 do {
                     _ = try FileManager.default.replaceItemAt(url, withItemAt: tempURL)
                 } catch {
-                    print("[AnnotationService] Failed to replace PDF: \(error)")
+                    print("[AnnotationService] Не удалось заменить PDF: \(error)")
                     try? FileManager.default.removeItem(at: tempURL)
                 }
             } else {
-                print("[AnnotationService] Failed to write PDF to temp file")
+                print("[AnnotationService] Не удалось записать PDF во временный файл")
                 try? FileManager.default.removeItem(at: tempURL)
             }
         }
+        pendingSave = workItem
+        saveQueue.asyncAfter(deadline: .now() + 1.0, execute: workItem)
     }
 }
 

@@ -16,14 +16,16 @@ struct ReaderModeView: View {
     @State private var pages: [Int] = []
     @State private var blocksByPage: [Int: [ContentBlock]] = [:]
     @State private var loadingPages: Set<Int> = []
-    @State private var screenWidth: CGFloat = UIScreen.main.bounds.width
+    @State private var screenWidth: CGFloat = 0
     @State private var isInitialScroll = true
     @State private var scrolledBlockID: Int?
     @State private var saveTask: Task<Void, Never>?
     @State private var joinedPairs: Set<Int> = []  // endPage values of already-joined pairs
 
-    // Serial queue for thread-safe CGPDFPage access (shared — PDFDocument is NOT thread-safe)
-    static let extractionQueue = DispatchQueue(label: "com.nightreader.extraction", qos: .userInitiated)
+    // Очередь для потокобезопасного доступа к CGPDFPage (PDFDocument НЕ потокобезопасен).
+    // nonisolated(unsafe) потому что DispatchQueue сам по себе потокобезопасен,
+    // а SwiftUI View наследует @MainActor изоляцию, откуда мы обращаемся из Task.detached.
+    nonisolated(unsafe) static let extractionQueue = DispatchQueue(label: "com.nightreader.extraction", qos: .userInitiated)
 
     var body: some View {
         GeometryReader { geo in
@@ -135,8 +137,9 @@ struct ReaderModeView: View {
     private func blockView(_ block: ContentBlock, contentWidth: CGFloat) -> some View {
         switch block {
         case .text(let content):
-            JustifiedText(
-                content,
+            ReaderTextBlock(
+                text: content,
+                style: .body,
                 fontSize: fontSize,
                 fontDesign: fontFamily.design,
                 textColor: UIColor(theme.textColor),
@@ -148,8 +151,9 @@ struct ReaderModeView: View {
             .padding(.horizontal, 24)
 
         case .heading(let content):
-            SelectableHeading(
-                content,
+            ReaderTextBlock(
+                text: content,
+                style: .heading,
                 fontSize: fontSize * 1.3,
                 fontDesign: fontFamily.design,
                 textColor: UIColor(theme.textColor),
@@ -339,91 +343,21 @@ private class ReaderTextView: UITextView {
     }
 }
 
-// MARK: - Justified Text (UITextView-backed for selection + justification)
+// MARK: - Универсальный текстовый блок (body / heading)
 
-private struct JustifiedText: UIViewRepresentable {
-    let text: String
-    let fontSize: CGFloat
-    let fontDesign: Font.Design
-    let textColor: UIColor
-    let lineSpacing: CGFloat
-    let onAIAction: (AIActionType, String) -> Void
-
-    init(_ text: String, fontSize: CGFloat, fontDesign: Font.Design, textColor: UIColor, lineSpacing: CGFloat, onAIAction: @escaping (AIActionType, String) -> Void) {
-        self.text = text
-        self.fontSize = fontSize
-        self.fontDesign = fontDesign
-        self.textColor = textColor
-        self.lineSpacing = lineSpacing
-        self.onAIAction = onAIAction
-    }
-
-    func makeUIView(context: Context) -> ReaderTextView {
-        let tv = ReaderTextView()
-        tv.isEditable = false
-        tv.isSelectable = true
-        tv.isScrollEnabled = false
-        tv.textContainerInset = .zero
-        tv.textContainer.lineFragmentPadding = 0
-        tv.backgroundColor = .clear
-        tv.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
-        // Tint color for selection handles
-        tv.tintColor = UIColor.systemBlue.withAlphaComponent(0.6)
-        tv.onAIAction = onAIAction
-        return tv
-    }
-
-    func updateUIView(_ tv: ReaderTextView, context: Context) {
-        let font = ReaderModeView.uiFont(size: fontSize, design: fontDesign)
-
-        let paragraphStyle = NSMutableParagraphStyle()
-        paragraphStyle.alignment = .justified
-        paragraphStyle.lineBreakMode = .byWordWrapping
-        paragraphStyle.lineSpacing = lineSpacing
-        paragraphStyle.hyphenationFactor = 0.7
-
-        let newText = NSAttributedString(
-            string: text,
-            attributes: [
-                .font: font,
-                .foregroundColor: textColor,
-                .paragraphStyle: paragraphStyle,
-                .kern: fontSize * 0.01
-            ]
-        )
-
-        // Only update if content or styling changed (avoids resetting active selection)
-        if tv.attributedText != newText {
-            tv.attributedText = newText
-        }
-        tv.onAIAction = onAIAction
-    }
-
-    func sizeThatFits(_ proposal: ProposedViewSize, uiView: ReaderTextView, context: Context) -> CGSize? {
-        guard let width = proposal.width, width > 0 else { return nil }
-        let size = uiView.sizeThatFits(CGSize(width: width, height: CGFloat.greatestFiniteMagnitude))
-        return CGSize(width: width, height: size.height)
-    }
+private enum ReaderTextStyle {
+    case body
+    case heading
 }
 
-// MARK: - Selectable Heading (bold UITextView for headings with selection support)
-
-private struct SelectableHeading: UIViewRepresentable {
+private struct ReaderTextBlock: UIViewRepresentable {
     let text: String
+    let style: ReaderTextStyle
     let fontSize: CGFloat
     let fontDesign: Font.Design
     let textColor: UIColor
     let lineSpacing: CGFloat
     let onAIAction: (AIActionType, String) -> Void
-
-    init(_ text: String, fontSize: CGFloat, fontDesign: Font.Design, textColor: UIColor, lineSpacing: CGFloat, onAIAction: @escaping (AIActionType, String) -> Void) {
-        self.text = text
-        self.fontSize = fontSize
-        self.fontDesign = fontDesign
-        self.textColor = textColor
-        self.lineSpacing = lineSpacing
-        self.onAIAction = onAIAction
-    }
 
     func makeUIView(context: Context) -> ReaderTextView {
         let tv = ReaderTextView()
@@ -440,24 +374,32 @@ private struct SelectableHeading: UIViewRepresentable {
     }
 
     func updateUIView(_ tv: ReaderTextView, context: Context) {
-        let baseFont = ReaderModeView.uiFont(size: fontSize, design: fontDesign)
-        let boldDescriptor = baseFont.fontDescriptor.withSymbolicTraits(.traitBold)
-        let boldFont = boldDescriptor.map { UIFont(descriptor: $0, size: fontSize) }
-            ?? UIFont.boldSystemFont(ofSize: fontSize)
-
+        let font: UIFont
         let paragraphStyle = NSMutableParagraphStyle()
-        paragraphStyle.alignment = .natural
         paragraphStyle.lineSpacing = lineSpacing
+        var attributes: [NSAttributedString.Key: Any] = [
+            .foregroundColor: textColor,
+            .paragraphStyle: paragraphStyle
+        ]
 
-        let newText = NSAttributedString(
-            string: text,
-            attributes: [
-                .font: boldFont,
-                .foregroundColor: textColor,
-                .paragraphStyle: paragraphStyle
-            ]
-        )
+        switch style {
+        case .body:
+            font = ReaderModeView.uiFont(size: fontSize, design: fontDesign)
+            paragraphStyle.alignment = .justified
+            paragraphStyle.lineBreakMode = .byWordWrapping
+            paragraphStyle.hyphenationFactor = 0.7
+            attributes[.kern] = fontSize * 0.01
+        case .heading:
+            let baseFont = ReaderModeView.uiFont(size: fontSize, design: fontDesign)
+            let boldDesc = baseFont.fontDescriptor.withSymbolicTraits(.traitBold)
+            font = boldDesc.map { UIFont(descriptor: $0, size: fontSize) }
+                ?? UIFont.boldSystemFont(ofSize: fontSize)
+            paragraphStyle.alignment = .natural
+        }
 
+        attributes[.font] = font
+
+        let newText = NSAttributedString(string: text, attributes: attributes)
         if tv.attributedText != newText {
             tv.attributedText = newText
         }

@@ -140,12 +140,12 @@ struct ReaderView: View {
             viewModel.startReadingSession()
             // Auto-switch theme based on settings
             let resolved = AppSettings.shared.resolvedTheme(isDarkAppearance: colorScheme == .dark)
-            if AppSettings.shared.autoSwitchMode != "manual" && resolved.id != viewModel.selectedTheme.id {
+            if AppSettings.shared.autoSwitchMode != .manual && resolved.id != viewModel.selectedTheme.id {
                 viewModel.setTheme(resolved)
             }
         }
         .onChange(of: colorScheme) { _, newScheme in
-            if AppSettings.shared.autoSwitchMode == "device" {
+            if AppSettings.shared.autoSwitchMode == .device {
                 let resolved = AppSettings.shared.resolvedTheme(isDarkAppearance: newScheme == .dark)
                 viewModel.setTheme(resolved)
             }
