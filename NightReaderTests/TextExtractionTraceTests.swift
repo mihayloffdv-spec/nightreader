@@ -162,4 +162,45 @@ final class TextExtractionTraceTests: XCTestCase {
         }
         // If both empty → no problems found in first 20 pages (or words not present)
     }
+
+    /// Search ALL pages for lowercase-start sentences after periods
+    /// This catches "предложения. а него" type issues
+    func testFindMidSentenceMissingChars() {
+        guard let doc = loadRealPDF() else { return }
+
+        var issues: [String] = []
+
+        for pi in 0..<min(doc.pageCount, 30) {
+            guard let page = doc.page(at: pi), let s = page.string else { continue }
+
+            // Find patterns: ". lowercase" where lowercase is NOT a common word
+            let commonLower: Set<String> = ["и","а","в","с","к","о","у","на","не","но","по","из","за","до","от","же","ни","то","что","как","так","это","все","для","при","без","или","где","чем","вы","мы","он","она","они","да","нет","уже","ведь","тут","там"]
+
+            // Regex: period + space(s) + lowercase letter
+            if let regex = try? NSRegularExpression(pattern: "\\.\\s+([а-я]\\S{0,15})") {
+                let ns = s as NSString
+                for match in regex.matches(in: s, range: NSRange(location: 0, length: ns.length)) {
+                    let word = ns.substring(with: match.range(at: 1))
+                    let firstWord = word.components(separatedBy: " ").first ?? word
+                    if !commonLower.contains(firstWord.lowercased()) && firstWord.count >= 2 {
+                        // This is suspicious — sentence after period starting lowercase
+                        // Check if it's a fragment (missing first char)
+                        if TextExtractor.isFragment(firstWord) {
+                            issues.append("Page \(pi): '\(word)' after period — likely missing first char(s)")
+                        }
+                    }
+                }
+            }
+        }
+
+        if !issues.isEmpty {
+            // Don't fail — just report
+            print("\n=== MID-SENTENCE MISSING CHARS ===")
+            for issue in issues.prefix(20) {
+                print("  \(issue)")
+            }
+            print("Total: \(issues.count) suspicious patterns")
+            // These are REAL drop cap issues in page.string — not our processing bug
+        }
+    }
 }
