@@ -64,19 +64,12 @@ enum PDFContentExtractor {
             return []
         }
 
-        // 5. Try Apple's PDFSelection.attributedString (preserves formatting + correct decoding)
-        if let attrText = AttributedTextExtractor.extractAttributedText(from: page) {
-            let blocks = AttributedTextExtractor.splitIntoBlocks(attrText)
-            if !blocks.isEmpty {
-                #if DEBUG
-                let pageIndex = page.document?.index(for: page) ?? -1
-                print("[PDFExtractor] Page \(pageIndex): attributed text → \(blocks.count) blocks")
-                #endif
-                return blocks
-            }
-        }
+        // 5. AttributedTextExtractor disabled — it bypasses DropCapRecovery and joinLines,
+        // resulting in missing first characters. The plain text path with recovery is more
+        // reliable for Russian PDFs with special fonts.
+        // TODO: Re-enable after merging AttributedTextExtractor with DropCapRecovery pipeline.
 
-        // 5b. Fallback: plain text extraction (reliable, loses formatting)
+        // 5b. Plain text extraction with recovery pipeline
         guard let pageString = page.string,
               !pageString.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             if let image = PageRenderer.renderFullPage(page, fitWidth: pageWidth) {

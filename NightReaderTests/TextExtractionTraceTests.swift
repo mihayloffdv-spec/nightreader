@@ -82,6 +82,22 @@ final class TextExtractionTraceTests: XCTestCase {
             print("  First 200 chars: \(attrStr.prefix(200))")
         }
 
+        // Also check pages 8-9
+        for pi in [7, 8] {
+            if let p = doc.page(at: pi), let s = p.string {
+                let hasPoka = s.contains("Пока")
+                let hasPres = s.contains("Пресловутые") || s.contains("ресловутые")
+                let hasNeuro = s.contains("Нейросети") || s.contains("ейросети")
+                let hasPri = s.contains("При этом") || s.contains("ри этом")
+                print("\n=== PAGE \(pi) ===")
+                print("  Contains 'Пока': \(hasPoka)")
+                print("  Contains 'Пресловутые'/'ресловутые': \(s.contains("Пресловутые"))/\(s.contains("ресловутые"))")
+                print("  Contains 'Нейросети'/'ейросети': \(s.contains("Нейросети"))/\(s.contains("ейросети"))")
+                print("  Contains 'При этом'/'ри этом': \(s.contains("При этом"))/\(s.contains("ри этом"))")
+                print("  First 200 chars: \(s.prefix(200))")
+            }
+        }
+
         // KEY ASSERTIONS: Where do the letters go missing?
         // If page.string has them but screen doesn't → bug in our processing
         // If page.string doesn't have them → Apple's PDFKit can't decode them
@@ -107,5 +123,43 @@ final class TextExtractionTraceTests: XCTestCase {
             XCTAssertTrue(hasFragmentOpyta || hasFragmentPri || hasFragmentKeysy,
                          "Should have at least one known fragment to confirm drop cap issue")
         }
+    }
+
+    func testCheckAllPages() {
+        guard let doc = loadRealPDF() else { return }
+
+        var realDropCaps: [String] = []
+        var ourBugs: [String] = []
+
+        for pi in 0..<min(doc.pageCount, 20) {
+            guard pi < doc.pageCount, let page = doc.page(at: pi), let s = page.string else { continue }
+            
+            // Check specific words
+            let checks: [(String, String)] = [
+                ("Пока", "ока"), ("Пресловутые", "ресловутые"),
+                ("Нейросети", "ейросети"), ("При этом", "ри этом"),
+                ("На чисто", "а чисто"), ("Конечно", "онечно")
+            ]
+            
+            for (full, fragment) in checks {
+                if s.contains(fragment) {
+                    let hasFull = s.contains(full)
+                    if hasFull {
+                        ourBugs.append("Page \(pi): '\(full)' in page.string → OUR BUG")
+                    } else {
+                        realDropCaps.append("Page \(pi): '\(fragment)' (should be '\(full)') → REAL DROP CAP")
+                    }
+                }
+            }
+        }
+
+        // Report
+        if !ourBugs.isEmpty {
+            XCTFail("OUR CODE bugs: \(ourBugs.joined(separator: "; "))")
+        }
+        if !realDropCaps.isEmpty {
+            XCTFail("REAL drop caps found (page.string missing chars): \(realDropCaps.joined(separator: "; "))")
+        }
+        // If both empty → no problems found in first 20 pages (or words not present)
     }
 }
