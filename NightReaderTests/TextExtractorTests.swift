@@ -142,4 +142,29 @@ final class TextExtractorTests: XCTestCase {
         let result = TextExtractor.stripLeadingPageNumber(from: input, pageIndex: 99)
         XCTAssertEqual(result, "Обычный текст без номеров")
     }
+
+    // MARK: - joinLines broken word fix
+
+    /// Single uppercase letter at end of line + lowercase start → join without space
+    func testJoinLines_brokenWordSingleUppercase() {
+        XCTAssertEqual(TextExtractor.joinLines(["О", "пыта"]), "Опыта")
+        XCTAssertEqual(TextExtractor.joinLines(["П", "ри этом"]), "При этом")
+        XCTAssertEqual(TextExtractor.joinLines(["К", "ейсы из"]), "Кейсы из")
+        XCTAssertEqual(TextExtractor.joinLines(["Н", "а них"]), "На них")
+    }
+
+    /// Normal lines (not broken words) should still get spaces
+    func testJoinLines_normalLines() {
+        XCTAssertEqual(TextExtractor.joinLines(["Первая строка.", "Вторая строка."]), "Первая строка. Вторая строка.")
+    }
+
+    /// Lowercase prepositions should keep space
+    func testJoinLines_lowercasePreposition() {
+        XCTAssertEqual(TextExtractor.joinLines(["о", "важном"]), "о важном")
+    }
+
+    /// Hyphenated word join
+    func testJoinLines_hyphenatedWord() {
+        XCTAssertEqual(TextExtractor.joinLines(["технол-", "огия"]), "технология")
+    }
 }

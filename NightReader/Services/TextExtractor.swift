@@ -235,8 +235,16 @@ enum TextExtractor {
             if i > 0 {
                 let endsWithHyphen = result.hasSuffix("-") || result.hasSuffix("\u{00AD}")
                 let startsLowercase = line.first?.isLowercase == true
+
+                // Check if previous line ends with a single uppercase letter
+                // (word broken across PDF lines: "О" + "пыта" → "Опыта")
+                let trailingLetters = String(result.reversed().prefix(while: { $0.isLetter }).reversed())
+                let endsWithSingleUppercase = trailingLetters.count == 1 && trailingLetters.first?.isUppercase == true
+
                 if endsWithHyphen && startsLowercase {
-                    result.removeLast() // remove hyphen/soft-hyphen
+                    result.removeLast() // remove hyphen/soft-hyphen, join word
+                } else if endsWithSingleUppercase && startsLowercase {
+                    // Broken word: "П" + "ри этом" → "При этом" (no space)
                 } else {
                     result += " "
                 }
