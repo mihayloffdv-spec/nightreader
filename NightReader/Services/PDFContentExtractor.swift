@@ -69,7 +69,8 @@ enum PDFContentExtractor {
         // reliable for Russian PDFs with special fonts.
         // TODO: Re-enable after merging AttributedTextExtractor with DropCapRecovery pipeline.
 
-        // 5b. Plain text extraction with recovery pipeline
+        // 5. OCR-based text recovery: render page → Vision OCR → fill missing chars
+        // This is the systematic fix for fonts that Apple can render but can't decode.
         guard let pageString = page.string,
               !pageString.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             if let image = PageRenderer.renderFullPage(page, fitWidth: pageWidth) {
@@ -79,8 +80,17 @@ enum PDFContentExtractor {
         }
         let pageIndex = page.document?.index(for: page)
         let strippedPageString = TextExtractor.stripLeadingPageNumber(from: pageString, pageIndex: pageIndex)
+
+        // OCR recovery: render page → Vision → merge missing chars into page.string
+        var recoveredText = strippedPageString
+        if let ocrText = OCRTextExtractor.extractText(from: page) {
+            recoveredText = OCRTextExtractor.mergeWithPageString(
+                ocrText: ocrText, pageString: strippedPageString
+            )
+        }
+
         let fullText = DropCapRecovery.recoverDropCaps(
-            pageString: strippedPageString,
+            pageString: recoveredText,
             textLines: textLines,
             page: page,
             pageBounds: pageBounds

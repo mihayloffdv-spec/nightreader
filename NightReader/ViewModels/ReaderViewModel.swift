@@ -22,7 +22,7 @@ final class ReaderViewModel {
     var goToSelectionValue: PDFSelection?
     var isLoading = true
     var loadError: String?
-    var isReaderMode = false
+    var isReaderMode = true // Reader Mode by default
     var isDayMode = false
     var readerFontSize: Double = AppSettings.shared.readerFontSize
     var readerFontFamily: ReaderFont = AppSettings.shared.currentReaderFont
