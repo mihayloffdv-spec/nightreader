@@ -58,7 +58,7 @@ enum TextExtractor {
     ]
 
     /// Vowel-start bigrams that indicate a likely truncated fragment (e.g., "ейсы" from "Кейсы").
-    static let fragmentVowelStarts: Set<String> = ["ей", "ой", "ый", "ий", "ёт", "ют", "ят", "ут"]
+    static let fragmentVowelStarts: Set<String> = ["ей", "ой", "ый", "ий", "ёт", "ют", "ят", "ут", "еб", "ер", "оэ", "ок", "он"]
 
     /// Russian vowels.
     static let russianVowels: Set<Character> = ["а", "е", "ё", "и", "о", "у", "ы", "э", "ю", "я"]
