@@ -237,13 +237,27 @@ enum TextExtractor {
                 let startsLowercase = line.first?.isLowercase == true
 
                 // Check if previous line ends with a single uppercase letter
-                // (word broken across PDF lines: "О" + "пыта" → "Опыта")
+                // that is the START of a word broken across PDF lines.
+                // "П" + "ри этом" → "При этом"
+                // But NOT: "Безусловно, О" + "стандартные" — "О" after comma is punctuation context
+                //
+                // Heuristic: join if trailing single uppercase is NOT preceded by
+                // sentence-ending punctuation (. ! ? , ; :)
                 let trailingLetters = String(result.reversed().prefix(while: { $0.isLetter }).reversed())
-                let endsWithSingleUppercase = trailingLetters.count == 1 && trailingLetters.first?.isUppercase == true
+                let charBeforeTrailing: Character? = {
+                    let before = result.dropLast(trailingLetters.count)
+                    // Skip whitespace to find the actual preceding char
+                    return before.last(where: { !$0.isWhitespace })
+                }()
+                let afterPunctuation = charBeforeTrailing != nil && ".!?,;:»\"'()".contains(charBeforeTrailing!)
+                let isBrokenWord = trailingLetters.count == 1
+                    && trailingLetters.first?.isUppercase == true
+                    && startsLowercase
+                    && !afterPunctuation
 
                 if endsWithHyphen && startsLowercase {
                     result.removeLast() // remove hyphen/soft-hyphen, join word
-                } else if endsWithSingleUppercase && startsLowercase {
+                } else if isBrokenWord {
                     // Broken word: "П" + "ри этом" → "При этом" (no space)
                 } else {
                     result += " "

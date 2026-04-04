@@ -146,11 +146,14 @@ final class TextExtractorTests: XCTestCase {
     // MARK: - joinLines broken word fix
 
     /// Single uppercase letter at end of line + lowercase start → join without space
+    /// Only when NOT preceded by punctuation
     func testJoinLines_brokenWordSingleUppercase() {
         XCTAssertEqual(TextExtractor.joinLines(["О", "пыта"]), "Опыта")
         XCTAssertEqual(TextExtractor.joinLines(["П", "ри этом"]), "При этом")
         XCTAssertEqual(TextExtractor.joinLines(["К", "ейсы из"]), "Кейсы из")
         XCTAssertEqual(TextExtractor.joinLines(["Н", "а них"]), "На них")
+        // After punctuation — join with space (not a broken word)
+        XCTAssertEqual(TextExtractor.joinLines(["слово. О", "бъект"]), "слово. О бъект")
     }
 
     /// Normal lines (not broken words) should still get spaces
@@ -166,5 +169,25 @@ final class TextExtractorTests: XCTestCase {
     /// Hyphenated word join
     func testJoinLines_hyphenatedWord() {
         XCTAssertEqual(TextExtractor.joinLines(["технол-", "огия"]), "технология")
+    }
+
+    /// FALSE POSITIVE: "Безусловно, О" + "стандартные" should NOT become "Остандартные"
+    /// The "О" here is the end of a word on the previous line, not a standalone letter
+    func testJoinLines_noFalsePositiveWordEndingWithUppercase() {
+        // "О" preceded by comma+space = part of text flow, not standalone broken word
+        XCTAssertEqual(
+            TextExtractor.joinLines(["Безусловно, О", "стандартные вещи"]),
+            "Безусловно, О стандартные вещи" // space preserved
+        )
+    }
+
+    /// Real standalone uppercase at line boundary should still join
+    func testJoinLines_standaloneUppercaseStillJoins() {
+        // "П" at start of line = standalone, no punctuation before
+        XCTAssertEqual(TextExtractor.joinLines(["П", "ри этом"]), "При этом")
+        // "О" at start of line = standalone
+        XCTAssertEqual(TextExtractor.joinLines(["О", "пыта"]), "Опыта")
+        // "К" after period = after punctuation → DON'T join (add space)
+        XCTAssertEqual(TextExtractor.joinLines(["примерах. К", "ейсы"]), "примерах. К ейсы")
     }
 }
