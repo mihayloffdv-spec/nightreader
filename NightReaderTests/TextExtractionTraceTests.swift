@@ -203,4 +203,35 @@ final class TextExtractionTraceTests: XCTestCase {
             // These are REAL drop cap issues in page.string — not our processing bug
         }
     }
+
+    /// Full pipeline test: extract blocks and check for false positives
+    func testFullPipelineNoFalsePositives() {
+        guard let doc = loadRealPDF() else { return }
+
+        var falsePositives: [String] = []
+        let badPatterns = ["Остандартные", "Обратят"]
+
+        for pi in 0..<min(doc.pageCount, 20) {
+            guard let page = doc.page(at: pi) else { continue }
+            let blocks = PDFContentExtractor.extractBlocks(from: page, pageWidth: 390)
+
+            for block in blocks {
+                let text: String
+                switch block {
+                case .text(let t): text = t
+                case .heading(let t): text = t
+                case .richText(let a): text = a.string
+                default: continue
+                }
+                for bad in badPatterns {
+                    if text.contains(bad) {
+                        falsePositives.append("Page \(pi): found '\(bad)'")
+                    }
+                }
+            }
+        }
+
+        XCTAssertTrue(falsePositives.isEmpty,
+                     "joinLines false positives: \(falsePositives.joined(separator: "; "))")
+    }
 }
