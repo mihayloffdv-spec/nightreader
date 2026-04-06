@@ -12,6 +12,7 @@ struct NotebookView: View {
     let bookAuthor: String?
     let readProgress: Double
     let theme: Theme
+    let annotationStore: AnnotationStore?
     let onSelectAnnotation: (Int) -> Void
     @Environment(\.dismiss) private var dismiss
 
@@ -34,7 +35,7 @@ struct NotebookView: View {
     private let outlineVariant = Color(hex: "#444843")
     private let stone400 = Color(hex: "#a8a29e")
 
-    private let filters = ["All", "Reactions", "Actions"]
+    private let filters = ["All", "✦ AI", "Reactions", "Actions"]
 
     var body: some View {
         ZStack {
@@ -56,7 +57,21 @@ struct NotebookView: View {
 
                     // Cards stack — space-y-8 = 32px
                     LazyVStack(spacing: 32) {
-                        if filteredAnnotations.isEmpty {
+                        if selectedFilter == 1 {
+                            // ✦ AI tab — smart highlights
+                            if let store = annotationStore {
+                                let active = store.activeSmartHighlights
+                                if active.isEmpty {
+                                    aiEmptyState
+                                } else {
+                                    ForEach(active) { smart in
+                                        smartHighlightCard(smart)
+                                    }
+                                }
+                            } else {
+                                aiEmptyState
+                            }
+                        } else if filteredAnnotations.isEmpty {
                             emptyState
                         } else {
                             ForEach(filteredAnnotations) { info in
@@ -278,12 +293,136 @@ struct NotebookView: View {
         .frame(maxWidth: .infinity)
     }
 
+    // MARK: - Smart Highlight Card
+
+    private func smartHighlightCard(_ smart: SmartHighlight) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            // Top row: type icon + chapter + page
+            HStack {
+                // Type icon
+                Text(smart.type == .thesis ? "✦" : smart.type == .insight ? "💡" : "⚡")
+                    .font(.system(size: 14))
+
+                Text(smart.type.rawValue.uppercased())
+                    .font(.custom("Onest", size: 10).bold())
+                    .textCase(.uppercase)
+                    .tracking(2)
+                    .foregroundStyle(accent)
+
+                Spacer()
+
+                Text("PAGE \(smart.page + 1)")
+                    .font(.custom("Onest", size: 10).bold())
+                    .tracking(-0.4)
+                    .foregroundStyle(primary.opacity(0.6))
+            }
+            .padding(.bottom, 16)
+
+            // Sentence
+            Text("\u{201C}\(smart.text)\u{201D}")
+                .font(.custom("Noto Serif", size: 18))
+                .italic()
+                .foregroundStyle(onSurface)
+                .lineSpacing(4)
+                .padding(.bottom, 16)
+
+            // AI rationale
+            HStack(alignment: .top, spacing: 12) {
+                Text("✦")
+                    .font(.system(size: 11))
+                    .foregroundStyle(accent)
+
+                Text(smart.rationale)
+                    .font(.custom("Noto Serif", size: 14))
+                    .italic()
+                    .foregroundStyle(onSurfaceVariant)
+                    .lineSpacing(3)
+            }
+            .padding(16)
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(surfaceContainerHighest.opacity(0.5))
+            )
+            .padding(.bottom, 20)
+
+            // Action buttons
+            HStack(spacing: 12) {
+                Button {
+                    annotationStore?.promoteToHighlight(id: smart.id)
+                } label: {
+                    Label("Save", systemImage: "square.and.arrow.down")
+                        .font(.custom("Onest", size: 12).bold())
+                        .foregroundStyle(onPrimary)
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 10)
+                        .background(Capsule().fill(primary))
+                }
+
+                Button {
+                    withAnimation(.easeOut(duration: 0.3)) {
+                        annotationStore?.dismissSmartHighlight(id: smart.id)
+                    }
+                } label: {
+                    Label("Not relevant", systemImage: "hand.wave")
+                        .font(.custom("Onest", size: 12).bold())
+                        .foregroundStyle(stone400)
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 10)
+                        .background(Capsule().fill(surfaceContainerHigh))
+                }
+
+                Spacer()
+            }
+        }
+        .padding(28)
+        .background(
+            UnevenRoundedRectangle(
+                topLeadingRadius: 40,
+                bottomLeadingRadius: 12,
+                bottomTrailingRadius: 12,
+                topTrailingRadius: 40
+            )
+            .fill(surfaceContainerLow)
+            .overlay(alignment: .top) {
+                Rectangle()
+                    .fill(outlineVariant.opacity(0.1))
+                    .frame(height: 1)
+            }
+        )
+        .shadow(color: .black.opacity(0.2), radius: 20, y: 4)
+    }
+
+    private var aiEmptyState: some View {
+        VStack(spacing: 20) {
+            Spacer().frame(height: 40)
+
+            Text("✦")
+                .font(.system(size: 40))
+                .foregroundStyle(accent.opacity(0.5))
+
+            Text("No AI insights yet")
+                .font(.custom("Onest", size: 20).bold())
+                .foregroundStyle(onSurface)
+
+            Text(KeychainManager.hasAPIKey
+                 ? "Open a chapter and AI will highlight key ideas"
+                 : "Set your API key in Settings to enable AI highlights")
+                .font(.custom("Noto Serif", size: 14))
+                .foregroundStyle(onSurfaceVariant)
+                .multilineTextAlignment(.center)
+
+            Spacer().frame(height: 40)
+        }
+        .frame(maxWidth: .infinity)
+    }
+
     // MARK: - Data
 
     private var filteredAnnotations: [AnnotationInfo] {
         switch selectedFilter {
-        case 1: return annotations.filter { $0.note != nil && !($0.note?.isEmpty ?? true) }
-        case 2: return annotations.filter { $0.note?.contains("⚡") ?? false }
+        case 1: return [] // AI tab handled separately
+        case 2: return annotations.filter { $0.note != nil && !($0.note?.isEmpty ?? true) }
+        case 3: return annotations.filter { $0.note?.contains("⚡") ?? false }
         default: return annotations
         }
     }

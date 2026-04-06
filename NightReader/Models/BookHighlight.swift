@@ -51,14 +51,69 @@ struct BookAnnotations: Codable {
     let title: String
     let author: String?
     var highlights: [BookHighlight]
+    var smartHighlights: [SmartHighlight]
     var postReading: PostReadingReview?
+    var analysisCount: Int        // monthly counter for Settings display
 
     init(id: String, title: String, author: String? = nil) {
         self.id = id
         self.title = title
         self.author = author
         self.highlights = []
+        self.smartHighlights = []
         self.postReading = nil
+        self.analysisCount = 0
+    }
+}
+
+// MARK: - Smart Highlight (AI-generated)
+//
+// AI analyzes chapter text and marks valuable sentences.
+// Separate from BookHighlight: different lifecycle, metadata, and UI.
+//
+//  AI analysis → SmartHighlight[] → Notebook "✦ AI" tab
+//                                    ├── Save → promotes to BookHighlight
+//                                    └── Dismiss → gone forever
+
+enum SmartHighlightType: String, Codable {
+    case thesis      // ✦ Core argument or claim
+    case insight     // 💡 Non-obvious observation
+    case actionable  // ⚡ Something reader can apply
+}
+
+struct SmartHighlight: Identifiable, Codable {
+    let id: UUID
+    let bookId: String
+    let chapterIndex: Int         // stable key (not title)
+    let chapterTitle: String?     // display only
+    let text: String              // exact sentence from book
+    let type: SmartHighlightType
+    let rationale: String         // AI's book-aware explanation
+    let page: Int                 // page where found (for navigation)
+    var dismissed: Bool
+    var savedAsHighlight: Bool    // promoted to BookHighlight
+    let createdAt: Date
+
+    init(
+        bookId: String,
+        chapterIndex: Int,
+        chapterTitle: String? = nil,
+        text: String,
+        type: SmartHighlightType,
+        rationale: String,
+        page: Int
+    ) {
+        self.id = UUID()
+        self.bookId = bookId
+        self.chapterIndex = chapterIndex
+        self.chapterTitle = chapterTitle
+        self.text = text
+        self.type = type
+        self.rationale = rationale
+        self.page = page
+        self.dismissed = false
+        self.savedAsHighlight = false
+        self.createdAt = Date()
     }
 }
 

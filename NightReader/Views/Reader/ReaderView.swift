@@ -192,11 +192,16 @@ struct ReaderView: View {
             viewModel.stopReadingSession()
         }
         .sheet(isPresented: $viewModel.showAnnotationList) {
-            AnnotationListView(
+            NotebookView(
                 document: viewModel.originalDoc ?? viewModel.document,
+                bookTitle: viewModel.book.title,
+                bookAuthor: viewModel.book.author,
+                readProgress: viewModel.progressFraction,
+                theme: viewModel.selectedTheme,
+                annotationStore: viewModel.annotationStore,
                 onSelectAnnotation: { viewModel.goToPage($0) }
             )
-            .presentationDetents([.medium, .large])
+            .presentationDetents([.large])
             .presentationDragIndicator(.visible)
         }
         .sheet(isPresented: $viewModel.showTOC) {

@@ -77,16 +77,62 @@ enum ClaudeAPIService {
         )
     }
 
+    /// Analyze chapter text and return smart highlight suggestions.
+    static func analyzeChapter(
+        text: String,
+        bookTitle: String,
+        chapterTitle: String?,
+        density: Int = 5
+    ) async throws -> [SmartHighlightResult] {
+        // Skip very short chapters — not enough context
+        let wordCount = text.components(separatedBy: .whitespacesAndNewlines).filter { !$0.isEmpty }.count
+        guard wordCount >= 200 else { return [] }
+
+        let chapterCtx = chapterTitle.map { ", глава «\($0)»" } ?? ""
+        let system = """
+            Ты — вдумчивый читатель, отмечающий самые ценные предложения в книге. \
+            Отмечай только то, что заставит человека остановиться и задуматься. \
+            Максимум \(density) предложений. \
+            Ссылайся на конкретное содержание текста. \
+            Никогда не используй общие фразы вроде «важный момент» или «ключевой аргумент». \
+            Твоё объяснение должно доказать, что ты прочитал и понял отрывок. \
+            Верни JSON массив: [{"text": "точное предложение из текста", "type": "thesis|insight|actionable", "rationale": "одно предложение почему"}]
+            """
+
+        let userMessage = "Книга: «\(bookTitle)»\(chapterCtx)\n\nТекст главы:\n\(text)"
+
+        let response = try await sendMessage(
+            system: system,
+            userMessage: userMessage,
+            model: AIActionType.explain.modelID,
+            maxTokens: 2048
+        )
+
+        // Defensive JSON extraction
+        guard let jsonData = JSONExtractor.extractArray(from: response) else {
+            return []
+        }
+
+        do {
+            return try JSONDecoder().decode([SmartHighlightResult].self, from: jsonData)
+        } catch {
+            #if DEBUG
+            print("[ClaudeAPI] Failed to decode smart highlights: \(error)")
+            #endif
+            return []
+        }
+    }
+
     // MARK: - Network Layer
 
-    private static func sendMessage(system: String, userMessage: String, model: String) async throws -> String {
+    private static func sendMessage(system: String, userMessage: String, model: String, maxTokens: Int = 1024) async throws -> String {
         guard let apiKey = KeychainManager.getAPIKey(), !apiKey.isEmpty else {
             throw ClaudeAPIError.noAPIKey
         }
 
         let request = ClaudeRequest(
             model: model,
-            maxTokens: 1024,
+            maxTokens: maxTokens,
             system: system,
             messages: [ClaudeMessage(role: "user", content: userMessage)]
         )

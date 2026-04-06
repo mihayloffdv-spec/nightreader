@@ -51,6 +51,12 @@ final class ReaderViewModel {
     var aiResponseState: AIResponseState = .idle
     private var aiTask: Task<Void, Never>?
 
+    // Smart Highlights (AI) state
+    var smartHighlightsEnabled: Bool = AppSettings.shared.smartHighlightsEnabled
+    var isAnalyzingChapter = false
+    private var analysisTask: Task<Void, Never>?
+    private var lastAnalyzedChapterIndex: Int?
+
     private var hideToolbarTask: Task<Void, Never>?
     private var sessionStartTime: Date?
     private(set) var originalDocument: PDFDocument?
@@ -384,10 +390,143 @@ final class ReaderViewModel {
     }
 
     private func updateChapterInfo() {
+        let previousChapter = currentChapter
         currentChapter = ChapterDetector.currentChapter(forPage: currentPage, in: chapters)
         chapterProgress = ChapterDetector.chapterProgress(
             forPage: currentPage, in: chapters, totalPages: book.totalPages
         )
+
+        // Trigger AI analysis when chapter changes
+        if let current = currentChapter,
+           current.id != previousChapter?.id {
+            triggerSmartHighlightAnalysis(for: current)
+        }
+    }
+
+    // MARK: - Smart Highlight Analysis
+
+    func toggleSmartHighlights() {
+        smartHighlightsEnabled.toggle()
+        AppSettings.shared.smartHighlightsEnabled = smartHighlightsEnabled
+        if smartHighlightsEnabled, let chapter = currentChapter {
+            triggerSmartHighlightAnalysis(for: chapter)
+        }
+    }
+
+    func reanalyzeCurrentChapter() {
+        guard let chapter = currentChapter else { return }
+        annotationStore?.clearSmartHighlightsForChapter(chapter.id)
+        lastAnalyzedChapterIndex = nil
+        triggerSmartHighlightAnalysis(for: chapter)
+    }
+
+    private func triggerSmartHighlightAnalysis(for chapter: Chapter) {
+        guard smartHighlightsEnabled,
+              KeychainManager.hasAPIKey,
+              chapter.id != lastAnalyzedChapterIndex else { return }
+
+        // Already analyzed?
+        if annotationStore?.isChapterAnalyzed(chapter.id) == true {
+            lastAnalyzedChapterIndex = chapter.id
+            return
+        }
+
+        // Cancel previous analysis (cancel-on-new pattern)
+        analysisTask?.cancel()
+        isAnalyzingChapter = true
+
+        analysisTask = Task { @MainActor [weak self] in
+            guard let self, let store = self.annotationStore else { return }
+
+            do {
+                let chapterText = self.getChapterText(for: chapter)
+                guard !Task.isCancelled, !chapterText.isEmpty else {
+                    self.isAnalyzingChapter = false
+                    return
+                }
+
+                let results = try await ClaudeAPIService.analyzeChapter(
+                    text: chapterText,
+                    bookTitle: self.book.title,
+                    chapterTitle: chapter.title,
+                    density: AppSettings.shared.smartHighlightDensity
+                )
+
+                guard !Task.isCancelled else { return }
+
+                let smartHighlights = results.map { result in
+                    SmartHighlight(
+                        bookId: self.book.id.uuidString,
+                        chapterIndex: chapter.id,
+                        chapterTitle: chapter.title,
+                        text: result.text,
+                        type: result.highlightType,
+                        rationale: result.rationale,
+                        page: self.findPageForSentence(result.text, in: chapter)
+                    )
+                }
+
+                store.addSmartHighlights(smartHighlights)
+                self.lastAnalyzedChapterIndex = chapter.id
+                if !smartHighlights.isEmpty {
+                    NotificationCenter.default.post(name: .smartHighlightsReady, object: nil)
+                }
+            } catch {
+                #if DEBUG
+                print("[SmartHighlights] Analysis failed: \(error)")
+                #endif
+            }
+
+            self.isAnalyzingChapter = false
+        }
+    }
+
+    /// Get concatenated text for a chapter using cache-first extraction.
+    private func getChapterText(for chapter: Chapter) -> String {
+        guard let doc = originalDocument ?? document else { return "" }
+
+        let startPage = chapter.pageIndex
+        let endPage: Int
+        if let nextChapter = chapters.first(where: { $0.id > chapter.id }) {
+            endPage = nextChapter.pageIndex
+        } else {
+            endPage = doc.pageCount
+        }
+
+        var texts: [String] = []
+        for pageIndex in startPage..<endPage {
+            guard let page = doc.page(at: pageIndex),
+                  let text = page.string else { continue }
+            texts.append(text)
+        }
+        return texts.joined(separator: "\n\n")
+    }
+
+    /// Find the page index where a sentence most likely appears.
+    private func findPageForSentence(_ sentence: String, in chapter: Chapter) -> Int {
+        guard let doc = originalDocument ?? document else { return chapter.pageIndex }
+
+        let normalized = sentence.components(separatedBy: .whitespacesAndNewlines)
+            .filter { !$0.isEmpty }.joined(separator: " ").lowercased()
+
+        let startPage = chapter.pageIndex
+        let endPage: Int
+        if let nextChapter = chapters.first(where: { $0.id > chapter.id }) {
+            endPage = nextChapter.pageIndex
+        } else {
+            endPage = doc.pageCount
+        }
+
+        for pageIndex in startPage..<endPage {
+            guard let pageText = doc.page(at: pageIndex)?.string else { continue }
+            let pageNormalized = pageText.components(separatedBy: .whitespacesAndNewlines)
+                .filter { !$0.isEmpty }.joined(separator: " ").lowercased()
+            if pageNormalized.contains(normalized) {
+                return pageIndex
+            }
+        }
+
+        return chapter.pageIndex // fallback to chapter start
     }
 
     nonisolated private static func countWords(in document: PDFDocument) -> Int {

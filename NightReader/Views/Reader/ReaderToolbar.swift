@@ -228,6 +228,25 @@ struct ReaderToolbar: View {
                         }
                     }
 
+                    // Smart Highlights (AI) toggle
+                    if KeychainManager.hasAPIKey {
+                        Button {
+                            viewModel.toggleSmartHighlights()
+                        } label: {
+                            Image(systemName: viewModel.smartHighlightsEnabled ? "sparkle" : "sparkle")
+                                .foregroundStyle(
+                                    viewModel.smartHighlightsEnabled ? theme.accent : theme.textPrimary.opacity(0.7)
+                                )
+                                .symbolEffect(.pulse, isActive: viewModel.isAnalyzingChapter)
+                                .frame(width: 40, height: 40)
+                        }
+                        .simultaneousGesture(
+                            LongPressGesture(minimumDuration: 0.5).onEnded { _ in
+                                viewModel.reanalyzeCurrentChapter()
+                            }
+                        )
+                    }
+
                     // Highlights
                     Button {
                         viewModel.showAnnotationList = true

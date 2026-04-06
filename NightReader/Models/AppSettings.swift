@@ -98,6 +98,22 @@ final class AppSettings {
         set { UserDefaults.standard.set(newValue, forKey: "lightThemeId") }
     }
 
+    // MARK: - Smart Highlights (AI)
+
+    var smartHighlightsEnabled: Bool {
+        get { UserDefaults.standard.bool(forKey: "smartHighlightsEnabled") }
+        set { UserDefaults.standard.set(newValue, forKey: "smartHighlightsEnabled") }
+    }
+
+    /// Density: 3 = minimal, 5 = normal, 8 = thorough
+    var smartHighlightDensity: Int {
+        get {
+            let val = UserDefaults.standard.integer(forKey: "smartHighlightDensity")
+            return val > 0 ? val : 5
+        }
+        set { UserDefaults.standard.set(newValue, forKey: "smartHighlightDensity") }
+    }
+
     /// Returns the appropriate theme based on auto-switch mode.
     func resolvedTheme(isDarkAppearance: Bool) -> Theme {
         switch autoSwitchMode {

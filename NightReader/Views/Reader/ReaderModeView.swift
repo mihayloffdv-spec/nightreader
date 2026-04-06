@@ -23,6 +23,7 @@ struct ReaderModeView: View {
     @State private var scrolledBlockID: Int?
     @State private var saveTask: Task<Void, Never>?
     @State private var joinedPairs: Set<Int> = []  // endPage values of already-joined pairs
+    @State private var showSmartHighlightTooltip = false
 
     // extractionQueue moved to shared PageLoader service.
     // Keep this accessor for backward compatibility with ReaderViewModel.loadDocument().
@@ -87,6 +88,41 @@ struct ReaderModeView: View {
         .background(Color(hex: "#0e150e"))
         .contentShape(Rectangle())
         .onTapGesture { onTap() }
+        .overlay(alignment: .top) {
+            if showSmartHighlightTooltip {
+                smartHighlightTooltip
+                    .transition(.move(edge: .top).combined(with: .opacity))
+                    .onTapGesture { withAnimation { showSmartHighlightTooltip = false } }
+                    .task {
+                        try? await Task.sleep(for: .seconds(5))
+                        withAnimation { showSmartHighlightTooltip = false }
+                    }
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .smartHighlightsReady)) { _ in
+            if !UserDefaults.standard.bool(forKey: "hasSeenSmartHighlightIntro") {
+                withAnimation(.easeInOut(duration: 0.3)) { showSmartHighlightTooltip = true }
+                UserDefaults.standard.set(true, forKey: "hasSeenSmartHighlightIntro")
+            }
+        }
+    }
+
+    private var smartHighlightTooltip: some View {
+        HStack(spacing: 8) {
+            Text("✦")
+                .font(.system(size: 16))
+            Text("AI highlighted key ideas in this chapter. Check the ✦ AI tab in Notebook.")
+                .font(.custom("Onest", size: 13))
+        }
+        .foregroundStyle(theme.textPrimary)
+        .padding(.horizontal, 20)
+        .padding(.vertical, 12)
+        .background(
+            Capsule().fill(theme.backgroundElevated)
+                .shadow(color: .black.opacity(0.3), radius: 8, y: 4)
+        )
+        .padding(.top, 60)
+        .padding(.horizontal, 24)
     }
 
     // MARK: - Page section

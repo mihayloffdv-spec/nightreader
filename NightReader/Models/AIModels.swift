@@ -1,5 +1,11 @@
 import Foundation
 
+// MARK: - Notifications
+
+extension Notification.Name {
+    static let smartHighlightsReady = Notification.Name("smartHighlightsReady")
+}
+
 // MARK: - AI Action Types
 
 enum AIActionType: String {
@@ -99,5 +105,45 @@ struct ClaudeErrorResponse: Decodable {
     struct ErrorDetail: Decodable {
         let type: String
         let message: String
+    }
+}
+
+// MARK: - Smart Highlight API Response
+
+struct SmartHighlightResult: Decodable {
+    let text: String
+    let type: String       // "thesis", "insight", "actionable"
+    let rationale: String
+
+    var highlightType: SmartHighlightType {
+        SmartHighlightType(rawValue: type) ?? .insight
+    }
+}
+
+// MARK: - JSON Extraction Helper
+
+enum JSONExtractor {
+    /// Extract a JSON array from a potentially messy Claude response.
+    /// Handles: clean JSON, markdown code fences, preamble text.
+    static func extractArray(from text: String) -> Data? {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        // Strip markdown code fences if present
+        var cleaned = trimmed
+        if let fenceStart = cleaned.range(of: "```json") ?? cleaned.range(of: "```") {
+            cleaned = String(cleaned[fenceStart.upperBound...])
+        }
+        if let fenceEnd = cleaned.range(of: "```", options: .backwards) {
+            cleaned = String(cleaned[..<fenceEnd.lowerBound])
+        }
+
+        // Find the JSON array: first '[' to last ']'
+        guard let arrayStart = cleaned.firstIndex(of: "["),
+              let arrayEnd = cleaned.lastIndex(of: "]") else {
+            return nil
+        }
+
+        let jsonString = String(cleaned[arrayStart...arrayEnd])
+        return jsonString.data(using: .utf8)
     }
 }

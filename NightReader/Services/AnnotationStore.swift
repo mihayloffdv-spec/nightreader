@@ -100,6 +100,61 @@ final class AnnotationStore {
         annotations.highlights.filter { $0.action != nil && !($0.action?.isEmpty ?? true) }.count
     }
 
+    // MARK: - Smart Highlights (AI)
+
+    func addSmartHighlights(_ highlights: [SmartHighlight]) {
+        annotations.smartHighlights.append(contentsOf: highlights)
+        annotations.analysisCount += 1
+        scheduleSave()
+    }
+
+    func smartHighlightsForChapter(_ chapterIndex: Int) -> [SmartHighlight] {
+        annotations.smartHighlights.filter {
+            $0.chapterIndex == chapterIndex && !$0.dismissed
+        }
+    }
+
+    func isChapterAnalyzed(_ chapterIndex: Int) -> Bool {
+        annotations.smartHighlights.contains { $0.chapterIndex == chapterIndex }
+    }
+
+    func dismissSmartHighlight(id: UUID) {
+        guard let index = annotations.smartHighlights.firstIndex(where: { $0.id == id }) else { return }
+        annotations.smartHighlights[index].dismissed = true
+        scheduleSave()
+    }
+
+    /// Promote a smart highlight to a regular BookHighlight.
+    /// Returns the new BookHighlight for UI updates.
+    @discardableResult
+    func promoteToHighlight(id: UUID) -> BookHighlight? {
+        guard let index = annotations.smartHighlights.firstIndex(where: { $0.id == id }) else { return nil }
+        let smart = annotations.smartHighlights[index]
+        annotations.smartHighlights[index].savedAsHighlight = true
+
+        let highlight = addHighlight(
+            text: smart.text,
+            page: smart.page,
+            bounds: [],
+            chapter: smart.chapterTitle,
+            color: "yellow"
+        )
+        // Pre-fill the AI rationale as reaction
+        updateHighlight(id: highlight.id, reaction: "✦ \(smart.rationale)", action: nil)
+        return highlight
+    }
+
+    func clearSmartHighlightsForChapter(_ chapterIndex: Int) {
+        annotations.smartHighlights.removeAll { $0.chapterIndex == chapterIndex }
+        scheduleSave()
+    }
+
+    var activeSmartHighlights: [SmartHighlight] {
+        annotations.smartHighlights.filter { !$0.dismissed && !$0.savedAsHighlight }
+    }
+
+    var monthlyAnalysisCount: Int { annotations.analysisCount }
+
     // MARK: - Post-Reading Review
 
     func setPostReading(coreIdea: String?, whyRead: String?, mainShift: String?) {
