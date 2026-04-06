@@ -36,6 +36,13 @@ final class ReaderViewModel {
     var currentChapter: Chapter?
     var chapterProgress: Double = 0
 
+    // Annotation state
+    var annotationStore: AnnotationStore?
+    var showAnnotationSheet = false
+    var pendingHighlightText: String = ""
+    var pendingReaction: String = ""
+    var pendingAction: String = ""
+
     // AI features state
     var showAISheet = false
     var showAPIKeySettings = false
@@ -62,6 +69,45 @@ final class ReaderViewModel {
         self.cropMargin = book.cropMargin
         self.selectedTheme = AppSettings.shared.currentTheme
         self.dimmerOpacity = AppSettings.shared.defaultDimmerOpacity
+        self.annotationStore = AnnotationStore(
+            bookId: book.id.uuidString,
+            title: book.title,
+            author: book.author
+        )
+    }
+
+    // MARK: - Highlights
+
+    func createHighlight(text: String) {
+        pendingHighlightText = text
+        pendingReaction = ""
+        pendingAction = ""
+        showAnnotationSheet = true
+    }
+
+    func saveHighlight() {
+        guard !pendingHighlightText.isEmpty else { return }
+        let highlight = annotationStore?.addHighlight(
+            text: pendingHighlightText,
+            page: currentPage,
+            bounds: [],
+            chapter: currentChapter?.title
+        )
+        if !pendingReaction.isEmpty || !pendingAction.isEmpty, let h = highlight {
+            annotationStore?.updateHighlight(
+                id: h.id,
+                reaction: pendingReaction.isEmpty ? nil : pendingReaction,
+                action: pendingAction.isEmpty ? nil : pendingAction
+            )
+        }
+        // Update book stats
+        book.highlightCount = annotationStore?.highlightCount ?? 0
+        book.actionCount = annotationStore?.actionCount ?? 0
+        showAnnotationSheet = false
+    }
+
+    func dismissAnnotationSheet() {
+        showAnnotationSheet = false
     }
 
     @MainActor

@@ -16,6 +16,8 @@ final class Book {
     var renderingModeRaw: String
     var totalReadingTime: Double = 0
     var cropMargin: Double = 0
+    var highlightCount: Int = 0
+    var actionCount: Int = 0
     var bookmarksData: Data?
     @Transient private var _bookmarksCache: Set<Int>?
 

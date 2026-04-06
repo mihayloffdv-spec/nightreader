@@ -70,6 +70,9 @@
 		D0000007 /* RichTextExtractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1000007 /* RichTextExtractor.swift */; };
 		D0000008 /* AttributedTextExtractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1000008 /* AttributedTextExtractor.swift */; };
 		D0000009 /* OCRTextExtractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1000009 /* OCRTextExtractor.swift */; };
+		D0000010 /* AnnotationStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1000010 /* AnnotationStore.swift */; };
+		D0000011 /* BookHighlight.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1000011 /* BookHighlight.swift */; };
+		D0000012 /* AnnotationSheetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1000012 /* AnnotationSheetView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -148,6 +151,9 @@
 		D1000007 /* RichTextExtractor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RichTextExtractor.swift; sourceTree = "<group>"; };
 		D1000008 /* AttributedTextExtractor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AttributedTextExtractor.swift; sourceTree = "<group>"; };
 		D1000009 /* OCRTextExtractor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OCRTextExtractor.swift; sourceTree = "<group>"; };
+		D1000010 /* AnnotationStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnnotationStore.swift; sourceTree = "<group>"; };
+		D1000011 /* BookHighlight.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BookHighlight.swift; sourceTree = "<group>"; };
+		D1000012 /* AnnotationSheetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnnotationSheetView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -221,6 +227,7 @@
 				C1000005 /* AppSettings.swift */,
 				C1000026 /* ReaderFont.swift */,
 				C1000035 /* AIModels.swift */,
+				D1000011 /* BookHighlight.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -269,6 +276,7 @@
 				D1000003 /* ChapterReviewView.swift */,
 				D1000004 /* NotebookView.swift */,
 				D1000005 /* DayModeReadingView.swift */,
+				D1000012 /* AnnotationSheetView.swift */,
 			);
 			path = Reader;
 			sourceTree = "<group>";
@@ -295,6 +303,7 @@
 				D1000007 /* RichTextExtractor.swift */,
 				D1000008 /* AttributedTextExtractor.swift */,
 				D1000009 /* OCRTextExtractor.swift */,
+				D1000010 /* AnnotationStore.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -506,6 +515,9 @@
 				D0000007 /* RichTextExtractor.swift in Sources */,
 				D0000008 /* AttributedTextExtractor.swift in Sources */,
 				D0000009 /* OCRTextExtractor.swift in Sources */,
+				D0000010 /* AnnotationStore.swift in Sources */,
+				D0000011 /* BookHighlight.swift in Sources */,
+				D0000012 /* AnnotationSheetView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

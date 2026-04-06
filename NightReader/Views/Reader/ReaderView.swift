@@ -85,6 +85,9 @@ struct ReaderView: View {
                                 } else {
                                     viewModel.requestTranslate(text: text)
                                 }
+                            },
+                            onHighlight: { text in
+                                viewModel.createHighlight(text: text)
                             }
                         )
                         .ignoresSafeArea()
@@ -229,6 +232,18 @@ struct ReaderView: View {
             APIKeySettingsView()
                 .presentationDetents([.medium])
                 .presentationDragIndicator(.visible)
+        }
+        .sheet(isPresented: $viewModel.showAnnotationSheet) {
+            AnnotationSheetView(
+                highlightText: viewModel.pendingHighlightText,
+                theme: viewModel.selectedTheme,
+                reaction: $viewModel.pendingReaction,
+                action: $viewModel.pendingAction,
+                onSave: { viewModel.saveHighlight() },
+                onDismiss: { viewModel.dismissAnnotationSheet() }
+            )
+            .presentationDetents([.fraction(0.5), .large])
+            .presentationDragIndicator(.visible)
         }
     }
 }

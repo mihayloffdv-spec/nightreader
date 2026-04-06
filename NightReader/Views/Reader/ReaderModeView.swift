@@ -13,6 +13,7 @@ struct ReaderModeView: View {
     let onPageChange: (Int, Int) -> Void  // (pageIndex, blockID)
     let onTap: () -> Void
     let onAIAction: (AIActionType, String) -> Void  // (action, selectedText)
+    var onHighlight: ((String) -> Void)? = nil       // highlight text selection
 
     @State private var pages: [Int] = []
     @State private var blocksByPage: [Int: [ContentBlock]] = [:]
@@ -158,6 +159,7 @@ struct ReaderModeView: View {
                 fontSize: fontSize,
                 fontDesign: fontFamily.design,
                 customFontName: resolvedBodyFont,
+                onHighlight: onHighlight,
                 textColor: onSurface,
                 lineSpacing: fontSize * 0.8, // leading 1.8 → extra 0.8em
                 onAIAction: onAIAction
@@ -268,6 +270,9 @@ struct ReaderModeView: View {
 
 private class ReaderTextView: UITextView {
 
+    /// Callback for highlight creation from context menu.
+    var onHighlight: ((String) -> Void)?
+
     /// Callback for AI actions (explain/translate) from context menu.
     var onAIAction: ((AIActionType, String) -> Void)?
 
@@ -305,6 +310,16 @@ private class ReaderTextView: UITextView {
 
         let aiMenu = UIMenu(title: "AI", image: UIImage(systemName: "sparkles"), children: [explainAction, translateAction])
         builder.insertChild(aiMenu, atStartOfMenu: .root)
+
+        // Highlight action
+        let highlightAction = UIAction(
+            title: "Highlight",
+            image: UIImage(systemName: "highlighter")
+        ) { [weak self] _ in
+            guard let self, let text = self.selectedText, !text.isEmpty else { return }
+            self.onHighlight?(text)
+        }
+        builder.insertChild(UIMenu(title: "", options: .displayInline, children: [highlightAction]), atStartOfMenu: .root)
     }
 
     /// Get the currently selected text.
@@ -329,6 +344,7 @@ private struct ReaderTextBlock: UIViewRepresentable {
     let fontSize: CGFloat
     let fontDesign: Font.Design
     var customFontName: String? = nil
+    var onHighlight: ((String) -> Void)? = nil
     let textColor: UIColor
     let lineSpacing: CGFloat
     let onAIAction: (AIActionType, String) -> Void
@@ -344,6 +360,7 @@ private struct ReaderTextBlock: UIViewRepresentable {
         tv.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
         tv.tintColor = UIColor.systemBlue.withAlphaComponent(0.6)
         tv.onAIAction = onAIAction
+        tv.onHighlight = onHighlight
         return tv
     }
 
