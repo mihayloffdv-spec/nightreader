@@ -61,88 +61,67 @@ enum OCRTextExtractor {
 
     // MARK: - Merge OCR with page.string
 
-    /// Use page.string as base (it has better paragraph structure) and fill in
-    /// missing characters from OCR text.
+    /// Use page.string as base and fill in missing characters from OCR.
     ///
-    /// Strategy: find lines in page.string that start with lowercase (suspicious),
-    /// look for the same fragment in OCR text, and prepend the missing chars.
+    /// ONLY fixes words that are at TRUE sentence starts (after . ! ? or start of text).
+    /// Does NOT modify lowercase words after commas, colons, etc.
     static func mergeWithPageString(ocrText: String, pageString: String) -> String {
         let ocrLines = ocrText.components(separatedBy: .newlines)
             .map { $0.trimmingCharacters(in: .whitespaces) }
             .filter { !$0.isEmpty }
 
-        var result = pageString
-
-        // Build OCR lookup: lowercase-trimmed fragments → full OCR line
-        // This lets us find "ебрант" in OCR and recover "Себрант"
-        var ocrLookup: [String: String] = [:]
-        for ocrLine in ocrLines {
-            // Index by substrings of 5-15 chars for fuzzy matching
-            let words = ocrLine.components(separatedBy: " ")
-            for word in words where word.count >= 3 {
-                ocrLookup[word.lowercased()] = ocrLine
-            }
+        // Collect all OCR words for lookup
+        var ocrWords: [String] = []
+        for line in ocrLines {
+            ocrWords.append(contentsOf: line.components(separatedBy: " ").filter { $0.count >= 3 })
         }
 
-        // Find suspicious fragments in page.string and fix them
-        let pageLines = result.components(separatedBy: "\n")
-        var fixedLines: [String] = []
+        // Work on the full pageString to check true sentence boundaries
+        let sentenceEnders: Set<Character> = [".", "!", "?", "…"]
+        var result = pageString
         var fixes = 0
 
-        for pageLine in pageLines {
-            let trimmed = pageLine.trimmingCharacters(in: .whitespaces)
-            guard !trimmed.isEmpty else { fixedLines.append(pageLine); continue }
+        // Find lowercase words at true sentence starts
+        // Pattern: (sentence-ending punctuation + whitespace) then lowercase word
+        // Also: very start of the text
+        if let regex = try? NSRegularExpression(pattern: "(?:^|[.!?…]\\s+)([а-яa-z]\\S{1,20})", options: []) {
+            let ns = result as NSString
+            let matches = regex.matches(in: result, range: NSRange(location: 0, length: ns.length))
 
-            // Find words that start with lowercase after sentence boundary
-            var fixedLine = pageLine
-            let words = trimmed.components(separatedBy: " ")
+            // Process in reverse order so replacements don't shift ranges
+            for match in matches.reversed() {
+                let fragmentRange = match.range(at: 1)
+                let fragment = ns.substring(with: fragmentRange)
 
-            for (wi, word) in words.enumerated() {
-                guard word.count >= 2 else { continue }
-                guard let first = word.first, first.isLowercase else { continue }
+                guard fragment.count >= 2 else { continue }
+                guard let firstChar = fragment.first, firstChar.isLowercase else { continue }
 
-                // Is this word at the start of a sentence? (after period, or start of line)
-                let isAfterPeriod = wi > 0 && words[wi-1].hasSuffix(".")
-                let isLineStart = wi == 0
+                let fragmentLower = fragment.lowercased()
 
-                guard isAfterPeriod || isLineStart else { continue }
+                // Look for an OCR word that starts with uppercase and ends with this fragment
+                for ocrWord in ocrWords {
+                    guard let ocrFirst = ocrWord.first, ocrFirst.isUppercase else { continue }
+                    let ocrLower = ocrWord.lowercased()
 
-                // Look for this fragment in OCR text
-                let fragment = word.lowercased()
-                for (ocrKey, ocrLine) in ocrLookup {
-                    if ocrKey.contains(fragment) || fragment.contains(ocrKey) {
-                        // Found in OCR. Find the full word in OCR line
-                        let ocrWords = ocrLine.components(separatedBy: " ")
-                        for ocrWord in ocrWords {
-                            let ocrLower = ocrWord.lowercased()
-                            if ocrLower.hasSuffix(fragment) && ocrLower.count > fragment.count {
-                                // OCR has more chars at the beginning!
-                                let missingCount = ocrLower.count - fragment.count
-                                let missingChars = String(ocrWord.prefix(missingCount))
+                    guard ocrLower.hasSuffix(fragmentLower) else { continue }
+                    guard ocrLower.count > fragmentLower.count else { continue }
+                    guard ocrLower.count <= fragmentLower.count + 3 else { continue } // max 3 chars missing
 
-                                // Verify: the missing chars + fragment = the OCR word
-                                if (missingChars + word).lowercased() == ocrLower {
-                                    fixedLine = fixedLine.replacingOccurrences(
-                                        of: word,
-                                        with: missingChars + word,
-                                        options: [],
-                                        range: fixedLine.range(of: word)
-                                    )
-                                    fixes += 1
-                                    #if DEBUG
-                                    let pageIndex = "?"
-                                    print("[OCR] Fixed: '\(word)' → '\(missingChars + word)'")
-                                    #endif
-                                }
-                                break
-                            }
-                        }
+                    // Verify exact match
+                    let missingCount = ocrWord.count - fragment.count
+                    let missingChars = String(ocrWord.prefix(missingCount))
+
+                    if (missingChars.lowercased() + fragmentLower) == ocrLower {
+                        let replacement = missingChars + fragment
+                        result = (result as NSString).replacingCharacters(in: fragmentRange, with: replacement)
+                        fixes += 1
+                        #if DEBUG
+                        print("[OCR] Fixed: '\(fragment)' → '\(replacement)'")
+                        #endif
                         break
                     }
                 }
             }
-
-            fixedLines.append(fixedLine)
         }
 
         #if DEBUG
@@ -151,7 +130,7 @@ enum OCRTextExtractor {
         }
         #endif
 
-        return fixedLines.joined(separator: "\n")
+        return result
     }
 
     // MARK: - Page rendering
