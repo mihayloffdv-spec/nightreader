@@ -14,13 +14,14 @@ struct SplashScreenView: View {
 
     var onFinished: () -> Void
 
-    // Exact colors from the HTML mockup
-    private let bgColor = Color(hex: "#0B120B")
-    private let accentColor = Color(hex: "#CC704B")
-    private let subtitleColor = Color(hex: "#78716C") // stone-500
-    private let quoteColor = Color(hex: "#C5C7C1")    // on-surface-variant
-    private let mistGreen = Color(hex: "#061404")      // tertiary-container
-    private let mistRed = Color(hex: "#250700")        // primary-container
+    // Theme-derived colors
+    private var theme: Theme { AppSettings.shared.currentTheme }
+    private var bgColor: Color { theme.background }
+    private var accentColor: Color { theme.accent }
+    private var subtitleColor: Color { theme.textSecondary.opacity(0.5) }
+    private var quoteColor: Color { theme.onSurfaceVariant }
+    private var mistGreen: Color { theme.background.mix(with: .green, amount: 0.08) }
+    private var mistRed: Color { theme.background.mix(with: .red, amount: 0.06) }
 
     var body: some View {
         ZStack {
@@ -42,7 +43,7 @@ struct SplashScreenView: View {
 
             // Vignette gradient (bottom darkening)
             LinearGradient(
-                colors: [.clear, .clear, Color(hex: "#091009").opacity(0.6)],
+                colors: [.clear, .clear, theme.surfaceLowest.opacity(0.6)],
                 startPoint: .top,
                 endPoint: .bottom
             )
@@ -133,7 +134,7 @@ struct SplashScreenView: View {
                 CGPoint(x: x * scale, y: y * scale)
             }
 
-            let strokeColor = Color(hex: "#CC704B")
+            let strokeColor = AppSettings.shared.currentTheme.accent
 
             // Book left wing: M50,85 C40,85 20,80 20,60 V30 C20,30 40,35 50,35
             var leftWing = Path()

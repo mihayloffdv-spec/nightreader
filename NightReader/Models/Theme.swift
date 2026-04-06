@@ -88,6 +88,24 @@ struct Theme: Identifiable, Codable, Hashable {
     var surfaceLight: Color { Color(hex: surfaceLightHex) }
     var highlightColor: Color { Color(hex: accentHex).opacity(highlightOpacity) }
 
+    // Surface container variants (derived from background → surface gradient)
+    // Used by Library, Notebook, and other card-based views
+    var surfaceLowest: Color { background.mix(with: .black, amount: 0.05) }
+    var surfaceContainerLow: Color { background.mix(with: surface, amount: 0.15) }
+    var surfaceContainer: Color { background.mix(with: surface, amount: 0.3) }
+    var surfaceContainerHigh: Color { background.mix(with: surface, amount: 0.5) }
+    var surfaceContainerHighest: Color { background.mix(with: surface, amount: 0.7) }
+
+    // Semantic aliases for readability in views
+    var onSurface: Color { textPrimary }
+    var onSurfaceVariant: Color { textSecondary }
+    var primary: Color { accent }
+    var onPrimary: Color {
+        // Dark text for bright accent buttons
+        Color(hex: backgroundHex)
+    }
+    var outlineVariant: Color { surface.opacity(0.6) }
+
     var accentUIColor: UIColor { UIColor(Color(hex: accentHex)) }
     var backgroundUIColor: UIColor { UIColor(Color(hex: backgroundHex)) }
 
@@ -299,5 +317,22 @@ extension Color {
         var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
         uiColor.getRed(&r, green: &g, blue: &b, alpha: &a)
         return String(format: "#%02X%02X%02X", Int(r * 255), Int(g * 255), Int(b * 255))
+    }
+
+    /// Linearly interpolate between self and another color.
+    /// amount=0 → self, amount=1 → other
+    func mix(with other: Color, amount: Double) -> Color {
+        let c1 = UIColor(self)
+        let c2 = UIColor(other)
+        var r1: CGFloat = 0, g1: CGFloat = 0, b1: CGFloat = 0, a1: CGFloat = 0
+        var r2: CGFloat = 0, g2: CGFloat = 0, b2: CGFloat = 0, a2: CGFloat = 0
+        c1.getRed(&r1, green: &g1, blue: &b1, alpha: &a1)
+        c2.getRed(&r2, green: &g2, blue: &b2, alpha: &a2)
+        let t = CGFloat(amount)
+        return Color(
+            red: Double(r1 + (r2 - r1) * t),
+            green: Double(g1 + (g2 - g1) * t),
+            blue: Double(b1 + (b2 - b1) * t)
+        )
     }
 }

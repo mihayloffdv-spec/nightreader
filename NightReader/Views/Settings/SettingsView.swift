@@ -5,35 +5,34 @@ import SwiftUI
 // Translated 1:1 from Stitch HTML/CSS source.
 
 struct SettingsView: View {
-    // Exact colors from HTML tailwind config
-    private let bg = Color(hex: "#0B120B")
-    private let surface = Color(hex: "#0e150e")
-    private let surfaceContainerLow = Color(hex: "#161d16")
-    private let surfaceContainer = Color(hex: "#1a211a")
-    private let surfaceContainerHigh = Color(hex: "#242c24")
-    private let surfaceContainerHighest = Color(hex: "#2f372e")
-    private let onSurface = Color(hex: "#dde5d8")
-    private let onSurfaceVariant = Color(hex: "#c5c7c1")
-    private let primary = Color(hex: "#ffb599")
-    private let onPrimary = Color(hex: "#5a1c00")
-    private let accent = Color(hex: "#CC704B")
-    private let outlineVariant = Color(hex: "#444843")
+    // Theme-derived colors
+    private var theme: Theme { AppSettings.shared.currentTheme }
+    private var bg: Color { theme.background }
+    private var surface: Color { theme.surfaceLowest }
+    private var surfaceContainerLow: Color { theme.surfaceContainerLow }
+    private var surfaceContainer: Color { theme.surfaceContainer }
+    private var surfaceContainerHigh: Color { theme.surfaceContainerHigh }
+    private var surfaceContainerHighest: Color { theme.surfaceContainerHighest }
+    private var onSurface: Color { theme.onSurface }
+    private var onSurfaceVariant: Color { theme.onSurfaceVariant }
+    private var primary: Color { theme.primary }
+    private var onPrimary: Color { theme.onPrimary }
+    private var accent: Color { theme.accent }
+    private var outlineVariant: Color { theme.outlineVariant }
 
     @State private var fontSize: Double = AppSettings.shared.readerFontSize
     @State private var fontFamily: String = AppSettings.shared.readerFontFamily
     @State private var atmosphericGlow: Double = AppSettings.shared.defaultDimmerOpacity
     @State private var selectedThemeId: String = AppSettings.shared.defaultThemeId
 
-    private var theme: Theme { AppSettings.shared.currentTheme }
-
     var body: some View {
         ZStack {
-            Color(hex: "#0e150e").ignoresSafeArea()
+            surface.ignoresSafeArea()
 
             // Ambient background blurs
             Circle().fill(primary.opacity(0.05)).frame(width: 400, height: 400)
                 .blur(radius: 120).offset(x: 100, y: -200)
-            Circle().fill(Color(hex: "#b9ccb0").opacity(0.05)).frame(width: 300, height: 300)
+            Circle().fill(theme.surfaceLight.opacity(0.05)).frame(width: 300, height: 300)
                 .blur(radius: 100).offset(x: -100, y: 200)
 
             ScrollView {
@@ -269,7 +268,7 @@ struct SettingsView: View {
                     RoundedRectangle(cornerRadius: 8)
                         .fill(
                             LinearGradient(
-                                colors: [Color(hex: "#0B120B"), surfaceContainer, Color(hex: "#241c1a")],
+                                colors: [bg, surfaceContainer, bg.mix(with: theme.accentMuted, amount: 0.1)],
                                 startPoint: .leading, endPoint: .trailing
                             )
                         )

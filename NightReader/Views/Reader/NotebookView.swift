@@ -19,21 +19,21 @@ struct NotebookView: View {
     @State private var annotations: [AnnotationInfo] = []
     @State private var selectedFilter: Int = 0
 
-    // Exact colors from HTML
-    private let surface = Color(hex: "#0e150e")
-    private let surfaceLowest = Color(hex: "#091009")
-    private let surfaceContainerLow = Color(hex: "#161d16")
-    private let surfaceContainerHigh = Color(hex: "#242c24")
-    private let surfaceContainerHighest = Color(hex: "#2f372e")
-    private let onSurface = Color(hex: "#dde5d8")
-    private let onSurfaceVariant = Color(hex: "#c5c7c1")
-    private let primary = Color(hex: "#ffb599")
-    private let onPrimary = Color(hex: "#5a1c00")
-    private let accent = Color(hex: "#CC704B")
-    private let accentDark = Color(hex: "#bd6440")
-    private let outline = Color(hex: "#8e928b")
-    private let outlineVariant = Color(hex: "#444843")
-    private let stone400 = Color(hex: "#a8a29e")
+    // Theme-derived colors
+    private var surface: Color { theme.surfaceLowest }
+    private var surfaceLowest: Color { theme.background.mix(with: .black, amount: 0.1) }
+    private var surfaceContainerLow: Color { theme.surfaceContainerLow }
+    private var surfaceContainerHigh: Color { theme.surfaceContainerHigh }
+    private var surfaceContainerHighest: Color { theme.surfaceContainerHighest }
+    private var onSurface: Color { theme.onSurface }
+    private var onSurfaceVariant: Color { theme.onSurfaceVariant }
+    private var primary: Color { theme.primary }
+    private var onPrimary: Color { theme.onPrimary }
+    private var accent: Color { theme.accent }
+    private var accentDark: Color { theme.accentMuted }
+    private var outline: Color { theme.textSecondary }
+    private var outlineVariant: Color { theme.outlineVariant }
+    private var stone400: Color { theme.textSecondary.opacity(0.7) }
 
     private let filters = ["All", "✦ AI", "Reactions", "Actions"]
 

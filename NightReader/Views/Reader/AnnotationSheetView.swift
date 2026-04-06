@@ -13,15 +13,15 @@ struct AnnotationSheetView: View {
     let onSave: () -> Void
     let onDismiss: () -> Void
 
-    // Colors from HTML mockup
-    private let surfaceContainerLow = Color(hex: "#161d16")
-    private let surfaceContainerHigh = Color(hex: "#242c24")
-    private let onSurface = Color(hex: "#dde5d8")
-    private let onSurfaceVariant = Color(hex: "#c5c7c1")
-    private let primary = Color(hex: "#ffb599")
-    private let onPrimary = Color(hex: "#5a1c00")
-    private let accentDark = Color(hex: "#bd6440")
-    private let outlineVariant = Color(hex: "#444843")
+    // Theme-derived colors
+    private var surfaceContainerLow: Color { theme.surfaceContainerLow }
+    private var surfaceContainerHigh: Color { theme.surfaceContainerHigh }
+    private var onSurface: Color { theme.onSurface }
+    private var onSurfaceVariant: Color { theme.onSurfaceVariant }
+    private var primary: Color { theme.primary }
+    private var onPrimary: Color { theme.onPrimary }
+    private var accentDark: Color { theme.accentMuted }
+    private var outlineVariant: Color { theme.outlineVariant }
 
     var body: some View {
         NavigationStack {

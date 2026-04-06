@@ -85,7 +85,7 @@ struct ReaderModeView: View {
                 }
             }
         }
-        .background(Color(hex: "#0e150e"))
+        .background(theme.surfaceLowest)
         .contentShape(Rectangle())
         .onTapGesture { onTap() }
         .overlay(alignment: .top) {
@@ -137,7 +137,7 @@ struct ReaderModeView: View {
                 }
             } else {
                 ProgressView()
-                    .tint(Color(hex: "#ffb599"))
+                    .tint(theme.primary)
                     .frame(maxWidth: .infinity, minHeight: 100)
                     .padding(.horizontal, 24)
                     .onAppear {
@@ -181,8 +181,8 @@ struct ReaderModeView: View {
     // Heading: Plus Jakarta Sans extrabold, tracking-tight, text-4xl=36px
     // Image:  aspect-[16/9], rounded-xl, shadow-2xl
 
-    private let onSurface = UIColor(Color(hex: "#dde5d8"))
-    private let primaryColor = Color(hex: "#ffb599")
+    private var onSurface: UIColor { UIColor(theme.onSurface) }
+    private var primaryColor: Color { theme.primary }
 
     @ViewBuilder
     private func blockView(_ block: ContentBlock, contentWidth: CGFloat) -> some View {

@@ -14,23 +14,25 @@ struct LibraryView: View {
     @State private var selectedBook: Book?
     @State private var bookToDelete: Book?
 
-    // Exact colors from HTML tailwind config
-    private let bg = Color(hex: "#0B120B")
-    private let surface = Color(hex: "#0e150e")
-    private let surfaceContainerLow = Color(hex: "#161d16")
-    private let surfaceContainer = Color(hex: "#1a211a")
-    private let surfaceContainerHigh = Color(hex: "#242c24")
-    private let surfaceContainerHighest = Color(hex: "#2f372e")
-    private let onSurface = Color(hex: "#dde5d8")
-    private let primary = Color(hex: "#ffb599")
-    private let onPrimary = Color(hex: "#5a1c00")
-    private let accent = Color(hex: "#CC704B")
-    private let accentDark = Color(hex: "#bd6440")
-    private let secondary = Color(hex: "#bbcbb9")
-    private let stone400 = Color(hex: "#a8a29e")
-    private let stone500 = Color(hex: "#78716c")
-    private let stone600 = Color(hex: "#57534e")
-    private let outlineVariant = Color(hex: "#444843")
+    private var theme: Theme { AppSettings.shared.currentTheme }
+
+    // Theme-derived colors (mapped from former hardcoded Deep Forest values)
+    private var bg: Color { theme.background }
+    private var surface: Color { theme.surfaceLowest }
+    private var surfaceContainerLow: Color { theme.surfaceContainerLow }
+    private var surfaceContainer: Color { theme.surfaceContainer }
+    private var surfaceContainerHigh: Color { theme.surfaceContainerHigh }
+    private var surfaceContainerHighest: Color { theme.surfaceContainerHighest }
+    private var onSurface: Color { theme.onSurface }
+    private var primary: Color { theme.primary }
+    private var onPrimary: Color { theme.onPrimary }
+    private var accent: Color { theme.accent }
+    private var accentDark: Color { theme.accentMuted }
+    private var secondary: Color { theme.surfaceLight }
+    private var stone400: Color { theme.textSecondary.opacity(0.7) }
+    private var stone500: Color { theme.textSecondary.opacity(0.5) }
+    private var stone600: Color { theme.textSecondary.opacity(0.35) }
+    private var outlineVariant: Color { theme.outlineVariant }
 
     private var currentBook: Book? { books.first }
     private var otherBooks: [Book] { books.count > 1 ? Array(books.dropFirst()) : [] }
@@ -508,11 +510,11 @@ struct BookThumbnail: View {
                     .aspectRatio(contentMode: .fill)
             } else {
                 Rectangle()
-                    .fill(Color(hex: "#1a211a"))
+                    .fill(theme.surfaceContainer)
                     .overlay {
                         Image(systemName: "doc.text")
                             .font(.title2)
-                            .foregroundStyle(Color(hex: "#444843"))
+                            .foregroundStyle(theme.outlineVariant)
                     }
             }
         }
