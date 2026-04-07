@@ -136,6 +136,34 @@ struct SmartHighlightResult: Decodable {
     }
 }
 
+// MARK: - Argument Map (AI chapter structure analysis)
+
+struct ArgumentMap: Codable, Identifiable {
+    let id: UUID
+    let chapterIndex: Int
+    let chapterTitle: String?
+    let thesis: String           // core claim of the chapter
+    let evidence: [String]       // supporting points
+    let conclusion: String       // what the author concludes
+    let createdAt: Date
+
+    init(chapterIndex: Int, chapterTitle: String?, thesis: String, evidence: [String], conclusion: String) {
+        self.id = UUID()
+        self.chapterIndex = chapterIndex
+        self.chapterTitle = chapterTitle
+        self.thesis = thesis
+        self.evidence = evidence
+        self.conclusion = conclusion
+        self.createdAt = Date()
+    }
+}
+
+struct ArgumentMapResult: Decodable {
+    let thesis: String
+    let evidence: [String]
+    let conclusion: String
+}
+
 // MARK: - JSON Extraction Helper
 
 enum JSONExtractor {

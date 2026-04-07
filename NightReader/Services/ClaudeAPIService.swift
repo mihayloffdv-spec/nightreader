@@ -207,6 +207,48 @@ enum ClaudeAPIService {
         }
     }
 
+    /// Analyze chapter argument structure: thesis → evidence → conclusion.
+    static func analyzeArguments(
+        text: String,
+        bookTitle: String,
+        chapterTitle: String?
+    ) async throws -> ArgumentMapResult {
+        let wordCount = text.components(separatedBy: .whitespacesAndNewlines).filter { !$0.isEmpty }.count
+        guard wordCount >= 200 else {
+            return ArgumentMapResult(thesis: "", evidence: [], conclusion: "")
+        }
+
+        let chapterCtx = chapterTitle.map { ", глава «\($0)»" } ?? ""
+        let system = """
+            Ты — аналитик текста. Определи структуру аргументов в этой главе. \
+            Найди: 1) главный тезис (одно предложение — что автор утверждает), \
+            2) доказательства (2-5 ключевых аргументов/примеров в поддержку тезиса), \
+            3) вывод (к чему приходит автор). \
+            Опирайся только на текст, не домысливай. \
+            Верни JSON: {"thesis": "...", "evidence": ["...", "..."], "conclusion": "..."}
+            """
+
+        let response = try await sendMessage(
+            system: system,
+            userMessage: "Книга: «\(bookTitle)»\(chapterCtx)\n\nТекст:\n\(text.prefix(12000))",
+            model: AIActionType.explain.modelID,
+            maxTokens: 1024
+        )
+
+        guard let jsonData = JSONExtractor.extractObject(from: response) else {
+            return ArgumentMapResult(thesis: "", evidence: [], conclusion: "")
+        }
+
+        do {
+            return try JSONDecoder().decode(ArgumentMapResult.self, from: jsonData)
+        } catch {
+            #if DEBUG
+            print("[ClaudeAPI] Failed to decode argument map: \(error)")
+            #endif
+            return ArgumentMapResult(thesis: "", evidence: [], conclusion: "")
+        }
+    }
+
     // MARK: - Network Layer
 
     /// Send with multiple messages (for chat history).

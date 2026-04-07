@@ -155,6 +155,55 @@ extension ReaderViewModel {
 
     // MARK: - Smart Highlights
 
+    // MARK: - Argument Map
+
+    func generateArgumentMap() {
+        guard let chapter = currentChapter,
+              KeychainManager.hasAPIKey else { return }
+
+        // Check if already generated
+        if let existing = annotationStore?.argumentMap(forChapter: chapter.id) {
+            currentArgumentMap = existing
+            showArgumentMap = true
+            return
+        }
+
+        isGeneratingArgumentMap = true
+        Task { [weak self] in
+            guard let self else { return }
+            let chapters = await MainActor.run { self.chapters }
+            let doc = await MainActor.run { self.originalDocument ?? self.document }
+            let chapterText = Self.extractChapterText(for: chapter, in: doc, chapters: chapters)
+
+            do {
+                let result = try await ClaudeAPIService.analyzeArguments(
+                    text: chapterText,
+                    bookTitle: await MainActor.run { self.book.title },
+                    chapterTitle: chapter.title
+                )
+                guard !result.thesis.isEmpty else {
+                    await MainActor.run { self.isGeneratingArgumentMap = false }
+                    return
+                }
+                let map = ArgumentMap(
+                    chapterIndex: chapter.id,
+                    chapterTitle: chapter.title,
+                    thesis: result.thesis,
+                    evidence: result.evidence,
+                    conclusion: result.conclusion
+                )
+                await MainActor.run {
+                    self.annotationStore?.addArgumentMap(map)
+                    self.currentArgumentMap = map
+                    self.isGeneratingArgumentMap = false
+                    self.showArgumentMap = true
+                }
+            } catch {
+                await MainActor.run { self.isGeneratingArgumentMap = false }
+            }
+        }
+    }
+
     func toggleSmartHighlights() {
         smartHighlightsEnabled.toggle()
         AppSettings.shared.smartHighlightsEnabled = smartHighlightsEnabled

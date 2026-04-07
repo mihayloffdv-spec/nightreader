@@ -70,6 +70,11 @@ final class ReaderViewModel {
     internal var reviewedChapters: Set<Int> = []
     static let maxAITextLength = 2000
 
+    // Argument Map state
+    var showArgumentMap = false
+    var currentArgumentMap: ArgumentMap?
+    var isGeneratingArgumentMap = false
+
     // Session state (methods in +Session.swift)
     var showPostReadingReview = false
     var isNearEndOfBook: Bool { progressFraction > 0.95 }

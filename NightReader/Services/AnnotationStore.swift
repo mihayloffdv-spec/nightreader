@@ -178,6 +178,17 @@ final class AnnotationStore {
         annotations.highlightStats.typeWeights()
     }
 
+    // MARK: - Argument Maps
+
+    func addArgumentMap(_ map: ArgumentMap) {
+        annotations.argumentMaps.append(map)
+        scheduleSave()
+    }
+
+    func argumentMap(forChapter chapterIndex: Int) -> ArgumentMap? {
+        annotations.argumentMaps.first { $0.chapterIndex == chapterIndex }
+    }
+
     // MARK: - Chapter Reviews
 
     func addChapterReview(_ review: ChapterReview) {

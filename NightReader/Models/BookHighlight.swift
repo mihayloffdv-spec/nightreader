@@ -61,6 +61,7 @@ struct BookAnnotations: Codable {
     var postReading: PostReadingReview?
     var analysisCount: Int        // monthly counter for Settings display
     var highlightStats: SmartHighlightStats  // save/dismiss tracking for prompt tuning
+    var argumentMaps: [ArgumentMap]
 
     init(id: String, title: String, author: String? = nil) {
         self.id = id
@@ -73,6 +74,7 @@ struct BookAnnotations: Codable {
         self.postReading = nil
         self.analysisCount = 0
         self.highlightStats = SmartHighlightStats()
+        self.argumentMaps = []
     }
 
     // Backward compat: old JSON files may not have all fields
@@ -88,6 +90,7 @@ struct BookAnnotations: Codable {
         postReading = try container.decodeIfPresent(PostReadingReview.self, forKey: .postReading)
         analysisCount = try container.decodeIfPresent(Int.self, forKey: .analysisCount) ?? 0
         highlightStats = try container.decodeIfPresent(SmartHighlightStats.self, forKey: .highlightStats) ?? SmartHighlightStats()
+        argumentMaps = try container.decodeIfPresent([ArgumentMap].self, forKey: .argumentMaps) ?? []
     }
 }
 

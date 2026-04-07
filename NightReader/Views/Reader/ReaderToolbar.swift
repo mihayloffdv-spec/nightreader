@@ -267,6 +267,17 @@ struct ReaderToolbar: View {
                         }
                     }
 
+                    // Argument Map
+                    if KeychainManager.hasAPIKey {
+                        Button {
+                            viewModel.generateArgumentMap()
+                        } label: {
+                            Image(systemName: "arrow.triangle.branch")
+                                .symbolEffect(.pulse, isActive: viewModel.isGeneratingArgumentMap)
+                                .frame(width: 40, height: 40)
+                        }
+                    }
+
                     // Highlights
                     Button {
                         viewModel.showAnnotationList = true

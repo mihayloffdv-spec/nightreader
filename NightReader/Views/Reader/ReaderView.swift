@@ -285,6 +285,17 @@ struct ReaderView: View {
             .presentationDragIndicator(.visible)
             .presentationBackground(.clear)
         }
+        .sheet(isPresented: $viewModel.showArgumentMap) {
+            if let map = viewModel.currentArgumentMap {
+                ArgumentMapView(
+                    argumentMap: map,
+                    theme: viewModel.selectedTheme,
+                    onDismiss: { viewModel.showArgumentMap = false }
+                )
+                .presentationDetents([.large])
+                .presentationDragIndicator(.visible)
+            }
+        }
     }
 }
 
