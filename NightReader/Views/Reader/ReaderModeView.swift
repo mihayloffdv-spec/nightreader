@@ -14,6 +14,7 @@ struct ReaderModeView: View {
     let onTap: () -> Void
     let onAIAction: (AIActionType, String) -> Void  // (action, selectedText)
     var onHighlight: ((String) -> Void)? = nil       // highlight text selection
+    var smartHighlightTexts: [String] = []            // AI highlight texts for pencil marks
 
     @State private var showSmartHighlightTooltip = false
 
@@ -94,6 +95,18 @@ struct ReaderModeView: View {
     private var onSurface: UIColor { UIColor(theme.onSurface) }
     private var primaryColor: Color { theme.primary }
 
+    /// Check if a text block contains any AI smart highlight text (fuzzy match).
+    private func hasSmartHighlight(in blockText: String) -> Bool {
+        guard !smartHighlightTexts.isEmpty else { return false }
+        let normalized = blockText.components(separatedBy: .whitespacesAndNewlines)
+            .filter { !$0.isEmpty }.joined(separator: " ").lowercased()
+        return smartHighlightTexts.contains { highlight in
+            let normalizedHighlight = highlight.components(separatedBy: .whitespacesAndNewlines)
+                .filter { !$0.isEmpty }.joined(separator: " ").lowercased()
+            return normalized.contains(normalizedHighlight)
+        }
+    }
+
     @ViewBuilder
     private func blockView(_ block: ContentBlock, contentWidth: CGFloat) -> some View {
         switch block {
@@ -112,6 +125,15 @@ struct ReaderModeView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.bottom, 32)
             .padding(.horizontal, 24)
+            .overlay(alignment: .leading) {
+                if hasSmartHighlight(in: content) {
+                    RoundedRectangle(cornerRadius: 1)
+                        .fill(theme.accent.opacity(0.5))
+                        .frame(width: 3)
+                        .padding(.leading, 12)
+                        .padding(.vertical, 4)
+                }
+            }
 
         case .heading(let content):
             ReaderTextBlock(

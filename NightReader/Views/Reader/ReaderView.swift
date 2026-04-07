@@ -88,7 +88,8 @@ struct ReaderView: View {
                             },
                             onHighlight: { text in
                                 viewModel.createHighlight(text: text)
-                            }
+                            },
+                            smartHighlightTexts: viewModel.annotationStore?.activeSmartHighlights.map(\.text) ?? []
                         )
                         .ignoresSafeArea()
                         .transition(.asymmetric(
