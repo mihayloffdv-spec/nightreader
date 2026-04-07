@@ -118,6 +118,7 @@ struct ReaderModeView: View {
                 fontDesign: fontFamily.design,
                 customFontName: resolvedBodyFont,
                 onHighlight: onHighlight,
+                onTap: onTap,
                 textColor: onSurface,
                 lineSpacing: fontSize * 0.8,
                 onAIAction: onAIAction
@@ -142,6 +143,7 @@ struct ReaderModeView: View {
                 fontSize: max(fontSize * 1.6, 30),
                 fontDesign: fontFamily.design,
                 customFontName: resolvedHeadlineFont,
+                onTap: onTap,
                 textColor: onSurface,
                 lineSpacing: fontSize * 0.1,
                 onAIAction: onAIAction
@@ -233,6 +235,7 @@ private class ReaderTextView: UITextView, UIGestureRecognizerDelegate {
             addGestureRecognizer(quickHighlightTap)
             quickHighlightInstalled = true
         }
+        installToolbarTapIfNeeded()
     }
 
     @objc private func handleQuickHighlight(_ gesture: UITapGestureRecognizer) {
@@ -243,14 +246,54 @@ private class ReaderTextView: UITextView, UIGestureRecognizerDelegate {
         UIImpactFeedbackGenerator(style: .light).impactOccurred()
     }
 
+    /// Callback for toolbar toggle (forwarded from taps on text area with no selection).
+    var onTap: (() -> Void)?
+
+    /// Tap recognizer that fires toolbar toggle when there's no selection.
+    /// UITextView swallows single-tap events even when its gesture recognizers decline,
+    /// so SwiftUI's .onTapGesture on the parent never fires. This explicit recognizer
+    /// catches those taps and forwards them.
+    private lazy var toolbarTap: UITapGestureRecognizer = {
+        let tap = UITapGestureRecognizer(target: self, action: #selector(handleToolbarTap))
+        tap.numberOfTapsRequired = 1
+        tap.delegate = self
+        return tap
+    }()
+
+    private var toolbarTapInstalled = false
+
+    private func installToolbarTapIfNeeded() {
+        guard !toolbarTapInstalled else { return }
+        addGestureRecognizer(toolbarTap)
+        // toolbarTap must wait for double-tap to fail (don't steal double-taps)
+        for gr in gestureRecognizers ?? [] {
+            if let tap = gr as? UITapGestureRecognizer, tap.numberOfTapsRequired == 2 {
+                toolbarTap.require(toFail: tap)
+            }
+        }
+        toolbarTap.require(toFail: quickHighlightTap)
+        toolbarTapInstalled = true
+    }
+
+    @objc private func handleToolbarTap(_ gesture: UITapGestureRecognizer) {
+        onTap?()
+    }
+
     override func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
         // Quick-highlight: only fires when there's already a selection
         if gestureRecognizer === quickHighlightTap {
             return selectedRange.length > 0
         }
+        // Toolbar tap: only fires when there's NO selection
+        if gestureRecognizer === toolbarTap {
+            return selectedRange.length == 0
+        }
+        // Long press always allowed (starts text selection)
         if gestureRecognizer is UILongPressGestureRecognizer { return true }
         if let tap = gestureRecognizer as? UITapGestureRecognizer {
+            // Double-tap always allowed (word select)
             if tap.numberOfTapsRequired == 2 { return true }
+            // Single tap from UITextView internals: only if there's selection to deselect
             if tap.numberOfTapsRequired == 1 { return selectedRange.length > 0 }
         }
         return super.gestureRecognizerShouldBegin(gestureRecognizer)
@@ -310,6 +353,7 @@ private struct ReaderTextBlock: UIViewRepresentable {
     let fontDesign: Font.Design
     var customFontName: String? = nil
     var onHighlight: ((String) -> Void)? = nil
+    var onTap: (() -> Void)? = nil
     let textColor: UIColor
     let lineSpacing: CGFloat
     let onAIAction: (AIActionType, String) -> Void
@@ -326,6 +370,7 @@ private struct ReaderTextBlock: UIViewRepresentable {
         tv.tintColor = UIColor.systemBlue.withAlphaComponent(0.6)
         tv.onAIAction = onAIAction
         tv.onHighlight = onHighlight
+        tv.onTap = onTap
         return tv
     }
 
