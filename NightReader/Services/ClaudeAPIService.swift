@@ -148,24 +148,38 @@ enum ClaudeAPIService {
     }
 
     /// Analyze chapter text and return smart highlight suggestions.
+    /// - typeWeights: optional weights from save/dismiss ratios (nil = equal distribution)
     static func analyzeChapter(
         text: String,
         bookTitle: String,
         chapterTitle: String?,
-        density: Int = 5
+        density: Int = 5,
+        typeWeights: [SmartHighlightType: Double]? = nil
     ) async throws -> [SmartHighlightResult] {
         // Skip very short chapters — not enough context
         let wordCount = text.components(separatedBy: .whitespacesAndNewlines).filter { !$0.isEmpty }.count
         guard wordCount >= 200 else { return [] }
 
         let chapterCtx = chapterTitle.map { ", глава «\($0)»" } ?? ""
+
+        // Build type preference hint from save/dismiss ratios
+        var typeHint = ""
+        if let weights = typeWeights {
+            let sorted = weights.sorted { $0.value > $1.value }
+            let preferred = sorted.first?.key.rawValue ?? "thesis"
+            let avoided = sorted.last?.key.rawValue ?? "actionable"
+            if sorted.first!.value > sorted.last!.value + 0.1 {
+                typeHint = " Читатель предпочитает тип «\(preferred)» и реже сохраняет «\(avoided)». Учти это при выборе."
+            }
+        }
+
         let system = """
             Ты — вдумчивый читатель, отмечающий самые ценные предложения в книге. \
             Отмечай только то, что заставит человека остановиться и задуматься. \
             Максимум \(density) предложений. \
             Ссылайся на конкретное содержание текста. \
             Никогда не используй общие фразы вроде «важный момент» или «ключевой аргумент». \
-            Твоё объяснение должно доказать, что ты прочитал и понял отрывок. \
+            Твоё объяснение должно доказать, что ты прочитал и понял отрывок.\(typeHint) \
             Верни JSON массив: [{"text": "точное предложение из текста", "type": "thesis|insight|actionable", "rationale": "одно предложение почему"}]
             """
 

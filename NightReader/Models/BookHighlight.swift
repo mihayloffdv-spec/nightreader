@@ -60,6 +60,7 @@ struct BookAnnotations: Codable {
     var chapterReviews: [ChapterReview]
     var postReading: PostReadingReview?
     var analysisCount: Int        // monthly counter for Settings display
+    var highlightStats: SmartHighlightStats  // save/dismiss tracking for prompt tuning
 
     init(id: String, title: String, author: String? = nil) {
         self.id = id
@@ -71,6 +72,7 @@ struct BookAnnotations: Codable {
         self.chapterReviews = []
         self.postReading = nil
         self.analysisCount = 0
+        self.highlightStats = SmartHighlightStats()
     }
 
     // Backward compat: old JSON files may not have all fields
@@ -85,6 +87,7 @@ struct BookAnnotations: Codable {
         chapterReviews = try container.decodeIfPresent([ChapterReview].self, forKey: .chapterReviews) ?? []
         postReading = try container.decodeIfPresent(PostReadingReview.self, forKey: .postReading)
         analysisCount = try container.decodeIfPresent(Int.self, forKey: .analysisCount) ?? 0
+        highlightStats = try container.decodeIfPresent(SmartHighlightStats.self, forKey: .highlightStats) ?? SmartHighlightStats()
     }
 }
 
@@ -160,6 +163,61 @@ struct ChapterReview: Identifiable, Codable {
         self.aiFeedback = []
         self.summary = nil
         self.createdAt = Date()
+    }
+}
+
+// MARK: - Smart Highlight Stats (for AI prompt tuning)
+//
+// Tracks save/dismiss rates by type to tune future analysis prompts.
+// Higher save rate → request more of that type. Higher dismiss rate → fewer.
+
+struct SmartHighlightStats: Codable {
+    var thesisSaved: Int = 0
+    var thesisDismissed: Int = 0
+    var insightSaved: Int = 0
+    var insightDismissed: Int = 0
+    var actionableSaved: Int = 0
+    var actionableDismissed: Int = 0
+
+    mutating func recordSave(type: SmartHighlightType) {
+        switch type {
+        case .thesis: thesisSaved += 1
+        case .insight: insightSaved += 1
+        case .actionable: actionableSaved += 1
+        }
+    }
+
+    mutating func recordDismiss(type: SmartHighlightType) {
+        switch type {
+        case .thesis: thesisDismissed += 1
+        case .insight: insightDismissed += 1
+        case .actionable: actionableDismissed += 1
+        }
+    }
+
+    /// Compute type weights (0.0-1.0) based on save rates.
+    /// Types with higher save rates get higher weights.
+    /// Returns nil if not enough data (< 5 total actions).
+    func typeWeights() -> [SmartHighlightType: Double]? {
+        let total = thesisSaved + thesisDismissed + insightSaved + insightDismissed + actionableSaved + actionableDismissed
+        guard total >= 5 else { return nil }
+
+        func saveRate(saved: Int, dismissed: Int) -> Double {
+            let actions = saved + dismissed
+            guard actions > 0 else { return 0.5 } // no data → neutral
+            return Double(saved) / Double(actions)
+        }
+
+        let rates: [SmartHighlightType: Double] = [
+            .thesis: saveRate(saved: thesisSaved, dismissed: thesisDismissed),
+            .insight: saveRate(saved: insightSaved, dismissed: insightDismissed),
+            .actionable: saveRate(saved: actionableSaved, dismissed: actionableDismissed)
+        ]
+
+        // Normalize so they sum to ~1.0 (proportional weighting)
+        let sum = rates.values.reduce(0, +)
+        guard sum > 0 else { return nil }
+        return rates.mapValues { $0 / sum }
     }
 }
 

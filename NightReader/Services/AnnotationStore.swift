@@ -135,7 +135,9 @@ final class AnnotationStore {
 
     func dismissSmartHighlight(id: UUID) {
         guard let index = annotations.smartHighlights.firstIndex(where: { $0.id == id }) else { return }
+        let type = annotations.smartHighlights[index].type
         annotations.smartHighlights[index].dismissed = true
+        annotations.highlightStats.recordDismiss(type: type)
         scheduleSave()
     }
 
@@ -146,6 +148,7 @@ final class AnnotationStore {
         guard let index = annotations.smartHighlights.firstIndex(where: { $0.id == id }) else { return nil }
         let smart = annotations.smartHighlights[index]
         annotations.smartHighlights[index].savedAsHighlight = true
+        annotations.highlightStats.recordSave(type: smart.type)
 
         let highlight = addHighlight(
             text: smart.text,
@@ -169,6 +172,11 @@ final class AnnotationStore {
     }
 
     var monthlyAnalysisCount: Int { annotations.analysisCount }
+
+    /// Type weights based on save/dismiss ratios. Returns nil if insufficient data.
+    var smartHighlightTypeWeights: [SmartHighlightType: Double]? {
+        annotations.highlightStats.typeWeights()
+    }
 
     // MARK: - Chapter Reviews
 

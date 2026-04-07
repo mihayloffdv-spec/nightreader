@@ -198,6 +198,7 @@ extension ReaderViewModel {
         let bookId = book.id.uuidString
         let bookTitle = book.title
         let density = AppSettings.shared.smartHighlightDensity
+        let typeWeights = annotationStore?.smartHighlightTypeWeights
 
         analysisTask = Task { [weak self] in
             guard let self else { return }
@@ -215,7 +216,8 @@ extension ReaderViewModel {
                     text: chapterText,
                     bookTitle: bookTitle,
                     chapterTitle: chapter.title,
-                    density: density
+                    density: density,
+                    typeWeights: typeWeights
                 )
 
                 guard !Task.isCancelled else { return }
