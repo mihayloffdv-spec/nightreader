@@ -142,15 +142,17 @@ struct ArgumentMap: Codable, Identifiable {
     let id: UUID
     let chapterIndex: Int
     let chapterTitle: String?
+    let chapterHash: String?     // stable identity
     let thesis: String           // core claim of the chapter
     let evidence: [String]       // supporting points
     let conclusion: String       // what the author concludes
     let createdAt: Date
 
-    init(chapterIndex: Int, chapterTitle: String?, thesis: String, evidence: [String], conclusion: String) {
+    init(chapterIndex: Int, chapterTitle: String?, chapterHash: String? = nil, thesis: String, evidence: [String], conclusion: String) {
         self.id = UUID()
         self.chapterIndex = chapterIndex
         self.chapterTitle = chapterTitle
+        self.chapterHash = chapterHash
         self.thesis = thesis
         self.evidence = evidence
         self.conclusion = conclusion

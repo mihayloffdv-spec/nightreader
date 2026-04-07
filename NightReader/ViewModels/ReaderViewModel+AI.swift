@@ -159,10 +159,11 @@ extension ReaderViewModel {
 
     func generateArgumentMap() {
         guard let chapter = currentChapter,
-              KeychainManager.hasAPIKey else { return }
+              KeychainManager.hasAPIKey,
+              !isGeneratingArgumentMap else { return }
 
-        // Check if already generated
-        if let existing = annotationStore?.argumentMap(forChapter: chapter.id) {
+        // Check if already generated (hash-first lookup)
+        if let existing = annotationStore?.argumentMap(forChapter: chapter.id, hash: chapter.contentHash) {
             currentArgumentMap = existing
             showArgumentMap = true
             return
@@ -188,6 +189,7 @@ extension ReaderViewModel {
                 let map = ArgumentMap(
                     chapterIndex: chapter.id,
                     chapterTitle: chapter.title,
+                    chapterHash: chapter.contentHash,
                     thesis: result.thesis,
                     evidence: result.evidence,
                     conclusion: result.conclusion
@@ -227,7 +229,7 @@ extension ReaderViewModel {
               KeychainManager.hasAPIKey,
               replaceExisting || chapter.id != lastAnalyzedChapterIndex else { return }
 
-        if !replaceExisting, annotationStore?.isChapterAnalyzed(chapter.id) == true {
+        if !replaceExisting, annotationStore?.isChapterAnalyzed(chapter.id, hash: chapter.contentHash) == true {
             lastAnalyzedChapterIndex = chapter.id
             return
         }
@@ -279,7 +281,7 @@ extension ReaderViewModel {
                 await MainActor.run {
                     guard let store = self.annotationStore, !Task.isCancelled else { return }
                     if replaceExisting {
-                        store.clearSmartHighlightsForChapter(chapter.id)
+                        store.clearSmartHighlightsForChapter(chapter.id, hash: chapter.contentHash)
                     }
                     store.addSmartHighlights(smartHighlights)
                     self.lastAnalyzedChapterIndex = chapter.id

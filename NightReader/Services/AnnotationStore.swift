@@ -123,14 +123,22 @@ final class AnnotationStore {
         scheduleSave()
     }
 
-    func smartHighlightsForChapter(_ chapterIndex: Int) -> [SmartHighlight] {
+    func smartHighlightsForChapter(_ chapterIndex: Int, hash: String? = nil) -> [SmartHighlight] {
         annotations.smartHighlights.filter {
-            $0.chapterIndex == chapterIndex && !$0.dismissed
+            matchesChapter($0, index: chapterIndex, hash: hash) && !$0.dismissed
         }
     }
 
-    func isChapterAnalyzed(_ chapterIndex: Int) -> Bool {
-        annotations.smartHighlights.contains { $0.chapterIndex == chapterIndex }
+    func isChapterAnalyzed(_ chapterIndex: Int, hash: String? = nil) -> Bool {
+        annotations.smartHighlights.contains { matchesChapter($0, index: chapterIndex, hash: hash) }
+    }
+
+    /// Match by hash first (stable), fall back to index (sequential).
+    private func matchesChapter(_ highlight: SmartHighlight, index: Int, hash: String?) -> Bool {
+        if let hash, let hlHash = highlight.chapterHash, !hlHash.isEmpty {
+            return hlHash == hash
+        }
+        return highlight.chapterIndex == index
     }
 
     func dismissSmartHighlight(id: UUID) {
@@ -162,8 +170,8 @@ final class AnnotationStore {
         return highlight
     }
 
-    func clearSmartHighlightsForChapter(_ chapterIndex: Int) {
-        annotations.smartHighlights.removeAll { $0.chapterIndex == chapterIndex }
+    func clearSmartHighlightsForChapter(_ chapterIndex: Int, hash: String? = nil) {
+        annotations.smartHighlights.removeAll { matchesChapter($0, index: chapterIndex, hash: hash) }
         scheduleSave()
     }
 
@@ -185,8 +193,13 @@ final class AnnotationStore {
         scheduleSave()
     }
 
-    func argumentMap(forChapter chapterIndex: Int) -> ArgumentMap? {
-        annotations.argumentMaps.first { $0.chapterIndex == chapterIndex }
+    func argumentMap(forChapter chapterIndex: Int, hash: String? = nil) -> ArgumentMap? {
+        if let hash {
+            if let match = annotations.argumentMaps.first(where: { $0.chapterHash == hash }) {
+                return match
+            }
+        }
+        return annotations.argumentMaps.first { $0.chapterIndex == chapterIndex }
     }
 
     // MARK: - Chapter Reviews
