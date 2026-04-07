@@ -4,8 +4,21 @@ import Foundation
 
 extension ReaderViewModel {
 
+    /// Create highlight from text selection.
+    /// In Reader Mode, bounds are empty (reflowed text has no stable PDF coords).
+    /// In PDF Mode, pass PDFSelection bounds via the overload.
     func createHighlight(text: String) {
         pendingHighlightText = text
+        pendingHighlightBounds = []
+        pendingReaction = ""
+        pendingAction = ""
+        showAnnotationSheet = true
+    }
+
+    /// Create highlight with PDF bounds (for PDF Mode).
+    func createHighlight(text: String, bounds: [[CGFloat]]) {
+        pendingHighlightText = text
+        pendingHighlightBounds = bounds
         pendingReaction = ""
         pendingAction = ""
         showAnnotationSheet = true
@@ -16,7 +29,7 @@ extension ReaderViewModel {
         let highlight = annotationStore?.addHighlight(
             text: pendingHighlightText,
             page: currentPage,
-            bounds: [],
+            bounds: pendingHighlightBounds,
             chapter: currentChapter?.title
         )
         if !pendingReaction.isEmpty || !pendingAction.isEmpty, let h = highlight {

@@ -42,6 +42,7 @@ final class ReaderViewModel {
     var showAnnotationSheet = false
     var showExportShare = false
     var pendingHighlightText: String = ""
+    var pendingHighlightBounds: [[CGFloat]] = []
     var pendingReaction: String = ""
     var pendingAction: String = ""
     var highlightColor: HighlightColor = .yellow
