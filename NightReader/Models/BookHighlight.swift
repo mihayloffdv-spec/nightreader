@@ -64,6 +64,18 @@ struct BookAnnotations: Codable {
         self.postReading = nil
         self.analysisCount = 0
     }
+
+    // Backward compat: old JSON files don't have smartHighlights/analysisCount
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(String.self, forKey: .id)
+        title = try container.decode(String.self, forKey: .title)
+        author = try container.decodeIfPresent(String.self, forKey: .author)
+        highlights = try container.decodeIfPresent([BookHighlight].self, forKey: .highlights) ?? []
+        smartHighlights = try container.decodeIfPresent([SmartHighlight].self, forKey: .smartHighlights) ?? []
+        postReading = try container.decodeIfPresent(PostReadingReview.self, forKey: .postReading)
+        analysisCount = try container.decodeIfPresent(Int.self, forKey: .analysisCount) ?? 0
+    }
 }
 
 // MARK: - Smart Highlight (AI-generated)

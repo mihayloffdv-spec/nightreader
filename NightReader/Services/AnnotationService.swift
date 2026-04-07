@@ -37,7 +37,27 @@ struct AnnotationInfo: Identifiable {
     let note: String?
     let color: HighlightColor
     let pageIndex: Int
-    let annotation: PDFAnnotation
+    let annotation: PDFAnnotation?
+
+    /// Create from PDF annotation
+    init(id: String, text: String, note: String?, color: HighlightColor, pageIndex: Int, annotation: PDFAnnotation) {
+        self.id = id
+        self.text = text
+        self.note = note
+        self.color = color
+        self.pageIndex = pageIndex
+        self.annotation = annotation
+    }
+
+    /// Create from JSON-stored highlight (no PDF annotation)
+    init(text: String, pageIndex: Int, color: String, note: String?) {
+        self.id = UUID().uuidString
+        self.text = text
+        self.pageIndex = pageIndex
+        self.color = HighlightColor(rawValue: color) ?? .yellow
+        self.note = note
+        self.annotation = nil
+    }
 }
 
 enum AnnotationService {

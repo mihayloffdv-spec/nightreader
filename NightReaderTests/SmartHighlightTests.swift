@@ -56,7 +56,8 @@ final class SmartHighlightTests: XCTestCase {
     }
 
     func testBackwardCompatibilityDecoding() throws {
-        // Simulate old JSON without smartHighlights and analysisCount fields
+        // Old JSON without smartHighlights and analysisCount fields
+        // MUST decode successfully or existing user data gets wiped
         let oldJSON = """
         {
             "id": "book-1",
@@ -66,16 +67,39 @@ final class SmartHighlightTests: XCTestCase {
         }
         """.data(using: .utf8)!
 
-        // This should NOT crash — new fields should have defaults
-        // BookAnnotations uses Codable, so missing keys need defaults or optionals
-        // If this fails, we need to add CodingKeys with default values
-        let decoded = try? JSONDecoder().decode(BookAnnotations.self, from: oldJSON)
-        // New fields may cause a decode failure if not optional — test documents this
-        if let decoded {
-            XCTAssertEqual(decoded.smartHighlights.count, 0)
-            XCTAssertEqual(decoded.analysisCount, 0)
+        let decoded = try JSONDecoder().decode(BookAnnotations.self, from: oldJSON)
+        XCTAssertEqual(decoded.id, "book-1")
+        XCTAssertEqual(decoded.title, "Old Book")
+        XCTAssertEqual(decoded.highlights.count, 0)
+        XCTAssertEqual(decoded.smartHighlights.count, 0)
+        XCTAssertEqual(decoded.analysisCount, 0)
+        XCTAssertNil(decoded.postReading)
+    }
+
+    func testBackwardCompatibilityWithExistingHighlights() throws {
+        // Old JSON with highlights but no smart highlights
+        let oldJSON = """
+        {
+            "id": "book-2",
+            "title": "Existing Book",
+            "highlights": [{
+                "id": "11111111-1111-1111-1111-111111111111",
+                "bookId": "book-2",
+                "text": "Important quote",
+                "page": 5,
+                "bounds": [],
+                "color": "yellow",
+                "committed": false,
+                "createdAt": 0,
+                "updatedAt": 0
+            }]
         }
-        // If decode fails, that's the format migration issue Codex flagged
+        """.data(using: .utf8)!
+
+        let decoded = try JSONDecoder().decode(BookAnnotations.self, from: oldJSON)
+        XCTAssertEqual(decoded.highlights.count, 1)
+        XCTAssertEqual(decoded.highlights.first?.text, "Important quote")
+        XCTAssertEqual(decoded.smartHighlights.count, 0)
     }
 
     // MARK: - AnnotationStore CRUD

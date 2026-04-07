@@ -229,22 +229,21 @@ struct ReaderToolbar: View {
                     }
 
                     // Smart Highlights (AI) toggle
+                    // Tap = toggle on/off, long-press = reanalyze
                     if KeychainManager.hasAPIKey {
-                        Button {
-                            viewModel.toggleSmartHighlights()
-                        } label: {
-                            Image(systemName: viewModel.smartHighlightsEnabled ? "sparkle" : "sparkle")
-                                .foregroundStyle(
-                                    viewModel.smartHighlightsEnabled ? theme.accent : theme.textPrimary.opacity(0.7)
-                                )
-                                .symbolEffect(.pulse, isActive: viewModel.isAnalyzingChapter)
-                                .frame(width: 40, height: 40)
-                        }
-                        .simultaneousGesture(
-                            LongPressGesture(minimumDuration: 0.5).onEnded { _ in
+                        Image(systemName: "sparkle")
+                            .foregroundStyle(
+                                viewModel.smartHighlightsEnabled ? theme.accent : theme.textPrimary.opacity(0.7)
+                            )
+                            .symbolEffect(.pulse, isActive: viewModel.isAnalyzingChapter)
+                            .frame(width: 40, height: 40)
+                            .contentShape(Rectangle())
+                            .onTapGesture {
+                                viewModel.toggleSmartHighlights()
+                            }
+                            .onLongPressGesture(minimumDuration: 0.5) {
                                 viewModel.reanalyzeCurrentChapter()
                             }
-                        )
                     }
 
                     // Highlights

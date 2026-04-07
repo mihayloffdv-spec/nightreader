@@ -80,6 +80,19 @@ struct NotebookView: View {
                                         dismiss()
                                         onSelectAnnotation(info.pageIndex)
                                     }
+                                    .contextMenu {
+                                        if let ann = info.annotation, let document {
+                                            Button(role: .destructive) {
+                                                if let page = document.page(at: info.pageIndex) {
+                                                    AnnotationService.removeAnnotation(ann, from: page)
+                                                    AnnotationService.saveAnnotations(in: document)
+                                                    loadAnnotations()
+                                                }
+                                            } label: {
+                                                Label("Delete", systemImage: "trash")
+                                            }
+                                        }
+                                    }
                             }
                         }
                     }
@@ -428,7 +441,25 @@ struct NotebookView: View {
     }
 
     private func loadAnnotations() {
-        guard let document else { return }
-        annotations = AnnotationService.allHighlights(in: document)
+        // Merge PDF annotations + JSON-stored highlights (including saved AI highlights)
+        var merged: [AnnotationInfo] = []
+        if let document {
+            merged = AnnotationService.allHighlights(in: document)
+        }
+        // Add JSON highlights that aren't in PDF (e.g., saved AI highlights)
+        if let store = annotationStore {
+            let pdfTexts = Set(merged.map { $0.text })
+            for h in store.allHighlights {
+                if !pdfTexts.contains(h.text) {
+                    merged.append(AnnotationInfo(
+                        text: h.text,
+                        pageIndex: h.page,
+                        color: h.color,
+                        note: h.reaction
+                    ))
+                }
+            }
+        }
+        annotations = merged.sorted { $0.pageIndex < $1.pageIndex }
     }
 }

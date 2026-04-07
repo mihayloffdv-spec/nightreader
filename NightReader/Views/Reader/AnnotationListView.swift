@@ -61,7 +61,8 @@ struct AnnotationListView: View {
                 TextField("Note", text: $noteText)
                 Button("Save") {
                     if let info = editingNote {
-                        AnnotationService.updateNote(for: info.annotation, note: noteText)
+                        guard let ann = info.annotation else { return }
+                        AnnotationService.updateNote(for: ann, note: noteText)
                         if let doc = document {
                             AnnotationService.saveAnnotations(in: doc)
                         }
@@ -114,9 +115,9 @@ struct AnnotationListView: View {
     }
 
     private func deleteAnnotation(_ info: AnnotationInfo) {
-        guard let document else { return }
+        guard let document, let ann = info.annotation else { return }
         if let page = document.page(at: info.pageIndex) {
-            AnnotationService.removeAnnotation(info.annotation, from: page)
+            AnnotationService.removeAnnotation(ann, from: page)
             AnnotationService.saveAnnotations(in: document)
         }
         loadAnnotations()
