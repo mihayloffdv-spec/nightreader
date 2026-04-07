@@ -4,24 +4,7 @@ import PDFKit
 // MARK: - Day Mode Reading View (Deep Forest "Clean Sanctuary" design)
 //
 // Light reading mode. Warm cream background, dark text, editorial layout.
-// Chapter header with title + author info, then reflowed text.
-//
-// ┌─────────────────────────────────────────┐
-// │  ≡  Reading Sanctuary            ⚙     │  ← top bar (green accent)
-// │                                         │
-// │  CHAPTER IV                             │
-// │  The Silent Growth                      │
-// │  of Moss                                │
-// │  ───────────────────                    │
-// │  ○ Elias Thorne                         │
-// │    12 min read · Sanctuary Archives     │
-// │  ───────────────────                    │
-// │                                         │
-// │  In the deep, shaded corridors of the   │
-// │  subterranean conservatory, time        │
-// │  behaves differently...                 │
-// │                                         │
-// └─────────────────────────────────────────┘
+// Uses PagedContentView for shared scroll/pagination logic.
 
 struct DayModeReadingView: View {
     let document: PDFDocument?
@@ -38,83 +21,31 @@ struct DayModeReadingView: View {
     let onAIAction: (AIActionType, String) -> Void
     let onOpenSettings: () -> Void
 
-    @State private var pages: [Int] = []
-    @State private var blocksByPage: [Int: [ContentBlock]] = [:]
-    @State private var loadingPages: Set<Int> = []
-    @State private var isInitialScroll = true
-    @State private var scrolledBlockID: Int?
-    @State private var saveTask: Task<Void, Never>?
-    @State private var joinedPairs: Set<Int> = []
-
     var body: some View {
         ZStack {
             theme.dayBackground.ignoresSafeArea()
 
             VStack(spacing: 0) {
-                // Top bar
                 dayTopBar
 
-                // Content
-                GeometryReader { geo in
-                    ScrollViewReader { scrollProxy in
-                        ScrollView {
-                            VStack(alignment: .leading, spacing: 0) {
-                                // Chapter header (first page only)
-                                chapterHeader
-                                    .padding(.horizontal, 24)
-                                    .padding(.bottom, 24)
-
-                                // Text content
-                                LazyVStack(alignment: .leading, spacing: 0) {
-                                    ForEach(pages, id: \.self) { pageIndex in
-                                        dayPageSection(pageIndex: pageIndex, screenWidth: geo.size.width)
-                                    }
-                                }
-                                .padding(.horizontal, 24)
-                                .padding(.bottom, 40)
-                            }
-                        }
-                        .scrollPosition(id: $scrolledBlockID, anchor: .top)
-                        .id("\(fontSize)")
-                        .onAppear {
-                            loadPages()
-                            let targetID = savedBlockID > 0 ? savedBlockID : currentPageIndex * 10000
-                            if targetID > 0 {
-                                isInitialScroll = true
-                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                                    scrollProxy.scrollTo(targetID, anchor: .top)
-                                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                                        isInitialScroll = false
-                                    }
-                                }
-                            } else {
-                                isInitialScroll = false
-                            }
-                        }
-                        .onChange(of: scrolledBlockID) { _, newID in
-                            guard !isInitialScroll, let blockID = newID else { return }
-                            saveTask?.cancel()
-                            saveTask = Task { @MainActor in
-                                try? await Task.sleep(for: .milliseconds(500))
-                                guard !Task.isCancelled else { return }
-                                let pageIndex = blockID / 10000
-                                onPageChange(pageIndex, blockID)
-                            }
-                        }
-                        .onChange(of: goToPageIndex) { _, newValue in
-                            if let page = newValue {
-                                withAnimation {
-                                    scrollProxy.scrollTo(page * 10000, anchor: .top)
-                                }
-                                goToPageIndex = nil
-                            }
-                        }
+                PagedContentView(
+                    document: document,
+                    currentPageIndex: currentPageIndex,
+                    savedBlockID: savedBlockID,
+                    goToPageIndex: $goToPageIndex,
+                    onPageChange: onPageChange,
+                    onTap: onTap,
+                    scrollViewID: "\(fontSize)",
+                    contentPadding: EdgeInsets(top: 0, leading: 24, bottom: 40, trailing: 24),
+                    backgroundColor: .clear,
+                    progressTint: theme.dayAccent,
+                    header: { chapterHeader.padding(.horizontal, 24).padding(.bottom, 24) },
+                    blockContent: { block, screenWidth in
+                        dayBlockView(block, contentWidth: screenWidth - 48)
                     }
-                }
+                )
             }
         }
-        .contentShape(Rectangle())
-        .onTapGesture { onTap() }
     }
 
     // MARK: - Top Bar
@@ -145,7 +76,6 @@ struct DayModeReadingView: View {
 
     private var chapterHeader: some View {
         VStack(alignment: .leading, spacing: 16) {
-            // Chapter label
             if let chapter = currentChapter {
                 Text("CHAPTER \(romanNumeral(chapter.id + 1))")
                     .font(theme.captionFont(size: 12))
@@ -153,7 +83,6 @@ struct DayModeReadingView: View {
                     .kerning(3)
                     .padding(.top, 24)
 
-                // Chapter title
                 Text(chapter.title)
                     .font(theme.headlineFont(size: 32))
                     .foregroundStyle(theme.dayTextPrimary)
@@ -164,14 +93,11 @@ struct DayModeReadingView: View {
                     .padding(.top, 24)
             }
 
-            // Divider
             Rectangle()
                 .fill(theme.dayDivider)
                 .frame(height: 1)
 
-            // Author info
             HStack(spacing: 12) {
-                // Author avatar placeholder (circle with initial)
                 Circle()
                     .fill(theme.dayDivider)
                     .frame(width: 44, height: 44)
@@ -192,29 +118,9 @@ struct DayModeReadingView: View {
                 }
             }
 
-            // Divider
             Rectangle()
                 .fill(theme.dayDivider)
                 .frame(height: 1)
-        }
-    }
-
-    // MARK: - Page Section
-
-    @ViewBuilder
-    private func dayPageSection(pageIndex: Int, screenWidth: CGFloat) -> some View {
-        if let blocks = blocksByPage[pageIndex] {
-            ForEach(Array(blocks.enumerated()), id: \.offset) { offset, block in
-                dayBlockView(block, contentWidth: screenWidth - 48)
-                    .id(pageIndex * 10000 + offset)
-            }
-        } else {
-            ProgressView()
-                .tint(theme.dayAccent)
-                .frame(maxWidth: .infinity, minHeight: 100)
-                .onAppear {
-                    extractPage(pageIndex, contentWidth: screenWidth - 48)
-                }
         }
     }
 
@@ -232,8 +138,7 @@ struct DayModeReadingView: View {
                 .padding(.bottom, fontSize * 0.6)
 
         case .richText(let attrString):
-            // Rich text in day mode — re-apply day colors
-            let _ = 0 // SwiftUI ViewBuilder workaround
+            let _ = 0
             RichDayTextView(attributedText: attrString, fontSize: fontSize,
                            bodyFontName: theme.bodyFontName,
                            textColor: UIColor(theme.dayTextPrimary))
@@ -266,36 +171,11 @@ struct DayModeReadingView: View {
         }
     }
 
-    // MARK: - Data Loading
-
-    private func loadPages() {
-        guard let doc = document else { return }
-        pages = Array(0..<doc.pageCount)
-    }
-
-    private func extractPage(_ pageIndex: Int, contentWidth: CGFloat) {
-        guard let doc = document else { return }
-        let needsAsync = PageLoader.extractPage(
-            pageIndex, from: doc, contentWidth: contentWidth,
-            loadingPages: &loadingPages, blocksByPage: &blocksByPage
-        )
-        guard needsAsync else { return }
-
-        PageLoader.performExtraction(pageIndex: pageIndex, document: doc, contentWidth: contentWidth) { blocks in
-            blocksByPage[pageIndex] = blocks
-            loadingPages.remove(pageIndex)
-            PageLoader.joinCrossPageParagraphs(
-                pageIndex, blocksByPage: &blocksByPage,
-                joinedPairs: &joinedPairs, screenWidth: contentWidth
-            )
-        }
-    }
-
     // MARK: - Helpers
 
     private var estimatedReadTime: Int {
         let totalPages = document?.pageCount ?? 1
-        return max(1, totalPages * 2) // rough estimate: 2 min per page
+        return max(1, totalPages * 2)
     }
 
     private func romanNumeral(_ n: Int) -> String {
