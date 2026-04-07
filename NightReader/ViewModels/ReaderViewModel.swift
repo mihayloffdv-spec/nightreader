@@ -713,20 +713,26 @@ final class ReaderViewModel {
         return total
     }
 
+    /// Dedicated queue for smart mode document creation.
+    /// Separate from extractionQueue so text extraction isn't blocked during theme changes.
+    private static let smartModeQueue = DispatchQueue(
+        label: "com.nightreader.smart-mode",
+        qos: .userInitiated
+    )
+
     private func applySmartMode() {
         guard let original = originalDocument else { return }
         let savedPage = currentPage
         let theme = selectedTheme
         isLoading = true
-        // Сериализуем доступ к PDFDocument через extractionQueue
         let safeOriginal = original
         Task.detached { [weak self] in
             await withCheckedContinuation { (cont: CheckedContinuation<Void, Never>) in
-                ReaderModeView.extractionQueue.async {
+                ReaderViewModel.smartModeQueue.async {
                     let smartDoc = PDFDocument()
                     for i in 0..<safeOriginal.pageCount {
                         guard let page = safeOriginal.page(at: i) else { continue }
-                        let smartPage = DarkModePDFPage(wrapping: page, theme: theme)
+                        let smartPage = DarkModePDFPage(wrapping: page, pageIndex: i, theme: theme)
                         smartDoc.insert(smartPage, at: i)
                     }
                     DispatchQueue.main.async {

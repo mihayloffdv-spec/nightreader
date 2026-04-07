@@ -28,10 +28,25 @@ final class AnnotationStore {
     private let saveQueue = DispatchQueue(label: "com.nightreader.annotation-store", qos: .utility)
     private var pendingSave: DispatchWorkItem?
 
+    private var backgroundObserver: Any?
+
     init(bookId: String, title: String, author: String? = nil) {
         self.bookId = bookId
         self.annotations = BookAnnotations(id: bookId, title: title, author: author)
         load()
+        backgroundObserver = NotificationCenter.default.addObserver(
+            forName: .appWillBackground, object: nil, queue: nil
+        ) { [weak self] _ in
+            self?.saveNow()
+        }
+    }
+
+    deinit {
+        if let observer = backgroundObserver {
+            NotificationCenter.default.removeObserver(observer)
+        }
+        // Flush pending data on dealloc
+        saveNow()
     }
 
     // MARK: - CRUD
@@ -221,6 +236,11 @@ final class AnnotationStore {
         do {
             let data = try Data(contentsOf: fileURL)
             annotations = try JSONDecoder().decode(BookAnnotations.self, from: data)
+            // Migrate old schema versions to current
+            if annotations.schemaVersion < BookAnnotations.currentSchemaVersion {
+                annotations.schemaVersion = BookAnnotations.currentSchemaVersion
+                performSave()
+            }
         } catch {
             #if DEBUG
             print("[AnnotationStore] Failed to load \(bookId): \(error)")

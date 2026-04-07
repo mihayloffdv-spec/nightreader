@@ -73,6 +73,9 @@ All phases from the Reader Mode Evolution plan have been implemented.
 - AI prompt tuning based on save/dismiss ratios — track which highlight types users Save vs Dismiss, adjust prompt density/type weighting over time. Like a recommendation engine learning from ratings. Effort: M (CC: ~1 hour). Priority: P3. Depends on: v2 Smart Highlights with enough usage data. From eng review 2026-04-06.
 - Inline pencil marks (Phase 2) — render AI highlights as thin left-border lines directly on text in Reader Mode. Requires fuzzy text-to-position matching in ReaderTextView, custom NSLayoutManager drawing, PDF mode rendering. Effort: L (CC: ~2-3 hours). Priority: P2. Depends on: v2 Smart Highlights (Phase 1 list-based). From eng review 2026-04-06 (Codex outside voice recommended phasing).
 
+## Architecture Debt (from eng review 2026-04-07)
+- Stable chapter identity — SmartHighlight uses chapterIndex (sequential int) + chapterTitle (string), but chapter detection can reindex if PDF outline or auto-detection heuristics change. Before v3 cross-book connections, stabilize chapter identity (e.g., hash of first N chars of chapter text as stable ID). Effort: S (CC: ~15 min). Priority: P2. Depends on: v3 planning. From Codex outside voice.
+
 ## Future Ideas
 - iPad rotation / split-screen support
 - Horizontal page-turn mode

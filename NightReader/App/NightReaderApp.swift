@@ -3,6 +3,7 @@ import SwiftData
 
 @main
 struct NightReaderApp: App {
+    @Environment(\.scenePhase) private var scenePhase
     @State private var showSplash = true
 
     init() {
@@ -45,5 +46,14 @@ struct NightReaderApp: App {
             .animation(.easeInOut(duration: 0.3), value: showSplash)
         }
         .modelContainer(for: Book.self)
+        .onChange(of: scenePhase) { _, newPhase in
+            if newPhase == .background {
+                NotificationCenter.default.post(name: .appWillBackground, object: nil)
+            }
+        }
     }
+}
+
+extension Notification.Name {
+    static let appWillBackground = Notification.Name("appWillBackground")
 }

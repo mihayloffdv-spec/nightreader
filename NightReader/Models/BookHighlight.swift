@@ -47,9 +47,14 @@ struct BookHighlight: Identifiable, Codable {
 // MARK: - Book Annotations (aggregate)
 
 struct BookAnnotations: Codable {
+    /// Bump when adding new fields that need migration.
+    /// v1 = highlights only, v2 = + smart highlights + chapter reviews + post-reading
+    static let currentSchemaVersion = 2
+
     let id: String                // bookId
     let title: String
     let author: String?
+    var schemaVersion: Int
     var highlights: [BookHighlight]
     var smartHighlights: [SmartHighlight]
     var chapterReviews: [ChapterReview]
@@ -60,6 +65,7 @@ struct BookAnnotations: Codable {
         self.id = id
         self.title = title
         self.author = author
+        self.schemaVersion = Self.currentSchemaVersion
         self.highlights = []
         self.smartHighlights = []
         self.chapterReviews = []
@@ -73,6 +79,7 @@ struct BookAnnotations: Codable {
         id = try container.decode(String.self, forKey: .id)
         title = try container.decode(String.self, forKey: .title)
         author = try container.decodeIfPresent(String.self, forKey: .author)
+        schemaVersion = try container.decodeIfPresent(Int.self, forKey: .schemaVersion) ?? 1
         highlights = try container.decodeIfPresent([BookHighlight].self, forKey: .highlights) ?? []
         smartHighlights = try container.decodeIfPresent([SmartHighlight].self, forKey: .smartHighlights) ?? []
         chapterReviews = try container.decodeIfPresent([ChapterReview].self, forKey: .chapterReviews) ?? []

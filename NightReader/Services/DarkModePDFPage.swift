@@ -11,10 +11,11 @@ private class CGImageWrapper: NSObject {
 class DarkModePDFPage: PDFPage {
 
     private let originalPage: PDFPage
+    private let pageIndex: Int
     private let theme: Theme
     private static let ciContext = CIContext(options: [.useSoftwareRenderer: false])
 
-    /// Кэш обработанных изображений страниц. Ключ = "pagePtr_themeId".
+    /// Кэш обработанных изображений страниц. Ключ = "pageIndex_themeId".
     /// Сбрасывается при memory warning.
     private static let imageCache: NSCache<NSString, CGImageWrapper> = {
         let cache = NSCache<NSString, CGImageWrapper>()
@@ -32,8 +33,9 @@ class DarkModePDFPage: PDFPage {
         imageCache.removeAllObjects()
     }
 
-    init(wrapping page: PDFPage, theme: Theme = .deepForest) {
+    init(wrapping page: PDFPage, pageIndex: Int, theme: Theme = .deepForest) {
         self.originalPage = page
+        self.pageIndex = pageIndex
         self.theme = theme
         super.init()
     }
@@ -66,7 +68,7 @@ class DarkModePDFPage: PDFPage {
         let bounds = self.bounds(for: box)
 
         // Проверяем кэш: если страница уже обработана для этой темы — рисуем из кэша
-        let cacheKey = "\(Unmanaged.passUnretained(originalPage).toOpaque())_\(theme.id)" as NSString
+        let cacheKey = "\(pageIndex)_\(theme.id)" as NSString
         if let cached = Self.imageCache.object(forKey: cacheKey) {
             context.saveGState()
             context.translateBy(x: bounds.origin.x, y: bounds.origin.y)

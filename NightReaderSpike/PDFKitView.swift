@@ -52,7 +52,7 @@ struct PDFKitView: UIViewRepresentable {
         let darkDocument = PDFDocument()
         for i in 0..<originalDoc.pageCount {
             guard let originalPage = originalDoc.page(at: i) else { continue }
-            let darkPage = DarkModePDFPage(wrapping: originalPage)
+            let darkPage = DarkModePDFPage(wrapping: originalPage, pageIndex: i)
             darkDocument.insert(darkPage, at: i)
         }
         pdfView.document = darkDocument
