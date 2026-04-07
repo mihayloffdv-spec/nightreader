@@ -76,6 +76,9 @@
 		D0000013 /* ChatView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1000013 /* ChatView.swift */; };
 		D0000014 /* PostReadingReviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1000014 /* PostReadingReviewView.swift */; };
 		D0000015 /* SessionRecapCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1000015 /* SessionRecapCard.swift */; };
+		E0000001 /* ReaderViewModel+AI.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1000001 /* ReaderViewModel+AI.swift */; };
+		E0000002 /* ReaderViewModel+Highlights.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1000002 /* ReaderViewModel+Highlights.swift */; };
+		E0000003 /* ReaderViewModel+Session.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1000003 /* ReaderViewModel+Session.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -160,6 +163,9 @@
 		D1000013 /* ChatView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatView.swift; sourceTree = "<group>"; };
 		D1000014 /* PostReadingReviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PostReadingReviewView.swift; sourceTree = "<group>"; };
 		D1000015 /* SessionRecapCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionRecapCard.swift; sourceTree = "<group>"; };
+		E1000001 /* ReaderViewModel+AI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ReaderViewModel+AI.swift"; sourceTree = "<group>"; };
+		E1000002 /* ReaderViewModel+Highlights.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ReaderViewModel+Highlights.swift"; sourceTree = "<group>"; };
+		E1000003 /* ReaderViewModel+Session.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ReaderViewModel+Session.swift"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -243,6 +249,9 @@
 			children = (
 				C1000006 /* LibraryViewModel.swift */,
 				C1000007 /* ReaderViewModel.swift */,
+				E1000001 /* ReaderViewModel+AI.swift */,
+				E1000002 /* ReaderViewModel+Highlights.swift */,
+				E1000003 /* ReaderViewModel+Session.swift */,
 			);
 			path = ViewModels;
 			sourceTree = "<group>";
@@ -530,6 +539,9 @@
 				D0000013 /* ChatView.swift in Sources */,
 				D0000014 /* PostReadingReviewView.swift in Sources */,
 				D0000015 /* SessionRecapCard.swift in Sources */,
+				E0000001 /* ReaderViewModel+AI.swift in Sources */,
+				E0000002 /* ReaderViewModel+Highlights.swift in Sources */,
+				E0000003 /* ReaderViewModel+Session.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
