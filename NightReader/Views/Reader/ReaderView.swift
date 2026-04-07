@@ -261,6 +261,7 @@ struct ReaderView: View {
                     chapterName: review.chapterTitle ?? "Chapter",
                     chapterNumber: review.chapterIndex + 1,
                     theme: viewModel.selectedTheme,
+                    review: review,
                     onDismiss: { viewModel.showChapterReview = false }
                 )
                 .presentationDetents([.large])

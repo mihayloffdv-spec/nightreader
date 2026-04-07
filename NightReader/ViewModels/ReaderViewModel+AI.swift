@@ -97,6 +97,8 @@ extension ReaderViewModel {
                     self.chatMessages.append(ChatMessage(role: "assistant", content: response))
                 }
             } catch {
+                // Don't show error bubble if this task was cancelled (user sent a new message)
+                guard !Task.isCancelled else { return }
                 await MainActor.run {
                     self.chatMessages.append(ChatMessage(role: "assistant", content: "Ошибка: \(error.localizedDescription)"))
                 }

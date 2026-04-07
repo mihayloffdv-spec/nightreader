@@ -169,7 +169,7 @@ enum ClaudeAPIService {
             Верни JSON массив: [{"text": "точное предложение из текста", "type": "thesis|insight|actionable", "rationale": "одно предложение почему"}]
             """
 
-        let userMessage = "Книга: «\(bookTitle)»\(chapterCtx)\n\nТекст главы:\n\(text)"
+        let userMessage = "Книга: «\(bookTitle)»\(chapterCtx)\n\nТекст главы:\n\(text.prefix(12000))"
 
         let response = try await sendMessage(
             system: system,

@@ -30,6 +30,7 @@ struct ChapterReviewView: View {
     let chapterName: String
     let chapterNumber: Int
     let theme: Theme
+    let review: ChapterReview?
     let onDismiss: () -> Void
 
     @State private var currentQuestion = 0
@@ -37,9 +38,12 @@ struct ChapterReviewView: View {
     @State private var aiFeedback: String?
     @State private var isLoadingFeedback = false
 
-    // Placeholder questions until AI integration (v2)
+    /// Use AI-generated questions when available, fall back to placeholders.
     private var questions: [String] {
-        [
+        if let aiQuestions = review?.questions, !aiQuestions.isEmpty {
+            return aiQuestions
+        }
+        return [
             "What was the one idea that stayed with you?",
             "How does this connect to your own experience?",
             "What would you do differently after reading this?"

@@ -77,6 +77,10 @@ final class ReaderViewModel {
     var sessionHighlightCount: Int = 0
     var sessionDuration: TimeInterval = 0
     internal var sessionStartTime: Date?
+    internal var sessionBackgroundTime: TimeInterval = 0
+    internal var backgroundEnteredAt: Date?
+    internal var sessionBackgroundObserver: Any?
+    internal var sessionForegroundObserver: Any?
 
     private var hideToolbarTask: Task<Void, Never>?
     private(set) var originalDocument: PDFDocument?
