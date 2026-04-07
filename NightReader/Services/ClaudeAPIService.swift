@@ -77,6 +77,76 @@ enum ClaudeAPIService {
         )
     }
 
+    /// Ask a question about the book with chapter context.
+    static func askQuestion(
+        question: String,
+        bookTitle: String,
+        chapterText: String,
+        history: [ChatMessage] = []
+    ) async throws -> String {
+        let system = """
+            Ты — помощник для чтения книги «\(bookTitle)». Отвечай на вопросы \
+            читателя, опираясь на текст. Отвечай на русском, кратко (3-5 предложений), \
+            если вопрос не требует развёрнутого ответа. Цитируй текст где уместно.
+            """
+
+        var messages: [ClaudeMessage] = []
+        // Add conversation history (last 6 messages max)
+        for msg in history.suffix(6) {
+            messages.append(ClaudeMessage(role: msg.role, content: msg.content))
+        }
+        messages.append(ClaudeMessage(role: "user", content: """
+            Контекст из книги:
+            \(chapterText.prefix(8000))
+
+            Вопрос: \(question)
+            """))
+
+        return try await sendMessages(
+            system: system,
+            messages: messages,
+            model: AIActionType.explain.modelID,
+            maxTokens: 1024
+        )
+    }
+
+    /// Generate chapter review questions after reading a chapter.
+    static func generateChapterQuestions(
+        chapterText: String,
+        bookTitle: String,
+        chapterTitle: String?
+    ) async throws -> ChapterQuestionResult {
+        let chapterCtx = chapterTitle.map { " «\($0)»" } ?? ""
+        let system = """
+            Ты — вдумчивый преподаватель. Сгенерируй 3 вопроса для размышления \
+            после прочтения главы\(chapterCtx) книги «\(bookTitle)». \
+            Вопросы должны побуждать к рефлексии, а не проверять знания. \
+            Также дай краткое резюме главы (2-3 предложения). \
+            Верни JSON: {"questions": ["вопрос1", "вопрос2", "вопрос3"], "summary": "резюме"}
+            """
+
+        let response = try await sendMessage(
+            system: system,
+            userMessage: "Текст главы:\n\(chapterText.prefix(8000))",
+            model: AIActionType.explain.modelID,
+            maxTokens: 1024
+        )
+
+        // Defensive JSON extraction
+        guard let jsonData = JSONExtractor.extractObject(from: response) else {
+            return ChapterQuestionResult(questions: [], summary: nil)
+        }
+
+        do {
+            return try JSONDecoder().decode(ChapterQuestionResult.self, from: jsonData)
+        } catch {
+            #if DEBUG
+            print("[ClaudeAPI] Failed to decode chapter questions: \(error)")
+            #endif
+            return ChapterQuestionResult(questions: [], summary: nil)
+        }
+    }
+
     /// Analyze chapter text and return smart highlight suggestions.
     static func analyzeChapter(
         text: String,
@@ -124,6 +194,36 @@ enum ClaudeAPIService {
     }
 
     // MARK: - Network Layer
+
+    /// Send with multiple messages (for chat history).
+    private static func sendMessages(system: String, messages: [ClaudeMessage], model: String, maxTokens: Int = 1024) async throws -> String {
+        guard let apiKey = KeychainManager.getAPIKey(), !apiKey.isEmpty else {
+            throw ClaudeAPIError.noAPIKey
+        }
+        let request = ClaudeRequest(model: model, maxTokens: maxTokens, system: system, messages: messages)
+        var urlRequest = URLRequest(url: URL(string: baseURL)!)
+        urlRequest.httpMethod = "POST"
+        urlRequest.timeoutInterval = timeout
+        urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        urlRequest.setValue(apiKey, forHTTPHeaderField: "x-api-key")
+        urlRequest.setValue(apiVersion, forHTTPHeaderField: "anthropic-version")
+        urlRequest.httpBody = try JSONEncoder().encode(request)
+        let (data, response) = try await URLSession.shared.data(for: urlRequest)
+        guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+            if let httpResponse = response as? HTTPURLResponse {
+                switch httpResponse.statusCode {
+                case 401: throw ClaudeAPIError.invalidAPIKey
+                case 429: throw ClaudeAPIError.rateLimited
+                case 529: throw ClaudeAPIError.serverOverloaded
+                default: throw ClaudeAPIError.apiError("Ошибка сервера (\(httpResponse.statusCode))")
+                }
+            }
+            throw ClaudeAPIError.networkError("Неверный ответ сервера")
+        }
+        let claudeResponse = try JSONDecoder().decode(ClaudeResponse.self, from: data)
+        guard let text = claudeResponse.text, !text.isEmpty else { throw ClaudeAPIError.emptyResponse }
+        return text
+    }
 
     private static func sendMessage(system: String, userMessage: String, model: String, maxTokens: Int = 1024) async throws -> String {
         guard let apiKey = KeychainManager.getAPIKey(), !apiKey.isEmpty else {

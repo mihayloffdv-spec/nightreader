@@ -155,6 +155,41 @@ final class AnnotationStore {
 
     var monthlyAnalysisCount: Int { annotations.analysisCount }
 
+    // MARK: - Chapter Reviews
+
+    func addChapterReview(_ review: ChapterReview) {
+        annotations.chapterReviews.append(review)
+        scheduleSave()
+    }
+
+    func chapterReview(forChapter chapterIndex: Int) -> ChapterReview? {
+        annotations.chapterReviews.first { $0.chapterIndex == chapterIndex }
+    }
+
+    func updateChapterReview(id: UUID, answerIndex: Int, answer: String) {
+        guard let idx = annotations.chapterReviews.firstIndex(where: { $0.id == id }) else { return }
+        guard answerIndex < annotations.chapterReviews[idx].answers.count else { return }
+        annotations.chapterReviews[idx].answers[answerIndex] = answer
+        scheduleSave()
+    }
+
+    func addAIFeedback(reviewId: UUID, feedback: [String], summary: String?) {
+        guard let idx = annotations.chapterReviews.firstIndex(where: { $0.id == reviewId }) else { return }
+        annotations.chapterReviews[idx].aiFeedback = feedback
+        if let summary { annotations.chapterReviews[idx].summary = summary }
+        scheduleSave()
+    }
+
+    // MARK: - Session Tracking
+
+    var lastCreatedHighlight: BookHighlight? {
+        annotations.highlights.max { $0.createdAt < $1.createdAt }
+    }
+
+    func highlightsCreatedAfter(_ date: Date) -> [BookHighlight] {
+        annotations.highlights.filter { $0.createdAt > date }
+    }
+
     // MARK: - Post-Reading Review
 
     func setPostReading(coreIdea: String?, whyRead: String?, mainShift: String?) {

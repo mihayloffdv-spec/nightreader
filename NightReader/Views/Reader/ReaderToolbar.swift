@@ -144,6 +144,17 @@ struct ReaderToolbar: View {
                                 height: isDraggingScrubber ? 5 : 2
                             )
 
+                        // Highlight heatmap dots
+                        if let store = viewModel.annotationStore {
+                            let totalPages = max(1, viewModel.book.totalPages)
+                            ForEach(store.allHighlights, id: \.id) { h in
+                                Circle()
+                                    .fill(theme.accent.opacity(0.5))
+                                    .frame(width: 4, height: 4)
+                                    .offset(x: geo.size.width * Double(h.page) / Double(totalPages) - 2)
+                            }
+                        }
+
                         if isDraggingScrubber {
                             Circle()
                                 .fill(theme.accent)
@@ -244,6 +255,16 @@ struct ReaderToolbar: View {
                             .onLongPressGesture(minimumDuration: 0.5) {
                                 viewModel.reanalyzeCurrentChapter()
                             }
+                    }
+
+                    // AI Chat
+                    if KeychainManager.hasAPIKey {
+                        Button {
+                            viewModel.showChat = true
+                        } label: {
+                            Image(systemName: "bubble.left.and.text.bubble.right")
+                                .frame(width: 40, height: 40)
+                        }
                     }
 
                     // Highlights

@@ -250,6 +250,39 @@ struct ReaderView: View {
             .presentationDetents([.fraction(0.5), .large])
             .presentationDragIndicator(.visible)
         }
+        .sheet(isPresented: $viewModel.showChat) {
+            ChatView(viewModel: viewModel, theme: viewModel.selectedTheme)
+                .presentationDetents([.large])
+                .presentationDragIndicator(.visible)
+        }
+        .sheet(isPresented: $viewModel.showChapterReview) {
+            if let review = viewModel.currentChapterReview {
+                ChapterReviewView(
+                    chapterName: review.chapterTitle ?? "Chapter",
+                    chapterNumber: review.chapterIndex + 1,
+                    theme: viewModel.selectedTheme,
+                    onDismiss: { viewModel.showChapterReview = false }
+                )
+                .presentationDetents([.large])
+                .presentationDragIndicator(.visible)
+            }
+        }
+        .sheet(isPresented: $viewModel.showPostReadingReview) {
+            PostReadingReviewView(viewModel: viewModel, theme: viewModel.selectedTheme)
+                .presentationDetents([.large])
+                .presentationDragIndicator(.visible)
+        }
+        .sheet(isPresented: $viewModel.showSessionRecap) {
+            SessionRecapCard(
+                duration: viewModel.sessionDuration,
+                highlightCount: viewModel.sessionHighlightCount,
+                theme: viewModel.selectedTheme,
+                onDismiss: { viewModel.showSessionRecap = false }
+            )
+            .presentationDetents([.fraction(0.4)])
+            .presentationDragIndicator(.visible)
+            .presentationBackground(.clear)
+        }
     }
 }
 

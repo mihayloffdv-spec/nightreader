@@ -52,6 +52,7 @@ struct BookAnnotations: Codable {
     let author: String?
     var highlights: [BookHighlight]
     var smartHighlights: [SmartHighlight]
+    var chapterReviews: [ChapterReview]
     var postReading: PostReadingReview?
     var analysisCount: Int        // monthly counter for Settings display
 
@@ -61,11 +62,12 @@ struct BookAnnotations: Codable {
         self.author = author
         self.highlights = []
         self.smartHighlights = []
+        self.chapterReviews = []
         self.postReading = nil
         self.analysisCount = 0
     }
 
-    // Backward compat: old JSON files don't have smartHighlights/analysisCount
+    // Backward compat: old JSON files may not have all fields
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         id = try container.decode(String.self, forKey: .id)
@@ -73,6 +75,7 @@ struct BookAnnotations: Codable {
         author = try container.decodeIfPresent(String.self, forKey: .author)
         highlights = try container.decodeIfPresent([BookHighlight].self, forKey: .highlights) ?? []
         smartHighlights = try container.decodeIfPresent([SmartHighlight].self, forKey: .smartHighlights) ?? []
+        chapterReviews = try container.decodeIfPresent([ChapterReview].self, forKey: .chapterReviews) ?? []
         postReading = try container.decodeIfPresent(PostReadingReview.self, forKey: .postReading)
         analysisCount = try container.decodeIfPresent(Int.self, forKey: .analysisCount) ?? 0
     }
@@ -125,6 +128,30 @@ struct SmartHighlight: Identifiable, Codable {
         self.page = page
         self.dismissed = false
         self.savedAsHighlight = false
+        self.createdAt = Date()
+    }
+}
+
+// MARK: - Chapter Review (AI-powered reflection after each chapter)
+
+struct ChapterReview: Identifiable, Codable {
+    let id: UUID
+    let chapterIndex: Int
+    let chapterTitle: String?
+    let questions: [String]       // AI-generated questions
+    var answers: [String]         // user's answers (parallel to questions)
+    var aiFeedback: [String]      // AI feedback per answer
+    var summary: String?          // AI chapter summary
+    let createdAt: Date
+
+    init(chapterIndex: Int, chapterTitle: String?, questions: [String]) {
+        self.id = UUID()
+        self.chapterIndex = chapterIndex
+        self.chapterTitle = chapterTitle
+        self.questions = questions
+        self.answers = Array(repeating: "", count: questions.count)
+        self.aiFeedback = []
+        self.summary = nil
         self.createdAt = Date()
     }
 }

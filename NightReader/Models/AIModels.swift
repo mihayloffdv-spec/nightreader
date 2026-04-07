@@ -108,6 +108,22 @@ struct ClaudeErrorResponse: Decodable {
     }
 }
 
+// MARK: - Chat Message (for AI Q&A)
+
+struct ChatMessage: Identifiable {
+    let id = UUID()
+    let role: String          // "user" or "assistant"
+    let content: String
+    let timestamp = Date()
+}
+
+// MARK: - Chapter Question Result
+
+struct ChapterQuestionResult: Decodable {
+    let questions: [String]
+    let summary: String?
+}
+
 // MARK: - Smart Highlight API Response
 
 struct SmartHighlightResult: Decodable {
@@ -144,6 +160,22 @@ enum JSONExtractor {
         }
 
         let jsonString = String(cleaned[arrayStart...arrayEnd])
+        return jsonString.data(using: .utf8)
+    }
+
+    /// Extract a JSON object {...} from a messy response.
+    static func extractObject(from text: String) -> Data? {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        var cleaned = trimmed
+        if let fenceStart = cleaned.range(of: "```json") ?? cleaned.range(of: "```") {
+            cleaned = String(cleaned[fenceStart.upperBound...])
+        }
+        if let fenceEnd = cleaned.range(of: "```", options: .backwards) {
+            cleaned = String(cleaned[..<fenceEnd.lowerBound])
+        }
+        guard let objStart = cleaned.firstIndex(of: "{"),
+              let objEnd = cleaned.lastIndex(of: "}") else { return nil }
+        let jsonString = String(cleaned[objStart...objEnd])
         return jsonString.data(using: .utf8)
     }
 }

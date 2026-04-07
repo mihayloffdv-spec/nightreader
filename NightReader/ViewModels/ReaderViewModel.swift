@@ -57,6 +57,27 @@ final class ReaderViewModel {
     private var analysisTask: Task<Void, Never>?
     private var lastAnalyzedChapterIndex: Int?
 
+    // Chat state
+    var showChat = false
+    var chatMessages: [ChatMessage] = []
+    var chatInputText: String = ""
+    private var chatTask: Task<Void, Never>?
+
+    // Chapter Review state
+    var showChapterReview = false
+    var currentChapterReview: ChapterReview?
+    var isGeneratingQuestions = false
+    private var reviewedChapters: Set<Int> = []
+
+    // Post-Reading Review state
+    var showPostReadingReview = false
+    var isNearEndOfBook: Bool { progressFraction > 0.95 }
+
+    // Session Recap state
+    var showSessionRecap = false
+    var sessionHighlightCount: Int = 0
+    var sessionDuration: TimeInterval = 0
+
     private var hideToolbarTask: Task<Void, Never>?
     private var sessionStartTime: Date?
     private(set) var originalDocument: PDFDocument?
@@ -281,7 +302,96 @@ final class ReaderViewModel {
         if elapsed > 5 {
             book.totalReadingTime += elapsed
         }
+        // Session recap: show if session > 30 seconds
+        if elapsed > 30 {
+            sessionDuration = elapsed
+            sessionHighlightCount = annotationStore?.highlightsCreatedAfter(start).count ?? 0
+            showSessionRecap = true
+        }
         sessionStartTime = nil
+    }
+
+    // MARK: - AI Chat
+
+    func sendChatMessage() {
+        let text = chatInputText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !text.isEmpty, KeychainManager.hasAPIKey else { return }
+        chatInputText = ""
+        chatMessages.append(ChatMessage(role: "user", content: text))
+
+        chatTask?.cancel()
+        chatTask = Task { [weak self] in
+            guard let self else { return }
+            let chapters = await MainActor.run { self.chapters }
+            let chapter = await MainActor.run { self.currentChapter }
+            let doc = await MainActor.run { self.originalDocument ?? self.document }
+            let chapterText = Self.extractChapterText(for: chapter ?? chapters.first ?? Chapter(id: 0, title: "", pageIndex: 0, level: 0, source: .autoDetected), in: doc, chapters: chapters)
+
+            do {
+                let history = await MainActor.run { self.chatMessages }
+                let response = try await ClaudeAPIService.askQuestion(
+                    question: text,
+                    bookTitle: await MainActor.run { self.book.title },
+                    chapterText: chapterText,
+                    history: history
+                )
+                await MainActor.run {
+                    self.chatMessages.append(ChatMessage(role: "assistant", content: response))
+                }
+            } catch {
+                await MainActor.run {
+                    self.chatMessages.append(ChatMessage(role: "assistant", content: "Ошибка: \(error.localizedDescription)"))
+                }
+            }
+        }
+    }
+
+    // MARK: - Chapter Review
+
+    func triggerChapterReview() {
+        guard let chapter = currentChapter,
+              !reviewedChapters.contains(chapter.id),
+              KeychainManager.hasAPIKey else { return }
+
+        // Check if already reviewed
+        if annotationStore?.chapterReview(forChapter: chapter.id) != nil {
+            reviewedChapters.insert(chapter.id)
+            return
+        }
+
+        isGeneratingQuestions = true
+        Task { [weak self] in
+            guard let self else { return }
+            let chapters = await MainActor.run { self.chapters }
+            let doc = await MainActor.run { self.originalDocument ?? self.document }
+            let chapterText = Self.extractChapterText(for: chapter, in: doc, chapters: chapters)
+
+            do {
+                let result = try await ClaudeAPIService.generateChapterQuestions(
+                    chapterText: chapterText,
+                    bookTitle: await MainActor.run { self.book.title },
+                    chapterTitle: chapter.title
+                )
+                guard !result.questions.isEmpty else {
+                    await MainActor.run { self.isGeneratingQuestions = false }
+                    return
+                }
+                let review = ChapterReview(
+                    chapterIndex: chapter.id,
+                    chapterTitle: chapter.title,
+                    questions: result.questions
+                )
+                await MainActor.run {
+                    self.annotationStore?.addChapterReview(review)
+                    self.currentChapterReview = review
+                    self.reviewedChapters.insert(chapter.id)
+                    self.isGeneratingQuestions = false
+                    self.showChapterReview = true
+                }
+            } catch {
+                await MainActor.run { self.isGeneratingQuestions = false }
+            }
+        }
     }
 
     func toggleReaderMode() {
@@ -400,6 +510,25 @@ final class ReaderViewModel {
         if let current = currentChapter,
            current.id != previousChapter?.id {
             triggerSmartHighlightAnalysis(for: current)
+
+            // Offer chapter review when leaving a completed chapter
+            if let prev = previousChapter, chapterProgress < 0.1 {
+                // User moved to a new chapter, previous is likely done
+                offerChapterReview(for: prev)
+            }
+        }
+    }
+
+    private func offerChapterReview(for chapter: Chapter) {
+        guard smartHighlightsEnabled,
+              KeychainManager.hasAPIKey,
+              !reviewedChapters.contains(chapter.id),
+              annotationStore?.chapterReview(forChapter: chapter.id) == nil else { return }
+        // Auto-trigger after a short delay (non-blocking)
+        Task { @MainActor in
+            try? await Task.sleep(for: .seconds(2))
+            guard !Task.isCancelled else { return }
+            self.triggerChapterReview()
         }
     }
 

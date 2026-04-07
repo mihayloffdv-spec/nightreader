@@ -340,6 +340,17 @@ struct LibraryView: View {
                     .aspectRatio(3.0/4.0, contentMode: .fill)
                     .clipShape(RoundedRectangle(cornerRadius: 8))
                     .shadow(color: .black.opacity(0.3), radius: 12, y: 4)
+                    .overlay(alignment: .topTrailing) {
+                        if book.highlightCount > 0 {
+                            Text("\(book.highlightCount)")
+                                .font(.custom("Onest", size: 10).bold())
+                                .foregroundStyle(onPrimary)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(Capsule().fill(accent))
+                                .padding(6)
+                        }
+                    }
                     .padding(.bottom, 16) // mb-4
 
                 // Title: font-headline font-bold leading-tight

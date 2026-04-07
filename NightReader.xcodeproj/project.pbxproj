@@ -73,6 +73,9 @@
 		D0000010 /* AnnotationStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1000010 /* AnnotationStore.swift */; };
 		D0000011 /* BookHighlight.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1000011 /* BookHighlight.swift */; };
 		D0000012 /* AnnotationSheetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1000012 /* AnnotationSheetView.swift */; };
+		D0000013 /* ChatView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1000013 /* ChatView.swift */; };
+		D0000014 /* PostReadingReviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1000014 /* PostReadingReviewView.swift */; };
+		D0000015 /* SessionRecapCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1000015 /* SessionRecapCard.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -154,6 +157,9 @@
 		D1000010 /* AnnotationStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnnotationStore.swift; sourceTree = "<group>"; };
 		D1000011 /* BookHighlight.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BookHighlight.swift; sourceTree = "<group>"; };
 		D1000012 /* AnnotationSheetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnnotationSheetView.swift; sourceTree = "<group>"; };
+		D1000013 /* ChatView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatView.swift; sourceTree = "<group>"; };
+		D1000014 /* PostReadingReviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PostReadingReviewView.swift; sourceTree = "<group>"; };
+		D1000015 /* SessionRecapCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionRecapCard.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -277,6 +283,9 @@
 				D1000004 /* NotebookView.swift */,
 				D1000005 /* DayModeReadingView.swift */,
 				D1000012 /* AnnotationSheetView.swift */,
+				D1000013 /* ChatView.swift */,
+				D1000014 /* PostReadingReviewView.swift */,
+				D1000015 /* SessionRecapCard.swift */,
 			);
 			path = Reader;
 			sourceTree = "<group>";
@@ -518,6 +527,9 @@
 				D0000010 /* AnnotationStore.swift in Sources */,
 				D0000011 /* BookHighlight.swift in Sources */,
 				D0000012 /* AnnotationSheetView.swift in Sources */,
+				D0000013 /* ChatView.swift in Sources */,
+				D0000014 /* PostReadingReviewView.swift in Sources */,
+				D0000015 /* SessionRecapCard.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
