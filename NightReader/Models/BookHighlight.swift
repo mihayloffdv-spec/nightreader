@@ -112,8 +112,9 @@ enum SmartHighlightType: String, Codable {
 struct SmartHighlight: Identifiable, Codable {
     let id: UUID
     let bookId: String
-    let chapterIndex: Int         // stable key (not title)
+    let chapterIndex: Int         // sequential index (may change on reindex)
     let chapterTitle: String?     // display only
+    let chapterHash: String?      // stable identity (hash of first 200 chars)
     let text: String              // exact sentence from book
     let type: SmartHighlightType
     let rationale: String         // AI's book-aware explanation
@@ -126,6 +127,7 @@ struct SmartHighlight: Identifiable, Codable {
         bookId: String,
         chapterIndex: Int,
         chapterTitle: String? = nil,
+        chapterHash: String? = nil,
         text: String,
         type: SmartHighlightType,
         rationale: String,
@@ -135,6 +137,7 @@ struct SmartHighlight: Identifiable, Codable {
         self.bookId = bookId
         self.chapterIndex = chapterIndex
         self.chapterTitle = chapterTitle
+        self.chapterHash = chapterHash
         self.text = text
         self.type = type
         self.rationale = rationale

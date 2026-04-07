@@ -68,13 +68,14 @@ All phases from the Reader Mode Evolution plan have been implemented.
 - Obsidian URI scheme integration
 
 ### Deferred Expansions
-- Quick-annotate gestures — double-tap highlight for fast annotation without bottom sheet. Needs PDFKit gesture conflict research. Effort: M (CC: ~30 min). Priority: P2. Depends on: MVP annotations.
-- Argument map — AI builds chapter argument structure (thesis → evidence → conclusion). Complex UI + AI experiment. Effort: L (CC: ~2-3 hours). Priority: P3. Depends on: v2 (chapter review, smart highlights).
-- AI prompt tuning based on save/dismiss ratios — track which highlight types users Save vs Dismiss, adjust prompt density/type weighting over time. Like a recommendation engine learning from ratings. Effort: M (CC: ~1 hour). Priority: P3. Depends on: v2 Smart Highlights with enough usage data. From eng review 2026-04-06.
-- Inline pencil marks (Phase 2) — render AI highlights as thin left-border lines directly on text in Reader Mode. Requires fuzzy text-to-position matching in ReaderTextView, custom NSLayoutManager drawing, PDF mode rendering. Effort: L (CC: ~2-3 hours). Priority: P2. Depends on: v2 Smart Highlights (Phase 1 list-based). From eng review 2026-04-06 (Codex outside voice recommended phasing).
+(All completed — see Completed section below)
 
-## Architecture Debt (from eng review 2026-04-07)
-- Stable chapter identity — SmartHighlight uses chapterIndex (sequential int) + chapterTitle (string), but chapter detection can reindex if PDF outline or auto-detection heuristics change. Before v3 cross-book connections, stabilize chapter identity (e.g., hash of first N chars of chapter text as stable ID). Effort: S (CC: ~15 min). Priority: P2. Depends on: v3 planning. From Codex outside voice.
+## Completed
+- Quick-annotate gestures — double-tap on selected text creates instant highlight. **Completed:** 2026-04-08.
+- AI prompt tuning — save/dismiss ratio tracking per highlight type, auto-adjusts analysis prompt. **Completed:** 2026-04-08.
+- Inline pencil marks — thin left-border lines on AI-highlighted paragraphs in Reader Mode. **Completed:** 2026-04-08.
+- Argument map — AI analyzes chapter structure (thesis/evidence/conclusion), cached per chapter. **Completed:** 2026-04-08.
+- Stable chapter identity — DJB2 hash of first 200 chars stored as chapterHash on Chapter, SmartHighlight. **Completed:** 2026-04-08.
 
 ## Future Ideas
 - iPad rotation / split-screen support

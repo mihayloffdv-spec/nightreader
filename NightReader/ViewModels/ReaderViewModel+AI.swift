@@ -343,6 +343,7 @@ extension ReaderViewModel {
                 bookId: bookId,
                 chapterIndex: chapter.id,
                 chapterTitle: chapter.title,
+                chapterHash: chapter.contentHash,
                 text: result.text,
                 type: result.highlightType,
                 rationale: result.rationale,

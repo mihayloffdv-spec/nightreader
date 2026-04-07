@@ -9,9 +9,29 @@ struct Chapter: Identifiable {
     let level: Int       // 0 = top-level, 1 = sub-chapter
     let source: Source
 
+    /// Stable hash of first 200 chars of chapter text.
+    /// Survives chapter reindexing (heuristic changes, outline updates).
+    var contentHash: String?
+
     enum Source {
         case pdfOutline    // From embedded PDF TOC
         case autoDetected  // From heading detection
+    }
+
+    /// Compute content hash from PDF document.
+    static func computeHash(pageIndex: Int, document: PDFDocument) -> String {
+        let text = document.page(at: pageIndex)?.string ?? ""
+        let prefix = String(text.prefix(200))
+            .components(separatedBy: .whitespacesAndNewlines)
+            .filter { !$0.isEmpty }
+            .joined(separator: " ")
+            .lowercased()
+        // Simple DJB2 hash as hex string
+        var hash: UInt64 = 5381
+        for byte in prefix.utf8 {
+            hash = ((hash &<< 5) &+ hash) &+ UInt64(byte)
+        }
+        return String(hash, radix: 16)
     }
 }
 
@@ -40,13 +60,20 @@ enum ChapterDetector {
     static func detectChapters(in document: PDFDocument) -> [Chapter] {
         // 1. Try embedded PDF outline first
         let outlineChapters = chaptersFromOutline(document)
+        var chapters: [Chapter]
         if !outlineChapters.isEmpty {
-            return outlineChapters.sorted { $0.pageIndex < $1.pageIndex }
+            chapters = outlineChapters.sorted { $0.pageIndex < $1.pageIndex }
+        } else {
+            // 2. Fall back to auto-detection via heading analysis
+            chapters = chaptersFromHeadings(document)
         }
 
-        // 2. Fall back to auto-detection via heading analysis
-        // (already sorted by page iteration order)
-        return chaptersFromHeadings(document)
+        // 3. Compute stable content hashes for each chapter
+        for i in 0..<chapters.count {
+            chapters[i].contentHash = Chapter.computeHash(pageIndex: chapters[i].pageIndex, document: document)
+        }
+
+        return chapters
     }
 
     // MARK: - PDF Outline
