@@ -183,12 +183,49 @@ struct ReaderModeView: View {
 
 // MARK: - Tap-through UITextView (passes single taps to parent for toolbar toggle)
 
-private class ReaderTextView: UITextView {
+private class ReaderTextView: UITextView, UIGestureRecognizerDelegate {
+
+    func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer,
+                          shouldRecognizeSimultaneouslyWith other: UIGestureRecognizer) -> Bool {
+        // Allow quick-highlight tap to coexist with UITextView's built-in gestures
+        if gestureRecognizer === quickHighlightTap { return false }
+        return false
+    }
 
     var onHighlight: ((String) -> Void)?
     var onAIAction: ((AIActionType, String) -> Void)?
 
+    /// Quick-annotate: double-tap on existing selection → instant highlight without bottom sheet.
+    private lazy var quickHighlightTap: UITapGestureRecognizer = {
+        let tap = UITapGestureRecognizer(target: self, action: #selector(handleQuickHighlight))
+        tap.numberOfTapsRequired = 2
+        tap.delegate = self
+        return tap
+    }()
+
+    private var quickHighlightInstalled = false
+
+    override func didMoveToWindow() {
+        super.didMoveToWindow()
+        if !quickHighlightInstalled {
+            addGestureRecognizer(quickHighlightTap)
+            quickHighlightInstalled = true
+        }
+    }
+
+    @objc private func handleQuickHighlight(_ gesture: UITapGestureRecognizer) {
+        guard let text = selectedText, !text.isEmpty else { return }
+        onHighlight?(text)
+        // Deselect after quick highlight
+        selectedTextRange = nil
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+    }
+
     override func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
+        // Quick-highlight: only fires when there's already a selection
+        if gestureRecognizer === quickHighlightTap {
+            return selectedRange.length > 0
+        }
         if gestureRecognizer is UILongPressGestureRecognizer { return true }
         if let tap = gestureRecognizer as? UITapGestureRecognizer {
             if tap.numberOfTapsRequired == 2 { return true }
