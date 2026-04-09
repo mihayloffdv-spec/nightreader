@@ -35,7 +35,7 @@ struct NotebookView: View {
     private var outlineVariant: Color { theme.outlineVariant }
     private var stone400: Color { theme.textSecondary.opacity(0.7) }
 
-    private let filters = ["All", "✦ AI", "Reactions", "Actions"]
+    private let filters = ["All", "✦ AI", "🎭 React", "⚡ Act"]
 
     var body: some View {
         ZStack {
@@ -146,7 +146,7 @@ struct NotebookView: View {
     // MARK: - Filter Tabs
 
     private var filterTabs: some View {
-        HStack(spacing: 8) { // gap-2
+        HStack(spacing: 8) {
             ForEach(Array(filters.enumerated()), id: \.offset) { index, title in
                 Button {
                     withAnimation(.easeInOut(duration: 0.2)) { selectedFilter = index }
@@ -154,10 +154,12 @@ struct NotebookView: View {
                     Text(title)
                         .font(.custom("Onest", size: 12).bold())
                         .textCase(.uppercase)
-                        .tracking(4) // tracking-widest
+                        .tracking(1.5)
+                        .lineLimit(1)
+                        .fixedSize(horizontal: true, vertical: false)
                         .foregroundStyle(selectedFilter == index ? onPrimary : stone400)
-                        .padding(.horizontal, 24) // px-6
-                        .padding(.vertical, 8) // py-2
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 8)
                         .background(
                             Capsule().fill(selectedFilter == index ? primary : surfaceContainerHigh)
                         )
