@@ -170,6 +170,7 @@ struct ReaderView: View {
         .animation(.easeInOut(duration: 0.3), value: viewModel.selectedTheme.id)
         .navigationBarHidden(true)
         .statusBarHidden(!viewModel.toolbarVisible)
+        .toolbar(.hidden, for: .tabBar)
         .task {
             await viewModel.loadDocument()
         }

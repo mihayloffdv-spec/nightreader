@@ -552,6 +552,15 @@ struct BookThumbnail: View {
     @State private var image: UIImage?
     private static let cache = NSCache<NSString, UIImage>()
 
+    init(book: Book, theme: Theme) {
+        self.book = book
+        self.theme = theme
+        // Seed state from cache synchronously so tab switches don't flash
+        // the placeholder icon on the way back to Library.
+        let key = book.id.uuidString as NSString
+        _image = State(initialValue: Self.cache.object(forKey: key))
+    }
+
     var body: some View {
         Group {
             if let image {
@@ -569,10 +578,10 @@ struct BookThumbnail: View {
             }
         }
         .task {
+            // Cache hit was already consumed in init; this path only runs
+            // for first-time generation.
+            guard image == nil else { return }
             let key = book.id.uuidString as NSString
-            if let cached = Self.cache.object(forKey: key) {
-                image = cached; return
-            }
             if let generated = await generateThumbnail(for: book) {
                 Self.cache.setObject(generated, forKey: key)
                 image = generated
