@@ -13,6 +13,8 @@ struct LibraryView: View {
     @State private var viewModel = LibraryViewModel()
     @State private var selectedBook: Book?
     @State private var bookToDelete: Book?
+    @State private var bookToRename: Book?
+    @State private var renameText: String = ""
 
     private var theme: Theme { AppSettings.shared.currentTheme }
 
@@ -95,10 +97,51 @@ struct LibraryView: View {
             .navigationDestination(item: $selectedBook) { book in
                 ReaderView(book: book)
             }
+            .alert("Rename Book", isPresented: .init(
+                get: { bookToRename != nil },
+                set: { if !$0 { bookToRename = nil } }
+            )) {
+                TextField("Title", text: $renameText)
+                Button("Save") {
+                    if let b = bookToRename {
+                        let trimmed = renameText.trimmingCharacters(in: .whitespacesAndNewlines)
+                        if !trimmed.isEmpty {
+                            b.title = trimmed
+                            try? modelContext.save()
+                        }
+                    }
+                    bookToRename = nil
+                }
+                Button("Cancel", role: .cancel) { bookToRename = nil }
+            }
             .onAppear {
                 PDFImportService.scanForUntrackedPDFs(context: modelContext)
+                cleanupMessyTitles()
             }
         }
+    }
+
+    /// One-time migration: re-clean titles that look like raw filenames.
+    private func cleanupMessyTitles() {
+        for book in books {
+            // If title still has underscores or a trailing numeric ID, clean it
+            if book.title.contains("_") || looksLikeRawFilename(book.title) {
+                book.title = PDFImportService.cleanFilename(book.title)
+            }
+        }
+        try? modelContext.save()
+    }
+
+    private func looksLikeRawFilename(_ s: String) -> Bool {
+        // Contains a 5+ digit run at the end, after a space or underscore
+        let parts = s.split(whereSeparator: { $0 == " " || $0 == "_" })
+        guard let last = parts.last, last.count >= 5 else { return false }
+        return last.allSatisfy { $0.isNumber }
+    }
+
+    private func startRename(_ book: Book) {
+        renameText = book.title
+        bookToRename = book
     }
 
     // MARK: - Header (fixed, bg-[#0B120B]/80 backdrop-blur-xl, h-16, px-6)
@@ -237,44 +280,29 @@ struct LibraryView: View {
                     .frame(height: 4)
                 }
 
-                // Buttons
-                HStack(spacing: 16) {
-                    // Resume Journey: editorial-gradient, rounded-full, shadow
-                    Button { openBook(book) } label: {
-                        HStack(spacing: 8) {
-                            Image(systemName: "play.fill")
-                                .font(.system(size: 14))
-                            Text("Resume Journey")
-                                .font(.custom("Onest", size: 15).bold())
-                        }
-                        .foregroundStyle(onPrimary)
-                        .padding(.horizontal, 32) // px-8
-                        .padding(.vertical, 12) // py-3
-                        .background(
-                            Capsule().fill(
-                                LinearGradient(
-                                    colors: [primary, accentDark],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
+                // Resume Journey
+                Button { openBook(book) } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: "play.fill")
+                            .font(.system(size: 14))
+                        Text("Resume Journey")
+                            .font(.custom("Onest", size: 15).bold())
+                    }
+                    .foregroundStyle(onPrimary)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
+                    .background(
+                        Capsule().fill(
+                            LinearGradient(
+                                colors: [primary, accentDark],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
                             )
-                            .shadow(color: primary.opacity(0.2), radius: 12)
                         )
-                    }
-
-                    // Notes: border, text-primary
-                    Button { } label: {
-                        Text("Notes")
-                            .font(.custom("Onest", size: 15).weight(.semibold))
-                            .foregroundStyle(primary)
-                            .padding(.horizontal, 24)
-                            .padding(.vertical, 12)
-                            .background(
-                                Capsule().stroke(outlineVariant.opacity(0.2), lineWidth: 1)
-                            )
-                    }
+                        .shadow(color: primary.opacity(0.2), radius: 12)
+                    )
                 }
-                .padding(.top, 4) // pt-4 (already has spacing)
+                .padding(.top, 4)
             }
         }
         .padding(32) // p-8
@@ -287,6 +315,14 @@ struct LibraryView: View {
                 )
                 .shadow(color: accent.opacity(0.3), radius: 20, x: 0, y: 0) // custom-glow
         )
+        .contextMenu {
+            Button { startRename(book) } label: {
+                Label("Rename", systemImage: "pencil")
+            }
+            Button(role: .destructive) { bookToDelete = book } label: {
+                Label("Delete", systemImage: "trash")
+            }
+        }
     }
 
     // MARK: - Grid Section (Your Conservatory)
@@ -372,6 +408,9 @@ struct LibraryView: View {
             }
         }
         .contextMenu {
+            Button { startRename(book) } label: {
+                Label("Rename", systemImage: "pencil")
+            }
             Button(role: .destructive) { bookToDelete = book } label: {
                 Label("Delete", systemImage: "trash")
             }
