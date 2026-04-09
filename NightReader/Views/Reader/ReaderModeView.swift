@@ -35,8 +35,8 @@ struct ReaderModeView: View {
             backgroundColor: theme.surfaceLowest,
             progressTint: theme.primary,
             header: { EmptyView() },
-            blockContent: { block, screenWidth in
-                blockView(block, contentWidth: screenWidth)
+            blockContent: { block, pageIndex, screenWidth in
+                blockView(block, pageIndex: pageIndex, contentWidth: screenWidth)
             }
         )
         .overlay(alignment: .top) {
@@ -95,20 +95,49 @@ struct ReaderModeView: View {
     private var onSurface: UIColor { UIColor(theme.onSurface) }
     private var primaryColor: Color { theme.primary }
 
-    /// Check if a text block contains any AI smart highlight text (fuzzy match).
+    /// Normalize text for fuzzy comparison: lowercase, collapse whitespace,
+    /// strip punctuation so minor differences between Claude's output and the
+    /// actual PDF text don't cause misses.
+    private func normalizeForMatch(_ text: String) -> String {
+        let allowed = CharacterSet.letters.union(.decimalDigits).union(.whitespaces)
+        let filtered = text.unicodeScalars.filter { allowed.contains($0) }
+        let cleaned = String(String.UnicodeScalarView(filtered))
+        return cleaned.components(separatedBy: .whitespacesAndNewlines)
+            .filter { !$0.isEmpty }
+            .joined(separator: " ")
+            .lowercased()
+    }
+
+    /// Check if a text block contains any AI smart highlight text.
+    /// Uses multiple strategies: full substring match, then first-N-words match
+    /// (in case Claude truncated or paraphrased the ending).
     private func hasSmartHighlight(in blockText: String) -> Bool {
         guard !smartHighlightTexts.isEmpty else { return false }
-        let normalized = blockText.components(separatedBy: .whitespacesAndNewlines)
-            .filter { !$0.isEmpty }.joined(separator: " ").lowercased()
-        return smartHighlightTexts.contains { highlight in
-            let normalizedHighlight = highlight.components(separatedBy: .whitespacesAndNewlines)
-                .filter { !$0.isEmpty }.joined(separator: " ").lowercased()
-            return normalized.contains(normalizedHighlight)
+        let normalizedBlock = normalizeForMatch(blockText)
+        guard !normalizedBlock.isEmpty else { return false }
+
+        for highlight in smartHighlightTexts {
+            let normalizedHL = normalizeForMatch(highlight)
+            guard !normalizedHL.isEmpty else { continue }
+
+            // Strategy 1: full substring match
+            if normalizedBlock.contains(normalizedHL) { return true }
+
+            // Strategy 2: first 8 words of the highlight appear in the block
+            let words = normalizedHL.split(separator: " ")
+            if words.count >= 6 {
+                let prefix = words.prefix(min(8, words.count)).joined(separator: " ")
+                if normalizedBlock.contains(prefix) { return true }
+            }
         }
+        return false
     }
 
     @ViewBuilder
-    private func blockView(_ block: ContentBlock, contentWidth: CGFloat) -> some View {
+    private func blockView(_ block: ContentBlock, pageIndex: Int, contentWidth: CGFloat) -> some View {
+        // First page is almost always a cover. Render it as-is (no inversion, no tint)
+        // so the cover looks natural even in dark mode.
+        let isCover = pageIndex == 0
         switch block {
         case .text(let content):
             ReaderTextBlock(
@@ -126,15 +155,10 @@ struct ReaderModeView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.bottom, 32)
             .padding(.horizontal, 24)
-            .overlay(alignment: .leading) {
-                if hasSmartHighlight(in: content) {
-                    RoundedRectangle(cornerRadius: 1)
-                        .fill(theme.accent.opacity(0.5))
-                        .frame(width: 3)
-                        .padding(.leading, 12)
-                        .padding(.vertical, 4)
-                }
-            }
+            .modifier(SmartHighlightBackground(
+                isActive: hasSmartHighlight(in: content),
+                accent: theme.accent
+            ))
 
         case .heading(let content):
             ReaderTextBlock(
@@ -175,15 +199,29 @@ struct ReaderModeView: View {
                 .padding(.vertical, 16)
 
         case .snapshot(let image):
-            Image(uiImage: image)
-                .resizable()
-                .aspectRatio(contentMode: .fit)
-                .frame(width: contentWidth)
-                .clipShape(RoundedRectangle(cornerRadius: 12))
-                .shadow(color: .black.opacity(0.3), radius: 20, y: 8)
-                .colorInvert()
-                .colorMultiply(primaryColor)
-                .padding(.vertical, 16)
+            // Invert only if this is monochrome text on a light background.
+            // Graphic pages (covers, illustrations, colored diagrams) render as-is
+            // so they don't look like a cursed Instagram filter in dark mode.
+            let shouldInvert = !isCover && SnapshotCache.isMonochromeText(image)
+            if shouldInvert {
+                Image(uiImage: image)
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: contentWidth)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .shadow(color: .black.opacity(0.3), radius: 20, y: 8)
+                    .colorInvert()
+                    .colorMultiply(primaryColor)
+                    .padding(.vertical, 16)
+            } else {
+                Image(uiImage: image)
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: contentWidth)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .shadow(color: .black.opacity(0.4), radius: 20, y: 8)
+                    .padding(.vertical, 16)
+            }
         }
     }
 
@@ -202,6 +240,44 @@ struct ReaderModeView: View {
             break
         }
         return UIFont.systemFont(ofSize: size)
+    }
+}
+
+// MARK: - Smart Highlight Background
+//
+// Visual style for AI-identified paragraphs. A translucent accent background
+// with a glow and a solid left-edge bar. Distinct from user highlights
+// (which color a specific text range) so readers understand "AI noticed this
+// whole paragraph" vs "you highlighted this sentence."
+
+private struct SmartHighlightBackground: ViewModifier {
+    let isActive: Bool
+    let accent: Color
+
+    func body(content: Content) -> some View {
+        if isActive {
+            content
+                .background(alignment: .leading) {
+                    ZStack(alignment: .leading) {
+                        // Translucent accent fill across the whole paragraph
+                        RoundedRectangle(cornerRadius: 6)
+                            .fill(accent.opacity(0.12))
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 0)
+                            .shadow(color: accent.opacity(0.25), radius: 8, y: 0)
+
+                        // Bold left-edge bar
+                        RoundedRectangle(cornerRadius: 2)
+                            .fill(accent)
+                            .frame(width: 4)
+                            .padding(.leading, 12)
+                            .padding(.vertical, 4)
+                            .shadow(color: accent.opacity(0.6), radius: 6)
+                    }
+                }
+        } else {
+            content
+        }
     }
 }
 
