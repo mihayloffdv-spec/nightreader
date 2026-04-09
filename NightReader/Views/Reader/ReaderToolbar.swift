@@ -190,108 +190,97 @@ struct ReaderToolbar: View {
             }
             .animation(.easeInOut(duration: 0.2), value: viewModel.progressFraction)
 
-            // Chapter info + action buttons
-            HStack(spacing: 0) {
-                // Chapter progress
-                if let chapter = viewModel.currentChapter {
+            // Chapter info
+            if let chapter = viewModel.currentChapter {
+                HStack {
                     Text("\(chapter.title) — \(Int(viewModel.chapterProgress * 100))%")
                         .font(theme.captionFont(size: 11))
                         .foregroundStyle(theme.textSecondary)
                         .lineLimit(1)
+                    Spacer()
                 }
-
-                Spacer()
-
-                // Action buttons row
-                HStack(spacing: 4) {
-                    // Reader Mode toggle
-                    Button {
-                        withAnimation { viewModel.toggleReaderMode() }
-                    } label: {
-                        Image(systemName: viewModel.isReaderMode ? "doc.richtext" : "book")
-                            .frame(width: 40, height: 40)
-                    }
-
-                    // Day Mode toggle
-                    Button {
-                        withAnimation { viewModel.toggleDayMode() }
-                    } label: {
-                        Image(systemName: viewModel.isDayMode ? "moon.fill" : "sun.max")
-                            .foregroundStyle(viewModel.isDayMode ? theme.accent : theme.textPrimary.opacity(0.7))
-                            .frame(width: 40, height: 40)
-                    }
-
-                    // Search
-                    Button {
-                        withAnimation { viewModel.showSearch = true }
-                    } label: {
-                        Image(systemName: "magnifyingglass")
-                            .frame(width: 40, height: 40)
-                    }
-
-                    // Font size (Reader Mode)
-                    if viewModel.isReaderMode {
-                        Button {
-                            showSettings = true
-                        } label: {
-                            Image(systemName: "textformat.size")
-                                .frame(width: 40, height: 40)
-                        }
-                    }
-
-                    // Smart Highlights (AI) toggle
-                    // Tap = toggle on/off, long-press = reanalyze
-                    if KeychainManager.hasAPIKey {
-                        Image(systemName: "sparkle")
-                            .foregroundStyle(
-                                viewModel.smartHighlightsEnabled ? theme.accent : theme.textPrimary.opacity(0.7)
-                            )
-                            .symbolEffect(.pulse, isActive: viewModel.isAnalyzingChapter)
-                            .frame(width: 40, height: 40)
-                            .contentShape(Rectangle())
-                            .onTapGesture {
-                                viewModel.toggleSmartHighlights()
-                            }
-                            .onLongPressGesture(minimumDuration: 0.5) {
-                                viewModel.reanalyzeCurrentChapter()
-                            }
-                    }
-
-                    // AI Chat
-                    if KeychainManager.hasAPIKey {
-                        Button {
-                            viewModel.showChat = true
-                        } label: {
-                            Image(systemName: "bubble.left.and.text.bubble.right")
-                                .frame(width: 40, height: 40)
-                        }
-                    }
-
-                    // Argument Map
-                    if KeychainManager.hasAPIKey {
-                        Button {
-                            viewModel.generateArgumentMap()
-                        } label: {
-                            Image(systemName: "arrow.triangle.branch")
-                                .symbolEffect(.pulse, isActive: viewModel.isGeneratingArgumentMap)
-                                .frame(width: 40, height: 40)
-                        }
-                    }
-
-                    // Highlights
-                    Button {
-                        viewModel.showAnnotationList = true
-                    } label: {
-                        Image(systemName: "highlighter")
-                            .frame(width: 40, height: 40)
-                    }
-                }
-                .font(.system(size: 15))
-                .foregroundStyle(theme.textPrimary.opacity(0.7))
+                .padding(.top, 4)
             }
+
+            // Primary action buttons — 5 large, evenly spaced, tap-friendly (48pt hit area, 22pt icons)
+            HStack(spacing: 0) {
+                // Reader Mode toggle
+                toolbarButton(
+                    icon: viewModel.isReaderMode ? "doc.richtext" : "book",
+                    isActive: false
+                ) {
+                    withAnimation { viewModel.toggleReaderMode() }
+                }
+
+                // Font size (only in Reader Mode)
+                if viewModel.isReaderMode {
+                    toolbarButton(icon: "textformat.size", isActive: false) {
+                        showSettings = true
+                    }
+                }
+
+                // Smart Highlights (AI) — tap to toggle, long-press to reanalyze
+                if KeychainManager.hasAPIKey {
+                    toolbarButton(
+                        icon: "sparkle",
+                        isActive: viewModel.smartHighlightsEnabled,
+                        isPulsing: viewModel.isAnalyzingChapter,
+                        onLongPress: { viewModel.reanalyzeCurrentChapter() }
+                    ) {
+                        viewModel.toggleSmartHighlights()
+                    }
+                }
+
+                // AI Chat
+                if KeychainManager.hasAPIKey {
+                    toolbarButton(icon: "bubble.left.and.text.bubble.right", isActive: false) {
+                        viewModel.showChat = true
+                    }
+                }
+
+                // Highlights / Notebook
+                toolbarButton(icon: "highlighter", isActive: false) {
+                    viewModel.showAnnotationList = true
+                }
+            }
+            .padding(.top, 8)
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 8)
+    }
+
+    /// Large, touch-friendly toolbar button. 22pt icon in a 48pt hit area
+    /// spread evenly across the bottom bar.
+    @ViewBuilder
+    private func toolbarButton(
+        icon: String,
+        isActive: Bool,
+        isPulsing: Bool = false,
+        onLongPress: (() -> Void)? = nil,
+        action: @escaping () -> Void
+    ) -> some View {
+        Group {
+            if let onLongPress {
+                // Long-press variant (for Smart Highlights reanalyze)
+                Image(systemName: icon)
+                    .font(.system(size: 22, weight: .regular))
+                    .symbolEffect(.pulse, isActive: isPulsing)
+                    .foregroundStyle(isActive ? theme.accent : theme.textPrimary.opacity(0.75))
+                    .frame(maxWidth: .infinity, minHeight: 48)
+                    .contentShape(Rectangle())
+                    .onTapGesture { action() }
+                    .onLongPressGesture(minimumDuration: 0.5) { onLongPress() }
+            } else {
+                Button(action: action) {
+                    Image(systemName: icon)
+                        .font(.system(size: 22, weight: .regular))
+                        .symbolEffect(.pulse, isActive: isPulsing)
+                        .foregroundStyle(isActive ? theme.accent : theme.textPrimary.opacity(0.75))
+                        .frame(maxWidth: .infinity, minHeight: 48)
+                        .contentShape(Rectangle())
+                }
+            }
+        }
     }
 
     // MARK: - Menu
@@ -322,11 +311,38 @@ struct ReaderToolbar: View {
 
             Divider()
 
+            // Search
+            Button {
+                withAnimation { viewModel.showSearch = true }
+            } label: {
+                Label("Search", systemImage: "magnifyingglass")
+            }
+
             // Table of Contents
             Button {
                 viewModel.showTOC = true
             } label: {
                 Label("Contents", systemImage: "list.bullet")
+            }
+
+            // Argument Map (AI chapter structure)
+            if KeychainManager.hasAPIKey {
+                Button {
+                    viewModel.generateArgumentMap()
+                } label: {
+                    Label("Argument Map", systemImage: "arrow.triangle.branch")
+                }
+                .disabled(viewModel.currentChapter == nil || viewModel.isGeneratingArgumentMap)
+            }
+
+            // Reanalyze current chapter (if AI highlights already ran)
+            if KeychainManager.hasAPIKey && viewModel.smartHighlightsEnabled {
+                Button {
+                    viewModel.reanalyzeCurrentChapter()
+                } label: {
+                    Label("Re-analyze Chapter", systemImage: "arrow.clockwise")
+                }
+                .disabled(viewModel.currentChapter == nil)
             }
 
             // Rendering mode (PDF mode only)
