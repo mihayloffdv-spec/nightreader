@@ -43,7 +43,7 @@ struct ReaderView: View {
                                 viewModel.savePosition(pageIndex: page, scrollOffset: Double(blockID))
                             },
                             onTap: {
-                                withAnimation(.easeInOut(duration: 0.25)) {
+                                withAnimation(.softMenu) {
                                     viewModel.toggleToolbar()
                                 }
                             },
@@ -75,7 +75,7 @@ struct ReaderView: View {
                                 viewModel.savePosition(pageIndex: page, scrollOffset: Double(blockID))
                             },
                             onTap: {
-                                withAnimation(.easeInOut(duration: 0.25)) {
+                                withAnimation(.softMenu) {
                                     viewModel.toggleToolbar()
                                 }
                             },
@@ -126,7 +126,7 @@ struct ReaderView: View {
                         ))
                     }
                 }
-                .animation(.easeInOut(duration: 0.3), value: viewModel.isReaderMode)
+                .animation(.softFade, value: viewModel.isReaderMode)
 
                 // Dimmer overlay
                 if viewModel.dimmerOpacity > 0 {
@@ -155,7 +155,7 @@ struct ReaderView: View {
                         )
                         Spacer()
                     }
-                    .transition(.move(edge: .top))
+                    .transition(.softTop)
                 }
 
                 // Toolbar
@@ -167,7 +167,9 @@ struct ReaderView: View {
             }
         }
         .background(viewModel.selectedTheme.background)
-        .animation(.easeInOut(duration: 0.3), value: viewModel.selectedTheme.id)
+        .animation(.softFade, value: viewModel.selectedTheme.id)
+        .animation(.softMenu, value: viewModel.toolbarVisible)
+        .animation(.softMenu, value: viewModel.showSearch)
         .navigationBarHidden(true)
         .statusBarHidden(!viewModel.toolbarVisible)
         .toolbar(.hidden, for: .tabBar)

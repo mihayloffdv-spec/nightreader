@@ -42,17 +42,17 @@ struct ReaderModeView: View {
         .overlay(alignment: .top) {
             if showSmartHighlightTooltip {
                 smartHighlightTooltip
-                    .transition(.move(edge: .top).combined(with: .opacity))
-                    .onTapGesture { withAnimation { showSmartHighlightTooltip = false } }
+                    .transition(.softTop)
+                    .onTapGesture { withAnimation(.softMenu) { showSmartHighlightTooltip = false } }
                     .task {
                         try? await Task.sleep(for: .seconds(5))
-                        withAnimation { showSmartHighlightTooltip = false }
+                        withAnimation(.softMenu) { showSmartHighlightTooltip = false }
                     }
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: .smartHighlightsReady)) { _ in
             if !UserDefaults.standard.bool(forKey: "hasSeenSmartHighlightIntro") {
-                withAnimation(.easeInOut(duration: 0.3)) { showSmartHighlightTooltip = true }
+                withAnimation(.softMenu) { showSmartHighlightTooltip = true }
                 UserDefaults.standard.set(true, forKey: "hasSeenSmartHighlightIntro")
             }
         }

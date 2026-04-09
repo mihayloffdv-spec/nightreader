@@ -149,7 +149,7 @@ struct NotebookView: View {
         HStack(spacing: 8) {
             ForEach(Array(filters.enumerated()), id: \.offset) { index, title in
                 Button {
-                    withAnimation(.easeInOut(duration: 0.2)) { selectedFilter = index }
+                    withAnimation(.softTap) { selectedFilter = index }
                 } label: {
                     Text(title)
                         .font(.custom("Onest", size: 12).bold())

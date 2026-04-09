@@ -79,6 +79,7 @@
 		D0000016 /* PagedContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1000016 /* PagedContentView.swift */; };
 		D0000017 /* ArgumentMapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1000017 /* ArgumentMapView.swift */; };
 		D0000018 /* SnapshotColorAnalyzer.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1000018 /* SnapshotColorAnalyzer.swift */; };
+		D0000019 /* AppAnimations.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1000019 /* AppAnimations.swift */; };
 		E0000001 /* ReaderViewModel+AI.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1000001 /* ReaderViewModel+AI.swift */; };
 		E0000002 /* ReaderViewModel+Highlights.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1000002 /* ReaderViewModel+Highlights.swift */; };
 		E0000003 /* ReaderViewModel+Session.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1000003 /* ReaderViewModel+Session.swift */; };
@@ -169,6 +170,7 @@
 		D1000016 /* PagedContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PagedContentView.swift; sourceTree = "<group>"; };
 		D1000017 /* ArgumentMapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArgumentMapView.swift; sourceTree = "<group>"; };
 		D1000018 /* SnapshotColorAnalyzer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SnapshotColorAnalyzer.swift; sourceTree = "<group>"; };
+		D1000019 /* AppAnimations.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppAnimations.swift; sourceTree = "<group>"; };
 		E1000001 /* ReaderViewModel+AI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ReaderViewModel+AI.swift"; sourceTree = "<group>"; };
 		E1000002 /* ReaderViewModel+Highlights.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ReaderViewModel+Highlights.swift"; sourceTree = "<group>"; };
 		E1000003 /* ReaderViewModel+Session.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ReaderViewModel+Session.swift"; sourceTree = "<group>"; };
@@ -266,6 +268,7 @@
 			isa = PBXGroup;
 			children = (
 				D1000001 /* MainTabView.swift */,
+				D1000019 /* AppAnimations.swift */,
 				C4000014 /* Library */,
 				C4000015 /* Reader */,
 				C4000018 /* Settings */,
@@ -551,6 +554,7 @@
 				D0000016 /* PagedContentView.swift in Sources */,
 				D0000017 /* ArgumentMapView.swift in Sources */,
 				D0000018 /* SnapshotColorAnalyzer.swift in Sources */,
+				D0000019 /* AppAnimations.swift in Sources */,
 				E0000001 /* ReaderViewModel+AI.swift in Sources */,
 				E0000002 /* ReaderViewModel+Highlights.swift in Sources */,
 				E0000003 /* ReaderViewModel+Session.swift in Sources */,

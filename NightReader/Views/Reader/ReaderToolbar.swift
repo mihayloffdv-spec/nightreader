@@ -30,14 +30,14 @@ struct ReaderToolbar: View {
             topBar
                 .background(theme.background.opacity(0.9))
                 .background(.ultraThinMaterial)
-                .transition(.move(edge: .top).combined(with: .opacity))
+                .transition(.softTop)
 
             Spacer()
 
             bottomBar
                 .background(theme.background.opacity(0.9))
                 .background(.ultraThinMaterial)
-                .transition(.move(edge: .bottom).combined(with: .opacity))
+                .transition(.softBottom)
         }
         .foregroundStyle(theme.textPrimary)
         .sheet(isPresented: $showSettings) {
@@ -209,7 +209,7 @@ struct ReaderToolbar: View {
                     icon: viewModel.isReaderMode ? "doc.richtext" : "book",
                     isActive: false
                 ) {
-                    withAnimation { viewModel.toggleReaderMode() }
+                    withAnimation(.softTap) { viewModel.toggleReaderMode() }
                 }
 
                 // Font size (only in Reader Mode)
@@ -289,7 +289,7 @@ struct ReaderToolbar: View {
         Menu {
             // Reader Mode toggle
             Button {
-                withAnimation { viewModel.toggleReaderMode() }
+                withAnimation(.softTap) { viewModel.toggleReaderMode() }
             } label: {
                 Label(
                     viewModel.isReaderMode ? "PDF View" : "Reader Mode",
@@ -300,7 +300,7 @@ struct ReaderToolbar: View {
             // Day Mode toggle (only in Reader Mode)
             if viewModel.isReaderMode {
                 Button {
-                    withAnimation { viewModel.toggleDayMode() }
+                    withAnimation(.softTap) { viewModel.toggleDayMode() }
                 } label: {
                     Label(
                         viewModel.isDayMode ? "Night Mode" : "Day Mode",
@@ -313,7 +313,7 @@ struct ReaderToolbar: View {
 
             // Search
             Button {
-                withAnimation { viewModel.showSearch = true }
+                withAnimation(.softMenu) { viewModel.showSearch = true }
             } label: {
                 Label("Search", systemImage: "magnifyingglass")
             }
