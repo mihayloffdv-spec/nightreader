@@ -16,24 +16,17 @@ struct MainTabView: View {
 
             NotebookPlaceholderView()
                 .tabItem {
-                    Image(systemName: "magnifyingglass")
-                    Text("Explore")
-                }
-                .tag(1)
-
-            NotebookPlaceholderView()
-                .tabItem {
                     Image(systemName: "square.and.pencil")
                     Text("Journal")
                 }
-                .tag(2)
+                .tag(1)
 
             SettingsView()
                 .tabItem {
                     Image(systemName: "person")
                     Text("Profile")
                 }
-                .tag(3)
+                .tag(2)
         }
         .tint(Color(hex: "#CC704B"))
         .onAppear {
