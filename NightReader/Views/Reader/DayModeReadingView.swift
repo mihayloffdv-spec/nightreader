@@ -40,7 +40,7 @@ struct DayModeReadingView: View {
                     backgroundColor: .clear,
                     progressTint: theme.dayAccent,
                     header: { chapterHeader.padding(.horizontal, 24).padding(.bottom, 24) },
-                    blockContent: { block, screenWidth in
+                    blockContent: { block, _, screenWidth in
                         dayBlockView(block, contentWidth: screenWidth - 48)
                     }
                 )
