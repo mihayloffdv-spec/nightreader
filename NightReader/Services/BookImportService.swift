@@ -20,10 +20,13 @@ struct BookImportService {
     /// Import a book from any supported format. Routes by file extension.
     static func importBook(from sourceURL: URL, context: ModelContext) throws -> Book {
         let ext = sourceURL.pathExtension.lowercased()
+        let isFB2Zip = sourceURL.lastPathComponent.lowercased().hasSuffix(".fb2.zip")
         switch ext {
         case "pdf":
             return try PDFImportService.importPDF(from: sourceURL, context: context)
         case "fb2":
+            return try FB2Importer.importFB2(from: sourceURL, context: context)
+        case "zip" where isFB2Zip:
             return try FB2Importer.importFB2(from: sourceURL, context: context)
         case "epub":
             return try EPUBImporter.importEPUB(from: sourceURL, context: context)

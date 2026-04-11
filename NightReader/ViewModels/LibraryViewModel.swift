@@ -5,15 +5,30 @@ import SwiftUI
 @Observable
 final class LibraryViewModel {
     var showImporter = false
+    var isImporting = false
     var errorMessage: String?
 
     // MARK: - Import
 
+    @MainActor
     func importBook(from url: URL, context: ModelContext) {
-        do {
-            _ = try BookImportService.importBook(from: url, context: context)
-        } catch {
-            errorMessage = error.localizedDescription
+        isImporting = true
+        Task {
+            do {
+                _ = try BookImportService.importBook(from: url, context: context)
+            } catch {
+                errorMessage = error.localizedDescription
+            }
+            isImporting = false
+        }
+    }
+
+    // MARK: - Scan
+
+    @MainActor
+    func scanForUntrackedBooks(context: ModelContext) {
+        Task {
+            BookImportService.scanForUntrackedBooks(context: context)
         }
     }
 

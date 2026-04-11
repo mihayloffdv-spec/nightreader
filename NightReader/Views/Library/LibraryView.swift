@@ -68,11 +68,28 @@ struct LibraryView: View {
             .toolbar(.hidden, for: .navigationBar)
             .fileImporter(
                 isPresented: $viewModel.showImporter,
-                allowedContentTypes: [.pdf, .epub, UTType(importedAs: "org.fb2-format.fb2")],
+                allowedContentTypes: [
+                    .pdf, .epub,
+                    UTType(importedAs: "org.fb2-format.fb2"),
+                    UTType(importedAs: "org.fb2-format.fb2zip"),
+                ],
                 allowsMultipleSelection: false
             ) { result in
                 if case .success(let urls) = result, let url = urls.first {
                     viewModel.importBook(from: url, context: modelContext)
+                }
+            }
+            .overlay {
+                if viewModel.isImporting {
+                    Color.black.opacity(0.4)
+                        .ignoresSafeArea()
+                        .overlay {
+                            ProgressView("Importing…")
+                                .tint(.white)
+                                .foregroundStyle(.white)
+                                .padding(24)
+                                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
+                        }
                 }
             }
             .alert("Error", isPresented: .init(
@@ -116,7 +133,7 @@ struct LibraryView: View {
                 Button("Cancel", role: .cancel) { bookToRename = nil }
             }
             .onAppear {
-                BookImportService.scanForUntrackedBooks(context: modelContext)
+                viewModel.scanForUntrackedBooks(context: modelContext)
                 cleanupMessyTitles()
             }
         }
@@ -602,7 +619,38 @@ struct BookThumbnail: View {
     }
 
     private func generateThumbnail(for book: Book) async -> UIImage? {
-        await Task.detached {
+        // Check for cached cover image (saved by EPUB/FB2 importers)
+        let coverURL = Book.applicationSupportDirectory
+            .appendingPathComponent("covers/\(book.id.uuidString).jpg")
+        if let data = try? Data(contentsOf: coverURL),
+           let img = UIImage(data: data) {
+            return img
+        }
+
+        // For EPUB/FB2: extract cover from provider on first access, cache to disk
+        if book.format != .pdf {
+            return await Task.detached {
+                let cover: UIImage?
+                switch book.format {
+                case .fb2:
+                    cover = (try? FB2ContentProvider(url: book.contentURL))?.cover
+                case .epub:
+                    cover = (try? EPUBContentProvider(directory: book.contentURL))?.cover
+                case .pdf:
+                    return nil
+                }
+                if let img = cover {
+                    let dir = Book.applicationSupportDirectory.appendingPathComponent("covers")
+                    try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+                    try? img.jpegData(compressionQuality: 0.8)?.write(to: coverURL)
+                    return img
+                }
+                return nil
+            }.value
+        }
+
+        // PDF: render first page
+        return await Task.detached {
             guard let doc = PDFDocument(url: book.fileURL),
                   let page = doc.page(at: 0) else { return nil }
             return page.thumbnail(of: CGSize(width: 300, height: 400), for: .cropBox)

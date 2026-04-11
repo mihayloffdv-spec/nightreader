@@ -37,17 +37,34 @@ struct FB2Importer {
         let accessing = sourceURL.startAccessingSecurityScopedResource()
         defer { if accessing { sourceURL.stopAccessingSecurityScopedResource() } }
 
+        // Handle .fb2.zip: extract the .fb2 file from the archive to a temp location
+        let fb2URL: URL
+        var tempExtracted: URL?
         let ext = sourceURL.pathExtension.lowercased()
-        guard ext == "fb2" else {
-            // .fb2.zip requires ZIPFoundation — not yet available
-            throw FB2ImportError.zipNotSupported
+        if ext == "zip" || sourceURL.lastPathComponent.lowercased().hasSuffix(".fb2.zip") {
+            let zip = try MiniZip(url: sourceURL)
+            guard let fb2Entry = zip.entries.first(where: {
+                $0.name.lowercased().hasSuffix(".fb2") && !$0.name.contains("/")
+            }) ?? zip.entries.first(where: { $0.name.lowercased().hasSuffix(".fb2") }) else {
+                throw FB2ImportError.parseFailure("ZIP не содержит .fb2 файла")
+            }
+            let fb2Data = try zip.extract(fb2Entry)
+            let tmpDir = FileManager.default.temporaryDirectory
+            let tmpFile = tmpDir.appendingPathComponent((fb2Entry.name as NSString).lastPathComponent)
+            try fb2Data.write(to: tmpFile, options: .atomic)
+            fb2URL = tmpFile
+            tempExtracted = tmpFile
+        } else {
+            fb2URL = sourceURL
         }
+        defer { if let tmp = tempExtracted { try? FileManager.default.removeItem(at: tmp) } }
 
-        // 1. Copy original to Documents (consistent storage with PDF)
+        // 1. Copy .fb2 to Documents (consistent storage with PDF)
         let docsDir = Book.documentsDirectory
-        let fileName = uniqueFileName(for: sourceURL.lastPathComponent, in: docsDir)
+        let fb2Name = (fb2URL.lastPathComponent as NSString).deletingPathExtension + ".fb2"
+        let fileName = uniqueFileName(for: fb2Name, in: docsDir)
         let destDocs = docsDir.appendingPathComponent(fileName)
-        try FileManager.default.copyItem(at: sourceURL, to: destDocs)
+        try FileManager.default.copyItem(at: fb2URL, to: destDocs)
 
         // 2. Mirror copy to Application Support for FB2ContentProvider
         let fb2Dir = Book.applicationSupportDirectory.appendingPathComponent("books/fb2")
