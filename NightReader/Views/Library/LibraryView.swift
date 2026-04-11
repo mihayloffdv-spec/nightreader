@@ -1,6 +1,7 @@
 import SwiftUI
 import SwiftData
 import PDFKit
+import UniformTypeIdentifiers
 
 // MARK: - Library View (pixel-perfect from HTML mockup)
 //
@@ -67,11 +68,11 @@ struct LibraryView: View {
             .toolbar(.hidden, for: .navigationBar)
             .fileImporter(
                 isPresented: $viewModel.showImporter,
-                allowedContentTypes: [.pdf],
+                allowedContentTypes: [.pdf, .epub, UTType(importedAs: "org.fb2-format.fb2")],
                 allowsMultipleSelection: false
             ) { result in
                 if case .success(let urls) = result, let url = urls.first {
-                    viewModel.importPDF(from: url, context: modelContext)
+                    viewModel.importBook(from: url, context: modelContext)
                 }
             }
             .alert("Error", isPresented: .init(
@@ -115,7 +116,7 @@ struct LibraryView: View {
                 Button("Cancel", role: .cancel) { bookToRename = nil }
             }
             .onAppear {
-                PDFImportService.scanForUntrackedPDFs(context: modelContext)
+                BookImportService.scanForUntrackedBooks(context: modelContext)
                 cleanupMessyTitles()
             }
         }
@@ -126,7 +127,7 @@ struct LibraryView: View {
         for book in books {
             // If title still has underscores or a trailing numeric ID, clean it
             if book.title.contains("_") || looksLikeRawFilename(book.title) {
-                book.title = PDFImportService.cleanFilename(book.title)
+                book.title = BookImportService.cleanFilename(book.title)
             }
         }
         try? modelContext.save()
@@ -384,6 +385,17 @@ struct LibraryView: View {
                                 .padding(.horizontal, 6)
                                 .padding(.vertical, 2)
                                 .background(Capsule().fill(accent))
+                                .padding(6)
+                        }
+                    }
+                    .overlay(alignment: .topLeading) {
+                        if book.format != .pdf {
+                            Text(book.format.rawValue.uppercased())
+                                .font(.custom("Onest", size: 9).bold())
+                                .foregroundStyle(.white)
+                                .padding(.horizontal, 5)
+                                .padding(.vertical, 2)
+                                .background(Capsule().fill(.black.opacity(0.5)))
                                 .padding(6)
                         }
                     }

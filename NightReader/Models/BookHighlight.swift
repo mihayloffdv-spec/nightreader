@@ -16,6 +16,9 @@ struct BookHighlight: Identifiable, Codable {
     var reaction: String?         // 🎭 why it resonated
     var action: String?           // ⚡ what to do about it
     var committed: Bool           // marked as "will actually do" in post-reading
+    // Character-offset anchoring for EPUB/FB2 highlights (nil for PDF)
+    var charOffset: Int?          // UTF-16 code unit offset in plainText(forPage:) output
+    var charLength: Int?          // length in UTF-16 code units
     let createdAt: Date
     var updatedAt: Date
 
@@ -27,7 +30,9 @@ struct BookHighlight: Identifiable, Codable {
         chapter: String? = nil,
         color: String = "yellow",
         reaction: String? = nil,
-        action: String? = nil
+        action: String? = nil,
+        charOffset: Int? = nil,
+        charLength: Int? = nil
     ) {
         self.id = UUID()
         self.bookId = bookId
@@ -39,6 +44,8 @@ struct BookHighlight: Identifiable, Codable {
         self.reaction = reaction
         self.action = action
         self.committed = false
+        self.charOffset = charOffset
+        self.charLength = charLength
         self.createdAt = Date()
         self.updatedAt = Date()
     }

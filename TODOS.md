@@ -77,6 +77,29 @@ All phases from the Reader Mode Evolution plan have been implemented.
 - Argument map — AI analyzes chapter structure (thesis/evidence/conclusion), cached per chapter. **Completed:** 2026-04-08.
 - Stable chapter identity — DJB2 hash of first 200 chars stored as chapterHash on Chapter, SmartHighlight. **Completed:** 2026-04-08.
 
+## Multi-Format v2 (after EPUB+FB2 v1 ships)
+
+### Search для EPUB/FB2
+- **Что**: адаптировать SearchBarView для работы без PDFKit (сейчас зависит от PDFSelection/PDFDocument)
+- **Почему**: пользователь ожидает поиск в любой книге; highlights + search — ключевой флоу
+- **План**: использовать provider.plainText() для поиска по тексту, подсвечивать через PositionedBlock.charOffset
+- **Зависит от**: Multi-Format v1 (BookContentProvider + plainText API)
+- **Effort**: CC ~30m / Human: ~2h
+
+### Экспорт для EPUB/FB2
+- **Что**: адаптировать ExportService для работы без PDFKit (сейчас вызывает PDFPage-рендеринг для контекста)
+- **Почему**: highlights + export в Obsidian — центральный флоу изучения книг; сейчас скрыт для EPUB/FB2
+- **План**: ExportService получает plainText(forPage:) от провайдера вместо PDFPage; формат .md не меняется
+- **Зависит от**: Multi-Format v1
+- **Effort**: CC ~20m / Human: ~1h
+
+### Library thumbnails для EPUB/FB2
+- **Что**: генерировать обложку из EPUB/FB2 метаданных вместо PDF-рендеринга
+- **Почему**: сейчас показывается placeholder иконка для EPUB/FB2 книг в Library
+- **Plan**: EPUBImporter/FB2Importer уже извлекают cover: UIImage? — сохранять в кэш при импорте
+- **Зависит от**: Multi-Format v1
+- **Effort**: CC ~15m / Human: ~30m
+
 ## Future Ideas
 - iPad rotation / split-screen support
 - Horizontal page-turn mode

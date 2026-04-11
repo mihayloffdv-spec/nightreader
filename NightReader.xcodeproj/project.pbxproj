@@ -83,6 +83,16 @@
 		E0000001 /* ReaderViewModel+AI.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1000001 /* ReaderViewModel+AI.swift */; };
 		E0000002 /* ReaderViewModel+Highlights.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1000002 /* ReaderViewModel+Highlights.swift */; };
 		E0000003 /* ReaderViewModel+Session.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1000003 /* ReaderViewModel+Session.swift */; };
+		F0000001 /* Chapter.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1000001 /* Chapter.swift */; };
+		F0000002 /* BookFormat.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1000002 /* BookFormat.swift */; };
+		F0000003 /* BookContentProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1000003 /* BookContentProvider.swift */; };
+		F0000004 /* PDFContentProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1000004 /* PDFContentProvider.swift */; };
+		F0000005 /* FB2ContentProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1000005 /* FB2ContentProvider.swift */; };
+		F0000006 /* FB2Importer.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1000006 /* FB2Importer.swift */; };
+		F0000007 /* MiniZip.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1000007 /* MiniZip.swift */; };
+		F0000008 /* EPUBImporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1000008 /* EPUBImporter.swift */; };
+		F0000009 /* EPUBContentProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1000009 /* EPUBContentProvider.swift */; };
+		F000000A /* BookImportService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F100000A /* BookImportService.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -174,6 +184,16 @@
 		E1000001 /* ReaderViewModel+AI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ReaderViewModel+AI.swift"; sourceTree = "<group>"; };
 		E1000002 /* ReaderViewModel+Highlights.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ReaderViewModel+Highlights.swift"; sourceTree = "<group>"; };
 		E1000003 /* ReaderViewModel+Session.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ReaderViewModel+Session.swift"; sourceTree = "<group>"; };
+		F1000001 /* Chapter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Chapter.swift; sourceTree = "<group>"; };
+		F1000002 /* BookFormat.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BookFormat.swift; sourceTree = "<group>"; };
+		F1000003 /* BookContentProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BookContentProvider.swift; sourceTree = "<group>"; };
+		F1000004 /* PDFContentProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PDFContentProvider.swift; sourceTree = "<group>"; };
+		F1000005 /* FB2ContentProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FB2ContentProvider.swift; sourceTree = "<group>"; };
+		F1000006 /* FB2Importer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FB2Importer.swift; sourceTree = "<group>"; };
+		F1000007 /* MiniZip.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MiniZip.swift; sourceTree = "<group>"; };
+		F1000008 /* EPUBImporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EPUBImporter.swift; sourceTree = "<group>"; };
+		F1000009 /* EPUBContentProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EPUBContentProvider.swift; sourceTree = "<group>"; };
+		F100000A /* BookImportService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BookImportService.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -242,12 +262,14 @@
 			isa = PBXGroup;
 			children = (
 				C1000002 /* Book.swift */,
+				F1000002 /* BookFormat.swift */,
 				C1000003 /* RenderingMode.swift */,
 				C1000004 /* Theme.swift */,
 				C1000005 /* AppSettings.swift */,
 				C1000026 /* ReaderFont.swift */,
 				C1000035 /* AIModels.swift */,
 				D1000011 /* BookHighlight.swift */,
+				F1000001 /* Chapter.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -313,6 +335,14 @@
 		C4000017 /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				F1000003 /* BookContentProvider.swift */,
+				F1000004 /* PDFContentProvider.swift */,
+				F1000005 /* FB2ContentProvider.swift */,
+				F1000006 /* FB2Importer.swift */,
+				F1000007 /* MiniZip.swift */,
+				F1000008 /* EPUBImporter.swift */,
+				F1000009 /* EPUBContentProvider.swift */,
+				F100000A /* BookImportService.swift */,
 				C1000013 /* PDFImportService.swift */,
 				C1000014 /* DarkModeRenderer.swift */,
 				C1000015 /* DarkModePDFPage.swift */,
@@ -558,6 +588,16 @@
 				E0000001 /* ReaderViewModel+AI.swift in Sources */,
 				E0000002 /* ReaderViewModel+Highlights.swift in Sources */,
 				E0000003 /* ReaderViewModel+Session.swift in Sources */,
+				F0000001 /* Chapter.swift in Sources */,
+				F0000002 /* BookFormat.swift in Sources */,
+				F0000003 /* BookContentProvider.swift in Sources */,
+				F0000004 /* PDFContentProvider.swift in Sources */,
+				F0000005 /* FB2ContentProvider.swift in Sources */,
+				F0000006 /* FB2Importer.swift in Sources */,
+				F0000007 /* MiniZip.swift in Sources */,
+				F0000008 /* EPUBImporter.swift in Sources */,
+				F0000009 /* EPUBContentProvider.swift in Sources */,
+				F000000A /* BookImportService.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -749,6 +789,7 @@
 				DEVELOPMENT_TEAM = 7N37858XB8;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = NightReader/Info.plist;
+				SWIFT_OBJC_BRIDGING_HEADER = "NightReader/NightReader-Bridging-Header.h";
 				INFOPLIST_KEY_LSSupportsOpeningDocumentsInPlace = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -781,6 +822,7 @@
 				DEVELOPMENT_TEAM = 7N37858XB8;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = NightReader/Info.plist;
+				SWIFT_OBJC_BRIDGING_HEADER = "NightReader/NightReader-Bridging-Header.h";
 				INFOPLIST_KEY_LSSupportsOpeningDocumentsInPlace = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;

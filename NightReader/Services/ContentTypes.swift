@@ -11,6 +11,21 @@ enum ContentBlock {
     case snapshot(UIImage)  // Rendered region snapshot (tables, diagrams, etc.)
 }
 
+// MARK: - Positioned block
+//
+// Wraps ContentBlock with character-offset anchoring for EPUB/FB2.
+// PDF providers populate id only (offsets are 0); EPUB/FB2 providers populate all fields.
+//
+//   id = "\(pageIndex)-\(startCharOffset)" — stable ScrollViewReader anchor
+//   startCharOffset / endCharOffset — UTF-16 code unit offsets into plainText(forPage:) output
+
+struct PositionedBlock {
+    var id: String
+    var startCharOffset: Int
+    var endCharOffset: Int   // exclusive
+    var content: ContentBlock
+}
+
 // MARK: - Extracted image with position
 
 struct ExtractedImage {

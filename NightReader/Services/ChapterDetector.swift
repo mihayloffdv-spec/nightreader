@@ -1,41 +1,7 @@
 import PDFKit
 
-// MARK: - Chapter model
-
-struct Chapter: Identifiable {
-    let id: Int          // 0-based index
-    let title: String
-    let pageIndex: Int   // First page of this chapter
-    let level: Int       // 0 = top-level, 1 = sub-chapter
-    let source: Source
-
-    /// Stable hash of first 200 chars of chapter text.
-    /// Survives chapter reindexing (heuristic changes, outline updates).
-    var contentHash: String?
-
-    enum Source {
-        case pdfOutline    // From embedded PDF TOC
-        case autoDetected  // From heading detection
-    }
-
-    /// Compute content hash from PDF document.
-    static func computeHash(pageIndex: Int, document: PDFDocument) -> String {
-        let text = document.page(at: pageIndex)?.string ?? ""
-        let prefix = String(text.prefix(200))
-            .components(separatedBy: .whitespacesAndNewlines)
-            .filter { !$0.isEmpty }
-            .joined(separator: " ")
-            .lowercased()
-        // Simple DJB2 hash as hex string
-        var hash: UInt64 = 5381
-        for byte in prefix.utf8 {
-            hash = ((hash &<< 5) &+ hash) &+ UInt64(byte)
-        }
-        return String(hash, radix: 16)
-    }
-}
-
 // MARK: - Chapter detector
+// Chapter model is defined in Models/Chapter.swift
 //
 // Builds a chapter list from a PDF document.
 // Priority: PDF outline (if present) > auto-detected headings.

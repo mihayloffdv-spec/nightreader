@@ -3,6 +3,7 @@ import PDFKit
 
 struct ReaderModeView: View {
     let document: PDFDocument?
+    var provider: (any BookContentProvider)? = nil
     let theme: Theme
     let fontSize: Double
     let fontFamily: ReaderFont
@@ -25,6 +26,7 @@ struct ReaderModeView: View {
     var body: some View {
         PagedContentView(
             document: document,
+            provider: provider,
             currentPageIndex: currentPageIndex,
             savedBlockID: savedBlockID,
             goToPageIndex: $goToPageIndex,

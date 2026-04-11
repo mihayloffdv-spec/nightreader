@@ -14,6 +14,7 @@ import PDFKit
 
 struct PagedContentView<BlockContent: View, Header: View>: View {
     let document: PDFDocument?
+    var provider: (any BookContentProvider)? = nil
     let currentPageIndex: Int
     let savedBlockID: Int
     @Binding var goToPageIndex: Int?
@@ -139,7 +140,8 @@ struct PagedContentView<BlockContent: View, Header: View>: View {
         }
         .onAppear {
             let next = pageIndex + 1
-            if next < (document?.pageCount ?? 0), blocksByPage[next] == nil {
+            let total = provider?.pageCount ?? document?.pageCount ?? 0
+            if next < total, blocksByPage[next] == nil {
                 extractPage(next, contentWidth: screenWidth)
             }
         }
@@ -148,18 +150,42 @@ struct PagedContentView<BlockContent: View, Header: View>: View {
     // MARK: - Data Loading
 
     private func loadPages() {
-        guard let doc = document else { return }
-        pages = Array(0..<doc.pageCount)
+        if let prov = provider {
+            pages = Array(0..<prov.pageCount)
+        } else if let doc = document {
+            pages = Array(0..<doc.pageCount)
+        }
     }
 
     private func extractPage(_ pageIndex: Int, contentWidth: CGFloat) {
+        // Provider path (EPUB/FB2) — async content blocks
+        if let prov = provider {
+            guard !loadingPages.contains(pageIndex), blocksByPage[pageIndex] == nil else {
+                if blocksByPage[pageIndex] != nil && pageIndex == currentPageIndex {
+                    isFirstPageReady = true
+                }
+                return
+            }
+            loadingPages.insert(pageIndex)
+            Task {
+                let blocks = (try? await prov.contentBlocks(forPage: pageIndex)) ?? []
+                let contentBlocks = blocks.map(\.content)
+                blocksByPage[pageIndex] = contentBlocks
+                loadingPages.remove(pageIndex)
+                if pageIndex == currentPageIndex {
+                    isFirstPageReady = true
+                }
+            }
+            return
+        }
+
+        // PDF path — existing PageLoader extraction
         guard let doc = document else { return }
         let needsAsync = PageLoader.extractPage(
             pageIndex, from: doc, contentWidth: contentWidth,
             loadingPages: &loadingPages, blocksByPage: &blocksByPage
         )
         if !needsAsync {
-            // Cache hit. If this is the start page, reveal content immediately.
             if pageIndex == currentPageIndex {
                 isFirstPageReady = true
             }

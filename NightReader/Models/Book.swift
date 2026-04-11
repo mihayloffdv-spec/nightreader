@@ -7,6 +7,7 @@ final class Book {
     var title: String
     var author: String?
     var fileName: String
+    var formatRaw: String = "pdf"  // lightweight SwiftData migration: default covers existing books
     var dateAdded: Date
     var lastReadDate: Date?
     var lastPageIndex: Int
@@ -40,6 +41,11 @@ final class Book {
         set { renderingModeRaw = newValue.rawValue }
     }
 
+    var format: BookFormat {
+        get { BookFormat(rawValue: formatRaw) ?? .pdf }
+        set { formatRaw = newValue.rawValue }
+    }
+
     init(
         title: String,
         author: String? = nil,
@@ -67,8 +73,30 @@ final class Book {
             ?? URL(fileURLWithPath: NSHomeDirectory()).appendingPathComponent("Documents")
     }
 
+    static var applicationSupportDirectory: URL {
+        FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
+            ?? URL(fileURLWithPath: NSHomeDirectory()).appendingPathComponent("Library/Application Support")
+    }
+
+    /// Original file in Documents (all formats store the source file here).
     var fileURL: URL {
         Self.documentsDirectory.appendingPathComponent(fileName)
+    }
+
+    /// Format-specific content location used by content providers.
+    /// PDF: same as fileURL. EPUB: extracted folder in Application Support.
+    /// FB2: file in Application Support/books/fb2/.
+    var contentURL: URL {
+        switch format {
+        case .pdf:
+            return fileURL
+        case .epub:
+            return Self.applicationSupportDirectory
+                .appendingPathComponent("books/epub/\(id.uuidString)/")
+        case .fb2:
+            return Self.applicationSupportDirectory
+                .appendingPathComponent("books/fb2/\(fileName)")
+        }
     }
 
     /// Formatted reading time string (e.g. "2h 15m", "45m", "< 1m").

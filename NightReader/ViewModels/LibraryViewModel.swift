@@ -7,22 +7,23 @@ final class LibraryViewModel {
     var showImporter = false
     var errorMessage: String?
 
-    func importPDF(from url: URL, context: ModelContext) {
+    // MARK: - Import
+
+    func importBook(from url: URL, context: ModelContext) {
         do {
-            _ = try PDFImportService.importPDF(from: url, context: context)
+            _ = try BookImportService.importBook(from: url, context: context)
         } catch {
-            errorMessage = "Failed to import PDF: \(error.localizedDescription)"
+            errorMessage = error.localizedDescription
         }
     }
 
+    // MARK: - Delete
+
     func deleteBook(_ book: Book, context: ModelContext) {
-        let fileURL = book.fileURL
-        context.delete(book)
         do {
-            try context.save()
-            try? FileManager.default.removeItem(at: fileURL)
+            try BookImportService.deleteBook(book, context: context)
         } catch {
-            errorMessage = "Failed to delete book: \(error.localizedDescription)"
+            errorMessage = error.localizedDescription
         }
     }
 }

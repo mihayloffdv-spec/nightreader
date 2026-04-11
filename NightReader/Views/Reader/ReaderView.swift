@@ -60,10 +60,12 @@ struct ReaderView: View {
                         )
                         .ignoresSafeArea()
                         .transition(.opacity)
-                    } else if viewModel.isReaderMode {
+                    } else if viewModel.isReaderMode || !viewModel.isPDF {
                         // Reader Mode — reflowable text (night)
+                        // EPUB/FB2 always use this path (no PDF view fallback)
                         ReaderModeView(
                             document: viewModel.originalDoc,
+                            provider: viewModel.provider,
                             theme: viewModel.selectedTheme,
                             fontSize: viewModel.readerFontSize,
                             fontFamily: viewModel.readerFontFamily,

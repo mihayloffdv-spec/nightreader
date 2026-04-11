@@ -204,12 +204,14 @@ struct ReaderToolbar: View {
 
             // Primary action buttons — 5 large, evenly spaced, tap-friendly (48pt hit area, 22pt icons)
             HStack(spacing: 0) {
-                // Reader Mode toggle
-                toolbarButton(
-                    icon: viewModel.isReaderMode ? "doc.richtext" : "book",
-                    isActive: false
-                ) {
-                    withAnimation(.softTap) { viewModel.toggleReaderMode() }
+                // Reader Mode toggle (PDF only — EPUB/FB2 are always reader mode)
+                if viewModel.isPDF {
+                    toolbarButton(
+                        icon: viewModel.isReaderMode ? "doc.richtext" : "book",
+                        isActive: false
+                    ) {
+                        withAnimation(.softTap) { viewModel.toggleReaderMode() }
+                    }
                 }
 
                 // Font size (only in Reader Mode)
@@ -287,14 +289,16 @@ struct ReaderToolbar: View {
 
     private var toolbarMenu: some View {
         Menu {
-            // Reader Mode toggle
-            Button {
-                withAnimation(.softTap) { viewModel.toggleReaderMode() }
-            } label: {
-                Label(
-                    viewModel.isReaderMode ? "PDF View" : "Reader Mode",
-                    systemImage: viewModel.isReaderMode ? "doc.richtext" : "book"
-                )
+            // Reader Mode toggle (PDF only — EPUB/FB2 are always reader mode)
+            if viewModel.isPDF {
+                Button {
+                    withAnimation(.softTap) { viewModel.toggleReaderMode() }
+                } label: {
+                    Label(
+                        viewModel.isReaderMode ? "PDF View" : "Reader Mode",
+                        systemImage: viewModel.isReaderMode ? "doc.richtext" : "book"
+                    )
+                }
             }
 
             // Day Mode toggle (only in Reader Mode)
@@ -311,11 +315,13 @@ struct ReaderToolbar: View {
 
             Divider()
 
-            // Search
-            Button {
-                withAnimation(.softMenu) { viewModel.showSearch = true }
-            } label: {
-                Label("Search", systemImage: "magnifyingglass")
+            // Search (PDF only — EPUB/FB2 search is v2 scope)
+            if viewModel.isPDF {
+                Button {
+                    withAnimation(.softMenu) { viewModel.showSearch = true }
+                } label: {
+                    Label("Search", systemImage: "magnifyingglass")
+                }
             }
 
             // Table of Contents

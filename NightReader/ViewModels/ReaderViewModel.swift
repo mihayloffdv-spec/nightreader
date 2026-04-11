@@ -13,6 +13,7 @@ import Foundation
 final class ReaderViewModel {
     let book: Book
     var document: PDFDocument?
+    var provider: (any BookContentProvider)?
     var renderingMode: RenderingMode
     var selectedTheme: Theme
     var dimmerOpacity: Double = 0
@@ -115,7 +116,20 @@ final class ReaderViewModel {
     func loadDocument() async {
         isLoading = true
         BlockCache.shared.invalidate()
-        let url = book.fileURL
+        let url = book.contentURL
+
+        switch book.format {
+        case .pdf:
+            await loadPDF(url: url)
+        case .fb2:
+            await loadFB2(url: url)
+        case .epub:
+            await loadEPUB(url: url)
+        }
+    }
+
+    @MainActor
+    private func loadPDF(url: URL) async {
         let doc: PDFDocument? = await withCheckedContinuation { continuation in
             DispatchQueue.global(qos: .userInitiated).async {
                 continuation.resume(returning: PDFDocument(url: url))
@@ -124,6 +138,8 @@ final class ReaderViewModel {
 
         if let doc {
             self.originalDocument = doc
+            // Create provider alongside document for content-provider-aware features
+            self.provider = try? PDFContentProvider(url: url)
             if book.totalPages == 0 {
                 book.totalPages = doc.pageCount
             }
@@ -149,12 +165,52 @@ final class ReaderViewModel {
                 }
             }
         } else {
-            loadError = "File is missing or corrupted."
+            loadError = "Файл повреждён или недоступен."
+            isLoading = false
+        }
+    }
+
+    @MainActor
+    private func loadEPUB(url: URL) async {
+        do {
+            let epubProvider = try await Task.detached(priority: .userInitiated) {
+                try EPUBContentProvider(directory: url)
+            }.value
+            self.provider = epubProvider
+            if book.totalPages == 0 {
+                book.totalPages = epubProvider.pageCount
+            }
+            self.chapters = epubProvider.outline
+            updateChapterInfo()
+            isLoading = false
+        } catch {
+            loadError = error.localizedDescription
+            isLoading = false
+        }
+    }
+
+    @MainActor
+    private func loadFB2(url: URL) async {
+        do {
+            let fb2Provider = try await Task.detached(priority: .userInitiated) {
+                try FB2ContentProvider(url: url)
+            }.value
+            self.provider = fb2Provider
+            if book.totalPages == 0 {
+                book.totalPages = fb2Provider.pageCount
+            }
+            self.chapters = fb2Provider.outline
+            updateChapterInfo()
+            isLoading = false
+        } catch {
+            loadError = error.localizedDescription
             isLoading = false
         }
     }
 
     // MARK: - Navigation & Progress
+
+    var isPDF: Bool { book.format == .pdf }
 
     var isDarkModeEnabled: Bool { renderingMode != .off }
 
@@ -173,6 +229,31 @@ final class ReaderViewModel {
     func goToPage(_ pageIndex: Int) { goToPageIndex = pageIndex }
 
     func goToSelection(_ selection: PDFSelection) { goToSelectionValue = selection }
+
+    /// Navigate to a highlight. For EPUB/FB2, uses charOffset to find the right block.
+    /// For PDF, uses page index only (PDFSelection-based navigation is separate).
+    func goToHighlight(_ highlight: BookHighlight) {
+        if let offset = highlight.charOffset, !isPDF {
+            // Find which block contains this charOffset.
+            // Block IDs in PagedContentView = pageIndex * 10000 + blockOffset.
+            // We need the block index. Use the provider to find it.
+            let page = highlight.page
+            Task {
+                if let prov = provider {
+                    let blocks = (try? await prov.contentBlocks(forPage: page)) ?? []
+                    let blockIdx = blocks.firstIndex {
+                        $0.startCharOffset <= offset && offset < $0.endCharOffset
+                    } ?? 0
+                    book.scrollOffsetY = Double(page * 10000 + blockIdx)
+                    goToPageIndex = page
+                } else {
+                    goToPageIndex = page
+                }
+            }
+        } else {
+            goToPageIndex = highlight.page
+        }
+    }
 
     func savePosition(pageIndex: Int, scrollOffset: Double) {
         book.lastPageIndex = pageIndex
