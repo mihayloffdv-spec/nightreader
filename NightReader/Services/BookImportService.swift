@@ -107,7 +107,15 @@ struct BookImportService {
     }
 
     private static func scanSingleFB2(file: String, url: URL, context: ModelContext) {
-        guard let provider = try? FB2ContentProvider(url: url) else { return }
+        // Create AppSupport copy so book.contentURL resolves correctly
+        let fb2Dir = Book.applicationSupportDirectory.appendingPathComponent("books/fb2")
+        try? FileManager.default.createDirectory(at: fb2Dir, withIntermediateDirectories: true)
+        let destAppSupport = fb2Dir.appendingPathComponent(file)
+        if !FileManager.default.fileExists(atPath: destAppSupport.path) {
+            try? FileManager.default.copyItem(at: url, to: destAppSupport)
+        }
+
+        guard let provider = try? FB2ContentProvider(url: destAppSupport) else { return }
         let title = provider.title?.trimmingCharacters(in: .whitespacesAndNewlines)
         let cleanTitle = (title?.isEmpty == false ? title : nil)
             ?? cleanFilename((file as NSString).deletingPathExtension)

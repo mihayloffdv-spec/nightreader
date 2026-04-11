@@ -398,22 +398,47 @@ private enum XHTMLBlockParser {
             s.removeSubrange(r.lowerBound ..< end.upperBound)
         }
 
-        // Replace common named HTML entities not defined in XML
-        let entities: [(String, String)] = [
-            ("&nbsp;",  "\u{00A0}"), ("&mdash;", "—"), ("&ndash;", "–"),
-            ("&laquo;", "«"),        ("&raquo;", "»"), ("&hellip;","…"),
-            ("&lsquo;", "\u{2018}"), ("&rsquo;", "\u{2019}"),
-            ("&ldquo;", "\u{201C}"), ("&rdquo;", "\u{201D}"),
-            ("&bull;",  "•"),        ("&middot;","·"), ("&copy;",  "©"),
-            ("&reg;",   "®"),        ("&trade;", "™"), ("&sect;",  "§"),
-            ("&para;",  "¶"),        ("&dagger;","†"), ("&Dagger;","‡"),
+        // Replace named HTML entities not defined in XML.
+        // Full map covers Latin-1 supplement + common typography.
+        let entities: [String: String] = [
+            "nbsp": "\u{00A0}", "iexcl": "¡", "cent": "¢", "pound": "£",
+            "curren": "¤", "yen": "¥", "brvbar": "¦", "sect": "§",
+            "uml": "¨", "copy": "©", "ordf": "ª", "laquo": "«",
+            "not": "¬", "shy": "\u{00AD}", "reg": "®", "macr": "¯",
+            "deg": "°", "plusmn": "±", "sup2": "²", "sup3": "³",
+            "acute": "´", "micro": "µ", "para": "¶", "middot": "·",
+            "cedil": "¸", "sup1": "¹", "ordm": "º", "raquo": "»",
+            "frac14": "¼", "frac12": "½", "frac34": "¾", "iquest": "¿",
+            "Agrave": "À", "Aacute": "Á", "Acirc": "Â", "Atilde": "Ã",
+            "Auml": "Ä", "Aring": "Å", "AElig": "Æ", "Ccedil": "Ç",
+            "Egrave": "È", "Eacute": "É", "Ecirc": "Ê", "Euml": "Ë",
+            "Igrave": "Ì", "Iacute": "Í", "Icirc": "Î", "Iuml": "Ï",
+            "ETH": "Ð", "Ntilde": "Ñ", "Ograve": "Ò", "Oacute": "Ó",
+            "Ocirc": "Ô", "Otilde": "Õ", "Ouml": "Ö", "times": "×",
+            "Oslash": "Ø", "Ugrave": "Ù", "Uacute": "Ú", "Ucirc": "Û",
+            "Uuml": "Ü", "Yacute": "Ý", "THORN": "Þ", "szlig": "ß",
+            "agrave": "à", "aacute": "á", "acirc": "â", "atilde": "ã",
+            "auml": "ä", "aring": "å", "aelig": "æ", "ccedil": "ç",
+            "egrave": "è", "eacute": "é", "ecirc": "ê", "euml": "ë",
+            "igrave": "ì", "iacute": "í", "icirc": "î", "iuml": "ï",
+            "eth": "ð", "ntilde": "ñ", "ograve": "ò", "oacute": "ó",
+            "ocirc": "ô", "otilde": "õ", "ouml": "ö", "divide": "÷",
+            "oslash": "ø", "ugrave": "ù", "uacute": "ú", "ucirc": "û",
+            "uuml": "ü", "yacute": "ý", "thorn": "þ", "yuml": "ÿ",
+            "mdash": "—", "ndash": "–", "hellip": "…",
+            "lsquo": "\u{2018}", "rsquo": "\u{2019}",
+            "ldquo": "\u{201C}", "rdquo": "\u{201D}",
+            "bull": "•", "trade": "™", "dagger": "†", "Dagger": "‡",
+            "permil": "‰", "lsaquo": "‹", "rsaquo": "›",
+            "euro": "€", "thinsp": "\u{2009}", "ensp": "\u{2002}", "emsp": "\u{2003}",
         ]
-        for (entity, replacement) in entities {
-            s = s.replacingOccurrences(of: entity, with: replacement)
+        // Replace known named entities with their Unicode equivalents
+        for (name, value) in entities {
+            s = s.replacingOccurrences(of: "&\(name);", with: value)
         }
-        // Remove any other unknown named entities to prevent XMLParser errors
+        // Any remaining unknown named entities: replace with space to preserve word boundaries
         s = s.replacingOccurrences(of: #"&[a-zA-Z][a-zA-Z0-9]*;"#,
-                                   with: "", options: .regularExpression)
+                                   with: " ", options: .regularExpression)
 
         // Wrap in a root element if needed (bare XHTML body fragments)
         if !s.contains("<html") && !s.contains("<body") {

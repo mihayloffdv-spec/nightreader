@@ -159,7 +159,17 @@ private final class FB2Parser: NSObject, XMLParserDelegate {
 
         let name = localName(elementName, qName: qName)
         currentPath.append(name)
-        currentText = ""
+
+        // Only reset text for block-level elements. Inline tags like <emphasis>,
+        // <strong>, <a>, <strikethrough> must NOT reset — they appear inside <p>.
+        let blockTags: Set<String> = [
+            "body", "description", "section", "title", "p", "v", "subtitle",
+            "coverpage", "image", "binary", "book-title", "first-name",
+            "middle-name", "last-name", "author"
+        ]
+        if blockTags.contains(name) {
+            currentText = ""
+        }
 
         switch name {
         case "body":

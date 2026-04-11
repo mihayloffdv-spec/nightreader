@@ -56,11 +56,14 @@ final class MiniZip {
     }
 
     /// Writes every non-directory entry to `directory`, creating subdirectories as needed.
+    /// Validates that resolved paths stay inside `directory` (prevents path traversal).
     func extractAll(to directory: URL) throws {
         let fm = FileManager.default
+        let root = directory.standardized.path
         for entry in entries {
             guard !entry.name.hasSuffix("/") else { continue }
-            let dest = directory.appendingPathComponent(entry.name)
+            let dest = directory.appendingPathComponent(entry.name).standardized
+            guard dest.path.hasPrefix(root) else { continue } // path traversal — skip
             try fm.createDirectory(at: dest.deletingLastPathComponent(),
                                    withIntermediateDirectories: true)
             let fileData = try extract(entry)
@@ -121,8 +124,16 @@ final class MiniZip {
 
     // MARK: - Raw DEFLATE decompression via zlib
 
+    /// Max allocation per entry to prevent OOM from malicious declared sizes (100 MB).
+    private static let maxDecompressedSize = 100 * 1024 * 1024
+
     private func inflateRaw(_ compressed: Data, expected: Int) throws -> Data {
-        let outputSize = max(expected, 1)
+        // Cap allocation: don't trust declared size blindly.
+        // If expected is 0 or unreasonably large, use compressed * 4 as estimate.
+        let capped = expected > 0 && expected <= MiniZip.maxDecompressedSize
+            ? expected
+            : min(compressed.count * 4, MiniZip.maxDecompressedSize)
+        let outputSize = max(capped, 256)
         var output = Data(count: outputSize)
         var written = 0
         let status: Int32 = compressed.withUnsafeBytes { src in
@@ -144,7 +155,8 @@ final class MiniZip {
                 return s
             }
         }
-        guard status == Z_STREAM_END || status == Z_OK || status == Z_BUF_ERROR else {
+        // Z_STREAM_END = success. Z_BUF_ERROR with data = truncated (output too small).
+        guard status == Z_STREAM_END else {
             throw MiniZipError.decompressionFailed(status)
         }
         return output.prefix(written)
@@ -172,10 +184,14 @@ enum MiniZipError: Error, LocalizedError {
 // MARK: - Data helpers (file-private)
 
 fileprivate extension Data {
+    /// Alignment-safe little-endian read (ZIP headers are byte-packed).
     func le16(at offset: Int) -> UInt16 {
-        withUnsafeBytes { $0.load(fromByteOffset: offset, as: UInt16.self) }.littleEndian
+        UInt16(self[offset]) | UInt16(self[offset + 1]) << 8
     }
     func le32(at offset: Int) -> UInt32 {
-        withUnsafeBytes { $0.load(fromByteOffset: offset, as: UInt32.self) }.littleEndian
+        UInt32(self[offset])
+        | UInt32(self[offset + 1]) << 8
+        | UInt32(self[offset + 2]) << 16
+        | UInt32(self[offset + 3]) << 24
     }
 }

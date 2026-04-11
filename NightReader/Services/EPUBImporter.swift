@@ -121,7 +121,9 @@ struct EPUBImporter {
         let parser = ContainerXMLParser()
         let xml = XMLParser(data: data)
         xml.delegate = parser
-        xml.parse()
+        guard xml.parse() else {
+            throw EPUBImportError.parseFailure(xml.parserError?.localizedDescription)
+        }
         guard let path = parser.opfPath else {
             throw EPUBImportError.parseFailure("container.xml не содержит rootfile/@full-path")
         }
@@ -140,7 +142,9 @@ struct EPUBImporter {
         let parser = OPFParser()
         let xml = XMLParser(data: data)
         xml.delegate = parser
-        xml.parse()
+        guard xml.parse() else {
+            throw EPUBImportError.parseFailure(xml.parserError?.localizedDescription)
+        }
         return OPFResult(title: parser.title, author: parser.author,
                          spineCount: parser.spineItemRefs.count)
     }
