@@ -79,7 +79,7 @@ struct PostReadingReviewView: View {
                     HStack(spacing: 16) {
                         if currentStep > 0 {
                             Button {
-                                withAnimation { currentStep -= 1 }
+                                withAnimation(.easeInOut(duration: 0.25)) { currentStep -= 1 }
                             } label: {
                                 Text("Back")
                                     .font(theme.labelFont(size: 14))
@@ -92,7 +92,7 @@ struct PostReadingReviewView: View {
 
                         Button {
                             if currentStep < 2 {
-                                withAnimation { currentStep += 1 }
+                                withAnimation(.easeInOut(duration: 0.25)) { currentStep += 1 }
                             } else {
                                 saveAndDismiss()
                             }

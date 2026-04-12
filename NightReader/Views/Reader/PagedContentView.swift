@@ -88,7 +88,7 @@ struct PagedContentView<BlockContent: View, Header: View>: View {
                     .onChange(of: goToPageIndex) { _, newValue in
                         if let page = newValue {
                             let targetID = page * 10000
-                            withAnimation {
+                            withAnimation(.easeInOut(duration: 0.3)) {
                                 scrollProxy.scrollTo(targetID, anchor: .top)
                             }
                             goToPageIndex = nil

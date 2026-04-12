@@ -202,13 +202,16 @@ struct PDFKitView: UIViewRepresentable {
             context.coordinator.lastNavigatedSelection = nil
         }
 
-        // Simple mode uses compositing filter overlays — skip if unchanged
+        // Simple mode uses compositing filter overlays — skip if unchanged.
+        // First application (initial document load) is unanimated; subsequent
+        // user-triggered toggles fade smoothly via DarkModeRenderer.
         if context.coordinator.lastAppliedRenderingMode != renderingMode {
+            let isInitial = context.coordinator.lastAppliedRenderingMode == nil
             context.coordinator.lastAppliedRenderingMode = renderingMode
             if renderingMode == .simple {
-                DarkModeRenderer.applyDarkMode(to: pdfView, theme: theme)
+                DarkModeRenderer.applyDarkMode(to: pdfView, theme: theme, animated: !isInitial)
             } else {
-                DarkModeRenderer.removeDarkMode(from: pdfView)
+                DarkModeRenderer.removeDarkMode(from: pdfView, animated: !isInitial)
             }
         }
     }

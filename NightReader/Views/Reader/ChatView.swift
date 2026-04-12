@@ -29,7 +29,9 @@ struct ChatView: View {
                     }
                     .onChange(of: viewModel.chatMessages.count) { _, _ in
                         if let last = viewModel.chatMessages.last {
-                            withAnimation { proxy.scrollTo(last.id, anchor: .bottom) }
+                            withAnimation(.easeOut(duration: 0.25)) {
+                                proxy.scrollTo(last.id, anchor: .bottom)
+                            }
                         }
                     }
                 }

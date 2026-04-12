@@ -94,10 +94,7 @@ struct ReaderView: View {
                             smartHighlightTexts: viewModel.annotationStore?.activeSmartHighlights.map(\.text) ?? []
                         )
                         .ignoresSafeArea()
-                        .transition(.asymmetric(
-                            insertion: .move(edge: .trailing).combined(with: .opacity),
-                            removal: .move(edge: .leading).combined(with: .opacity)
-                        ))
+                        .transition(.opacity)
                     } else {
                         // PDF content
                         PDFKitView(
@@ -116,16 +113,13 @@ struct ReaderView: View {
                             },
                             onHighlight: { _ in },
                             onTapEmpty: {
-                                withAnimation(.easeInOut(duration: 0.25)) {
+                                withAnimation(.softMenu) {
                                     viewModel.toggleToolbar()
                                 }
                             }
                         )
                         .ignoresSafeArea()
-                        .transition(.asymmetric(
-                            insertion: .move(edge: .leading).combined(with: .opacity),
-                            removal: .move(edge: .trailing).combined(with: .opacity)
-                        ))
+                        .transition(.opacity)
                     }
                 }
                 .animation(.softFade, value: viewModel.isReaderMode)

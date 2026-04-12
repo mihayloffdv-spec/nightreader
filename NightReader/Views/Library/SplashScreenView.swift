@@ -106,7 +106,9 @@ struct SplashScreenView: View {
             .opacity(contentOpacity)
         }
         .task {
-            withAnimation(.easeIn(duration: 0.8)) {
+            // easeOut for entrances (fast start, slow settle), 0.3s sits in
+            // the standard transition range. easeIn was wrong direction.
+            withAnimation(.easeOut(duration: 0.3)) {
                 contentOpacity = 1
             }
             try? await Task.sleep(for: .seconds(Self.displayDuration))

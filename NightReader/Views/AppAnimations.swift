@@ -20,8 +20,10 @@ extension Animation {
     }
 
     /// Gentle fade for content swaps (mode changes, theme changes).
+    /// 0.25s sits comfortably in the standard transition range — fast enough
+    /// to feel responsive, slow enough that the eye registers the swap.
     static var softFade: Animation {
-        .easeInOut(duration: 0.35)
+        .easeInOut(duration: 0.25)
     }
 }
 

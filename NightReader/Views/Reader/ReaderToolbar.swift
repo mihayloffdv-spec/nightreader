@@ -102,7 +102,7 @@ struct ReaderToolbar: View {
 
             // Bookmark
             Button {
-                withAnimation(.spring(response: 0.3, dampingFraction: 0.5)) {
+                withAnimation(.softTap) {
                     viewModel.toggleBookmark()
                 }
             } label: {
@@ -181,14 +181,18 @@ struct ReaderToolbar: View {
                     )
                 }
                 .frame(height: 20)
-                .animation(.easeInOut(duration: 0.15), value: isDraggingScrubber)
+                // Driver removed — explicit withAnimation in drag handlers (lines 172, 178)
+                // already controls capsule height transition. Double-driver caused unpredictable timing.
 
                 Text("\(Int(viewModel.progressFraction * 100))%")
                     .font(theme.captionFont(size: 12).monospacedDigit())
                     .foregroundStyle(theme.textSecondary)
                     .contentTransition(.numericText())
             }
-            .animation(.easeInOut(duration: 0.2), value: viewModel.progressFraction)
+            // No animation during drag — bar must track finger 1:1.
+            // For programmatic page changes, restore subtle ease.
+            .animation(isDraggingScrubber ? nil : .easeInOut(duration: 0.2),
+                       value: viewModel.progressFraction)
 
             // Chapter info
             if let chapter = viewModel.currentChapter {
