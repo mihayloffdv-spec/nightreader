@@ -12,10 +12,30 @@ struct DarkModeRenderer {
     private static let toggleDuration: TimeInterval = 0.25
 
     static func applyDarkMode(to pdfView: PDFView, theme: Theme, animated: Bool = true) {
-        guard pdfView.viewWithTag(invertTag) == nil else {
-            // Already applied — just update tint color
-            if let tintView = pdfView.viewWithTag(tintTag) {
-                tintView.backgroundColor = theme.tintUIColor
+        // Reuse existing overlay if present (covers both fully-applied and
+        // mid-fade-out states — see rapid toggle race fix below).
+        if let invertView = pdfView.viewWithTag(invertTag) as? UIView,
+           let tintView   = pdfView.viewWithTag(tintTag)   as? UIView {
+            // Cancel any in-flight fade-out by removing pending animations
+            // and re-targeting alpha=1. Without this, a fade-out completion
+            // would later removeFromSuperview() the views we just "kept".
+            invertView.layer.removeAllAnimations()
+            tintView.layer.removeAllAnimations()
+            tintView.backgroundColor = theme.tintUIColor
+
+            let restore = {
+                invertView.alpha = 1
+                tintView.alpha = 1
+            }
+            if animated {
+                UIView.animate(
+                    withDuration: toggleDuration,
+                    delay: 0,
+                    options: [.curveEaseInOut, .allowUserInteraction, .beginFromCurrentState],
+                    animations: restore
+                )
+            } else {
+                restore()
             }
             return
         }
@@ -44,7 +64,7 @@ struct DarkModeRenderer {
         UIView.animate(
             withDuration: toggleDuration,
             delay: 0,
-            options: [.curveEaseInOut, .allowUserInteraction]
+            options: [.curveEaseInOut, .allowUserInteraction, .beginFromCurrentState]
         ) {
             invertView.alpha = 1
             tintView.alpha = 1
@@ -55,7 +75,9 @@ struct DarkModeRenderer {
         let invertView = pdfView.viewWithTag(invertTag)
         let tintView = pdfView.viewWithTag(tintTag)
 
-        guard animated, invertView != nil || tintView != nil else {
+        guard invertView != nil || tintView != nil else { return }
+
+        guard animated else {
             invertView?.removeFromSuperview()
             tintView?.removeFromSuperview()
             return
@@ -64,15 +86,28 @@ struct DarkModeRenderer {
         UIView.animate(
             withDuration: toggleDuration,
             delay: 0,
-            options: [.curveEaseInOut, .allowUserInteraction],
+            options: [.curveEaseInOut, .allowUserInteraction, .beginFromCurrentState],
             animations: {
                 invertView?.alpha = 0
                 tintView?.alpha = 0
             },
-            completion: { _ in
-                invertView?.removeFromSuperview()
-                tintView?.removeFromSuperview()
+            completion: { finished in
+                // Only remove if the fade-out actually completed AND nothing
+                // else re-applied dark mode to the same views. Without this
+                // guard, a rapid simple→off→simple sequence could orphan the
+                // .simple state with no overlay.
+                guard finished else { return }
+                if let v = invertView, v.alpha == 0 { v.removeFromSuperview() }
+                if let v = tintView,   v.alpha == 0 { v.removeFromSuperview() }
             }
         )
+    }
+
+    /// Updates the multiply tint color when the user changes theme while
+    /// dark mode is already active. Called from ReaderViewModel.setTheme.
+    /// No-op if dark mode is not currently applied.
+    static func updateTint(on pdfView: PDFView, theme: Theme) {
+        guard let tintView = pdfView.viewWithTag(tintTag) else { return }
+        tintView.backgroundColor = theme.tintUIColor
     }
 }

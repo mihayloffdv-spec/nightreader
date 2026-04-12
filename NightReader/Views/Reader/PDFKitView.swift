@@ -95,6 +95,9 @@ struct PDFKitView: UIViewRepresentable {
     var cropMargin: Double = 0
     let goToPageIndex: Int?
     let goToSelection: PDFSelection?
+    /// True once the user has manually changed rendering mode in this session.
+    /// Drives whether dark mode toggles fade or apply instantly.
+    var hasUserToggledRenderingMode: Bool = false
     let onPageChange: (Int, Double) -> Void
     let onHighlight: (PDFSelection) -> Void
     let onTapEmpty: () -> Void
@@ -203,16 +206,28 @@ struct PDFKitView: UIViewRepresentable {
         }
 
         // Simple mode uses compositing filter overlays — skip if unchanged.
-        // First application (initial document load) is unanimated; subsequent
-        // user-triggered toggles fade smoothly via DarkModeRenderer.
+        // Animation gating is driven by hasUserToggledRenderingMode (which lives
+        // on the ReaderViewModel and survives PDFKitView re-creation when SwiftUI
+        // swaps Reader↔PDF view). The coordinator's lastAppliedRenderingMode
+        // alone is not sufficient — it resets on every view recreation.
         if context.coordinator.lastAppliedRenderingMode != renderingMode {
-            let isInitial = context.coordinator.lastAppliedRenderingMode == nil
             context.coordinator.lastAppliedRenderingMode = renderingMode
             if renderingMode == .simple {
-                DarkModeRenderer.applyDarkMode(to: pdfView, theme: theme, animated: !isInitial)
+                DarkModeRenderer.applyDarkMode(
+                    to: pdfView, theme: theme,
+                    animated: hasUserToggledRenderingMode
+                )
             } else {
-                DarkModeRenderer.removeDarkMode(from: pdfView, animated: !isInitial)
+                DarkModeRenderer.removeDarkMode(
+                    from: pdfView,
+                    animated: hasUserToggledRenderingMode
+                )
             }
+        } else if renderingMode == .simple {
+            // Mode unchanged but theme may have changed — refresh the multiply tint.
+            // Without this, switching theme while dark mode is active leaves the
+            // overlay tinted with the old color until the next renderingMode toggle.
+            DarkModeRenderer.updateTint(on: pdfView, theme: theme)
         }
     }
 

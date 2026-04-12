@@ -7,7 +7,7 @@
 Custom токены анимаций определены в [NightReader/Views/AppAnimations.swift](NightReader/Views/AppAnimations.swift):
 - `softMenu` = `spring(response: 0.38, dampingFraction: 0.82)` — меню/тулбары/тултипы
 - `softTap`  = `spring(response: 0.32, dampingFraction: 0.85)` — тапы по кнопкам и тогглы
-- `softFade` = `easeInOut(duration: 0.35)` — смена контента (mode/theme)
+- `softFade` = `easeInOut(duration: 0.25)` — смена контента (mode/theme) (was 0.35, trimmed in Phase 3)
 - `softTop` / `softBottom` = `move(edge:).combined(with: .opacity)` — слайды панелей
 
 ---

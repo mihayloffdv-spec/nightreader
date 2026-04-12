@@ -106,6 +106,7 @@ struct ReaderView: View {
                             cropMargin: viewModel.cropMargin,
                             goToPageIndex: viewModel.goToPageIndex,
                             goToSelection: viewModel.goToSelectionValue,
+                            hasUserToggledRenderingMode: viewModel.hasUserToggledRenderingMode,
                             onPageChange: { page, offset in
                                 viewModel.savePosition(pageIndex: page, scrollOffset: offset)
                                 viewModel.goToPageIndex = nil

@@ -335,8 +335,15 @@ final class ReaderViewModel {
 
     // MARK: - Theme & Rendering
 
+    /// True once the user has toggled rendering mode at least once during this
+    /// reader session. Used by PDFKitView to skip the dark mode fade animation
+    /// on initial document load (which would otherwise visibly flash even
+    /// though it is the user's saved default).
+    var hasUserToggledRenderingMode: Bool = false
+
     func setRenderingMode(_ mode: RenderingMode) {
         scheduleHideToolbar()
+        hasUserToggledRenderingMode = true
         renderingMode = mode
         book.renderingMode = mode
         AppSettings.shared.defaultRenderingMode = mode.rawValue
